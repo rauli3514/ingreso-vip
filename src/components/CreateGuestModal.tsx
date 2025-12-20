@@ -16,6 +16,8 @@ export default function CreateGuestModal({ isOpen, onClose, event, guestToEdit, 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [tableInfo, setTableInfo] = useState('');
+    const [isAfterParty, setIsAfterParty] = useState(false);
+    const [hasPuff, setHasPuff] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -25,10 +27,14 @@ export default function CreateGuestModal({ isOpen, onClose, event, guestToEdit, 
                 setFirstName(guestToEdit.first_name);
                 setLastName(guestToEdit.last_name);
                 setTableInfo(guestToEdit.table_info || '');
+                setIsAfterParty(guestToEdit.is_after_party || false);
+                setHasPuff(guestToEdit.has_puff || false);
             } else {
                 setFirstName('');
                 setLastName('');
                 setTableInfo('');
+                setIsAfterParty(false);
+                setHasPuff(false);
             }
             setError(null);
         }
@@ -54,6 +60,8 @@ export default function CreateGuestModal({ isOpen, onClose, event, guestToEdit, 
                 last_name: lastName,
                 display_name: `${firstName} ${lastName}`,
                 table_info: tableInfo || null,
+                is_after_party: isAfterParty,
+                has_puff: hasPuff,
             };
 
             if (guestToEdit) {
@@ -155,6 +163,34 @@ export default function CreateGuestModal({ isOpen, onClose, event, guestToEdit, 
                                     className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600"
                                     placeholder="Ej. Mesa 5, VIP, Barra..."
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 p-3 rounded-lg bg-white/5 border border-white/5">
+                        <div className="flex-1 flex items-center gap-3 cursor-pointer" onClick={() => setIsAfterParty(!isAfterParty)}>
+                            <input
+                                type="checkbox"
+                                checked={isAfterParty}
+                                onChange={(e) => setIsAfterParty(e.target.checked)}
+                                className="checkbox checkbox-warning checkbox-sm"
+                            />
+                            <div className="flex flex-col">
+                                <span className="text-sm text-white font-medium">Trasnoche</span>
+                                <span className="text-[10px] text-slate-500">Acceso post-cena</span>
+                            </div>
+                        </div>
+                        <div className="w-[1px] bg-white/10 h-8 self-center"></div>
+                        <div className="flex-1 flex items-center gap-3 cursor-pointer" onClick={() => setHasPuff(!hasPuff)}>
+                            <input
+                                type="checkbox"
+                                checked={hasPuff}
+                                onChange={(e) => setHasPuff(e.target.checked)}
+                                className="checkbox checkbox-warning checkbox-sm"
+                            />
+                            <div className="flex flex-col">
+                                <span className="text-sm text-white font-medium">Asignar Puff</span>
+                                <span className="text-[10px] text-slate-500">Tiene lugar en Living</span>
                             </div>
                         </div>
                     </div>

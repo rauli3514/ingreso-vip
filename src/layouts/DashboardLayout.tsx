@@ -10,6 +10,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const { signOut, user, role } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Bloquear usuarios deshabilitados
+    useEffect(() => {
+        if (role === 'disabled') {
+            alert('Tu cuenta ha sido deshabilitada. Contacta al administrador.');
+            signOut();
+            navigate('/login');
+        }
+    }, [role, signOut, navigate]);
+
     const handleSignOut = async () => {
         await signOut();
         navigate('/login');

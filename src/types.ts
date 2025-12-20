@@ -1,4 +1,4 @@
-export type UserRole = 'superadmin' | 'provider' | 'admin';
+export type UserRole = 'superadmin' | 'provider' | 'admin' | 'disabled';
 
 export interface UserProfile {
     id: string;
@@ -38,6 +38,7 @@ export interface Event {
     description?: string;
     video_url_default?: string;
     video_configuration?: Record<string, string>; // Map table_name -> video_url
+    after_party_time?: string; // Hora de trasnoche
 }
 
 export interface Guest {
@@ -49,4 +50,6 @@ export interface Guest {
     table_info?: string; // e.g. "Mesa 1", "Living", etc.
     assigned_video_url?: string;
     status: 'pending' | 'confirmed' | 'arrived';
+    is_after_party?: boolean; // Es invitado de trasnoche
+    has_puff?: boolean; // Tiene puff asignado
 }

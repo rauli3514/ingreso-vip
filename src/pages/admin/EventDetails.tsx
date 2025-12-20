@@ -40,6 +40,7 @@ export default function EventDetails() {
 
 
     // Video Assignment State
+    const [, setHasAfterParty] = useState(false); // Only setter is used
     const [videoSearchQuery, setVideoSearchQuery] = useState('');
     const [selectedGuestsForVideo, setSelectedGuestsForVideo] = useState<Set<string>>(new Set());
 
@@ -65,19 +66,10 @@ export default function EventDetails() {
 
             if (error) throw error;
             setEvent(data);
-        } catch (error) {
+            setHasAfterParty(data.has_after_party);
+        } catch (error: any) {
             console.error('Error loading event:', error);
-            // Mock data for UI verification
-            setEvent({
-                id: '123',
-                name: 'Evento de Prueba (Visualización)',
-                date: '2025-12-25',
-                guest_count_total: 150,
-                status: 'active',
-                table_count: 15,
-                owner_id: 'user-id',
-                created_at: new Date().toISOString()
-            } as any);
+            alert(`❌ Error cargando evento: ${error.message}. \n\nSi acabas de actualizar la app, es probable que falten columnas en la base de datos. Ejecuta el script FIX_DB_FINAL.sql en Supabase.`);
         } finally {
             setLoading(false);
         }
@@ -636,15 +628,49 @@ export default function EventDetails() {
         }
     };
 
-    const handleUpdateEvent = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (event?.id === '123') {
-            alert('En modo demo no se pueden guardar cambios de configuración.');
-            return;
-        }
+    const handleChangeEvent = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        if (!event) return;
+        const target = e.target as HTMLInputElement;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
 
-        // Logic to update event in Supabase would go here
-        alert('Configuración guardada (simulado).');
+        setEvent(prev => prev ? ({ ...prev, [name]: value }) : null);
+        if (name === 'has_after_party') setHasAfterParty(value as boolean);
+    };
+
+    const handleUpdateEvent = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!event) return;
+
+        try {
+            // Usamos el estado controlado para máxima seguridad
+            const updates = {
+                name: event.name,
+                description: event.description,
+                date: event.date,
+                status: event.status,
+                guest_count_total: Number(event.guest_count_total),
+                table_count: Number(event.table_count),
+                guests_per_table_default: Number(event.guests_per_table_default),
+                has_living_room: Boolean(event.has_living_room),
+                has_after_party: Boolean(event.has_after_party),
+                after_party_time: event.after_party_time,
+            };
+
+            console.log('💾 Guardando configuración:', updates);
+
+            const { error } = await supabase
+                .from('events')
+                .update(updates)
+                .eq('id', event.id);
+
+            if (error) throw error;
+
+            alert('✅ Configuración guardada correctamente.');
+        } catch (err: any) {
+            console.error('❌ Error updating event:', err);
+            alert('Error al guardar cambios: ' + err.message + '\n\nIMPORTANTE: Si el error persiste, ejecuta el script FIX_DB_FINAL.sql en Supabase.');
+        }
     };
 
     const handleUploadClick = (type: 'background' | 'logo' | 'default_video' | 'table_video' | 'guest_video', id?: string) => {
@@ -653,8 +679,8 @@ export default function EventDetails() {
             fileInputRef.current.value = ''; // Reset
             // Set accept type based on upload target
             if (type === 'logo') fileInputRef.current.accept = 'image/*';
-            else if (type === 'background') fileInputRef.current.accept = 'image/*,video/*';
-            else fileInputRef.current.accept = 'video/*';
+            else if (type === 'background') fileInputRef.current.accept = 'image/*,video/*,video/mp4,video/quicktime,.mov';
+            else fileInputRef.current.accept = 'video/*,video/mp4,video/x-m4v,video/quicktime,.mov,.avi,.mkv';
 
             fileInputRef.current.click();
         }
@@ -664,16 +690,34 @@ export default function EventDetails() {
         const file = e.target.files?.[0];
         if (!file || !uploadTarget || !event) return;
 
+        // Log file info for debugging
+        console.log('Iniciando subida:', { name: file.name, type: file.type, size: file.size });
+
         setIsUploading(true);
+
+        // Advertencia de tamaño (100MB)
+        const sizeMB = file.size / (1024 * 1024);
+        if (sizeMB > 100) {
+            if (!confirm(`El archivo pesa ${sizeMB.toFixed(1)} MB. Puede tardar en subir o fallar si supera el límite de tu plan. ¿Continuar?`)) {
+                setIsUploading(false);
+                return;
+            }
+        }
+
         try {
             // 1. Upload to Supabase Storage
             const fileExt = file.name.split('.').pop();
-            const fileName = `${event.id}/${Math.random().toString(36).substring(7)}.${fileExt}`;
+            // Sanitize filename to avoid weird characters issues
+            const safeName = Math.random().toString(36).substring(7);
+            const fileName = `${event.id}/${safeName}.${fileExt}`;
             const bucket = uploadTarget.type === 'guest_video' ? 'guest-videos' : 'event-assets';
 
             const { error: uploadError } = await supabase.storage
                 .from(bucket)
-                .upload(fileName, file);
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
             if (uploadError) throw uploadError;
 
@@ -759,6 +803,22 @@ export default function EventDetails() {
     });
 
     const uniqueTables = Array.from(new Set(guests.map(g => g.table_info).filter(Boolean))).sort();
+
+    // --- FIX: Checkbox Handler Specific ---
+    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event) return;
+        const { name, checked } = e.target;
+
+        console.log('🔄 Checkbox changed:', { name, checked });
+
+        setEvent(prev => {
+            if (!prev) return null;
+            return { ...prev, [name]: checked };
+        });
+
+        // Update local redundant state just in case (though we should remove it)
+        if (name === 'has_after_party') setHasAfterParty(checked);
+    };
 
     if (loading) return (
         <DashboardLayout>
@@ -986,6 +1046,10 @@ export default function EventDetails() {
                                                     <td className="px-6 py-4">
                                                         <div>
                                                             <p className="text-slate-900 font-semibold">{guest.last_name}, {guest.first_name}</p>
+                                                            <div className="flex gap-1 mt-1 flex-wrap">
+                                                                {guest.is_after_party && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200">Trasnoche</span>}
+                                                                {guest.has_puff && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">Puff</span>}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-slate-500">
@@ -1632,7 +1696,9 @@ export default function EventDetails() {
                                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Nombre del Evento</label>
                                     <input
                                         type="text"
-                                        defaultValue={event.name}
+                                        name="name"
+                                        value={event.name || ''}
+                                        onChange={handleChangeEvent}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600"
                                     />
                                 </div>
@@ -1640,7 +1706,9 @@ export default function EventDetails() {
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Descripción (Opcional)</label>
                                     <textarea
-                                        defaultValue={event.description}
+                                        name="description"
+                                        value={event.description || ''}
+                                        onChange={handleChangeEvent}
                                         rows={3}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600 resize-none"
                                         placeholder="Detalles adicionales del evento..."
@@ -1652,14 +1720,18 @@ export default function EventDetails() {
                                         <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Fecha</label>
                                         <input
                                             type="date"
-                                            defaultValue={event.date}
+                                            name="date"
+                                            value={event.date || ''}
+                                            onChange={handleChangeEvent}
                                             className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600 appearance-none"
                                         />
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Estado</label>
                                         <select
-                                            defaultValue={event.status}
+                                            name="status"
+                                            value={event.status || 'pending'}
+                                            onChange={handleChangeEvent}
                                             className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
                                         >
                                             <option value="pending">Pendiente</option>
@@ -1680,7 +1752,9 @@ export default function EventDetails() {
                                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Cantidad de Mesas</label>
                                     <input
                                         type="number"
-                                        defaultValue={event.table_count || 10}
+                                        name="table_count"
+                                        value={event.table_count || 10}
+                                        onChange={handleChangeEvent}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
                                     />
                                 </div>
@@ -1688,7 +1762,9 @@ export default function EventDetails() {
                                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Invitados por Mesa</label>
                                     <input
                                         type="number"
-                                        defaultValue={event.guests_per_table_default || 10}
+                                        name="guests_per_table_default"
+                                        value={event.guests_per_table_default || 10}
+                                        onChange={handleChangeEvent}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
                                     />
                                 </div>
@@ -1696,23 +1772,51 @@ export default function EventDetails() {
 
                             <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
                                 <div>
-                                    <div className="text-sm font-medium text-white">Habilitar Living (Adolescentes)</div>
+                                    <div className="text-sm font-medium text-white">Habilitar Living / Sin Asignar</div>
                                     <div className="text-xs text-slate-500">Área sin numeración estricta</div>
                                 </div>
-                                <input type="checkbox" defaultChecked={event.has_living_room} className="toggle toggle-warning toggle-sm" />
+                                <input
+                                    type="checkbox"
+                                    name="has_living_room"
+                                    checked={!!event.has_living_room}
+                                    onChange={handleCheckboxChange}
+                                    className="toggle toggle-warning toggle-sm"
+                                />
                             </div>
 
-                            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                                <div>
-                                    <div className="text-sm font-medium text-white">Habilitar Trasnoche</div>
-                                    <div className="text-xs text-slate-500">Invitados post-cena</div>
+                            <div className="flex flex-col gap-2 p-3 rounded-lg bg-white/5">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-medium text-white">Habilitar Trasnoche</div>
+                                        <div className="text-xs text-slate-500">Invitados post-cena</div>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        name="has_after_party"
+                                        checked={!!event.has_after_party}
+                                        onChange={handleCheckboxChange}
+                                        className="toggle toggle-warning toggle-sm"
+                                    />
                                 </div>
-                                <input type="checkbox" defaultChecked={event.has_after_party} className="toggle toggle-warning toggle-sm" />
+
+                                {event.has_after_party && (
+                                    <div className="mt-2 text-sm border-t border-white/5 pt-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                                        <Clock size={14} className="text-[#FBBF24]" />
+                                        <label className="text-xs text-slate-400 uppercase font-bold">Hora de Inicio:</label>
+                                        <input
+                                            type="time"
+                                            name="after_party_time"
+                                            value={event.after_party_time || "00:00"}
+                                            onChange={handleChangeEvent}
+                                            className="bg-black/20 border border-white/10 rounded px-3 py-1 text-white text-sm focus:border-[#FBBF24] outline-none"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
-                            <button type="button" className="btn btn-ghost text-slate-400 hover:text-white">Cancelar</button>
+                            <button type="button" className="btn btn-ghost text-slate-400 hover:text-white" onClick={() => window.location.reload()}>Cancelar</button>
                             <button type="submit" className="btn btn-primary py-2.5 px-6 shadow-lg shadow-yellow-500/20">
                                 Guardar Cambios
                             </button>
