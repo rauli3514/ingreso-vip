@@ -43,7 +43,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.7');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.8');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -474,195 +474,166 @@ export default function GuestApp() {
                         </motion.div>
                     )}
 
-                    {/* VIDEO VIEW (Resultados) */}
+                    {/* VIDEO VIEW (Resultados + Liquid Glass Fullscreen) */}
                     {view === 'video' && selectedGuest && (
-                        <motion.div
-                            key="video"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="relative w-full h-full"
-                            style={{
-                                background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.primary}, ${themeColors.background})`
-                            }}
-                        >
-                            <div className="flex flex-col items-center justify-center h-full p-6 text-center text-white overflow-y-auto">
+                        <AnimatePresence mode="wait">
+                            {/* 1. VIDEO PLAYER - ABSOLUTE FULLSCREEN OVERLAY */}
+                            {getVideoUrl(selectedGuest) && !videoFinished && (
+                                <motion.div
+                                    key="video-player"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 z-50 bg-black flex items-center justify-center cursor-pointer"
+                                    onClick={() => {
+                                        // UNMUTE ON CLICK
+                                        if (videoRef.current) {
+                                            videoRef.current.muted = false;
+                                            videoRef.current.volume = 1.0;
+                                            videoRef.current.play().catch(() => { });
+                                        }
+                                    }}
+                                >
+                                    <video
+                                        ref={videoRef}
+                                        src={getVideoUrl(selectedGuest)}
+                                        className="w-full h-full"
+                                        style={{ objectFit: 'contain' }}
+                                        autoPlay
+                                        playsInline
+                                        muted={true} // Start muted for mobile autoplay
+                                        onEnded={() => setVideoFinished(true)}
+                                        onError={() => setVideoFinished(true)}
+                                    />
+                                </motion.div>
+                            )}
 
-                                {/* Guest Name Header */}
-                                <h2 className="text-3xl md:text-5xl font-bold mb-6 font-display drop-shadow-lg">
-                                    {selectedGuest.display_name || `${selectedGuest.first_name} ${selectedGuest.last_name}`}
-                                </h2>
-
-                                {/* CONDITIONAL CONTENT */}
-                                {selectedGuest.is_after_party && !selectedGuest.table_info && !selectedGuest.has_puff ? (
-                                    // --- TRASNOCHE VIEW ONLY (Sin mesa ni living) ---
-                                    <div className="bg-black/30 p-8 rounded-3xl border border-purple-500/30 backdrop-blur-md max-w-md w-full animate-in zoom-in duration-300">
-                                        <div className="text-6xl mb-6">🌙</div>
-                                        <h3 className="text-2xl font-bold mb-3 text-purple-200 uppercase tracking-widest">Acceso Trasnoche</h3>
-                                        <div className="w-full h-px bg-purple-500/30 my-4"></div>
-                                        <p className="text-lg text-white mb-2">
-                                            Faltan para tu ingreso:
-                                        </p>
-                                        <div className="text-6xl font-bold text-[#FBBF24] my-6 font-mono drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-                                            {timeRemaining || event?.after_party_time || "--:--"}
-                                        </div>
-                                        <p className="text-sm text-slate-400">Te esperamos para celebrar juntos.</p>
+                            {/* 2. FINAL SCREEN - LIQUID GLASS FULLSCREEN */}
+                            {(!getVideoUrl(selectedGuest) || videoFinished) && (
+                                <motion.div
+                                    key="final-result"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="fixed inset-0 z-40 flex flex-col items-center justify-center p-6 text-center overflow-hidden"
+                                    style={{
+                                        background: `radial-gradient(circle at center, ${themeColors.secondary}66, ${themeColors.background}DD)`,
+                                        backdropFilter: 'blur(30px)',
+                                        WebkitBackdropFilter: 'blur(30px)' // Safari support
+                                    }}
+                                >
+                                    {/* Background decorative elements for "Liquid" feel */}
+                                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
+                                        <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] opacity-30"
+                                            style={{
+                                                background: `conic-gradient(from 0deg at 50% 50%, ${themeColors.primary}, ${themeColors.accent}, ${themeColors.secondary}, ${themeColors.primary})`,
+                                                filter: 'blur(100px)',
+                                                animation: 'spin 20s linear infinite'
+                                            }}
+                                        />
                                     </div>
-                                ) : selectedGuest.has_puff ? (
-                                    // --- LIVING / PUFF VIEW ---
-                                    <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-500">
-                                        <div className="bg-white/10 p-6 rounded-2xl border border-white/20 backdrop-blur-md mb-8 inline-block">
-                                            <div className="text-4xl mb-2">🛋️</div>
-                                            <h3 className="text-xl font-bold text-white">Sector Living</h3>
-                                            <p className="text-white/80">Tienes un lugar asignado en nuestro living exclusivo.</p>
-                                        </div>
+                                    <style>{`
+                                        @keyframes spin {
+                                            from { transform: rotate(0deg); }
+                                            to { transform: rotate(360deg); }
+                                        }
+                                    `}</style>
 
-                                        {/* Video Section for Living */}
-                                        <div className="w-full rounded-3xl overflow-hidden shadow-2xl relative bg-black/50 aspect-video">
-                                            {getVideoUrl(selectedGuest) && !videoFinished ? (
-                                                <>
-                                                    <video
-                                                        ref={videoRef}
-                                                        src={getVideoUrl(selectedGuest)}
-                                                        className="w-full h-full object-cover"
-                                                        autoPlay
-                                                        playsInline
-                                                        loop={false}
-                                                        muted={false}
-                                                        onEnded={() => setVideoFinished(true)}
-                                                        onError={() => setVideoFinished(true)}
-                                                    />
-                                                    <div className="absolute bottom-4 right-4 z-20">
-                                                        <button
-                                                            onClick={() => {
-                                                                if (videoRef.current) {
-                                                                    videoRef.current.muted = false;
-                                                                    videoRef.current.volume = 1.0;
-                                                                    videoRef.current.play();
-                                                                }
-                                                            }}
-                                                            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full border border-white/20 transition-all"
-                                                            title="Activar Sonido"
-                                                        >
-                                                            🔊
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                // --- PANTALLA FINAL LIVING / TRASNOCHE ---
-                                                <div className="flex flex-col items-center justify-center h-full bg-slate-900 border border-white/10 p-8 text-center animate-in zoom-in-95 duration-700">
+                                    {/* CONTENIDO PRINCIPAL */}
+                                    <div className="relative z-10 flex flex-col items-center gap-8 max-w-4xl w-full">
 
-                                                    {selectedGuest.is_after_party && (
-                                                        <div className="mb-4">
-                                                            <h2 className="text-3xl md:text-5xl font-bold text-[#FBBF24] font-display uppercase tracking-widest drop-shadow-lg animate-pulse">
-                                                                BIENVENIDOS AL TRASNOCHE
-                                                            </h2>
-                                                        </div>
-                                                    )}
+                                        {/* Bienvenida / Header */}
+                                        <motion.div
+                                            initial={{ y: 20, opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            transition={{ delay: 0.3 }}
+                                            className="text-white/80 text-xl uppercase tracking-[0.2em] font-light"
+                                        >
+                                            Bienvenido
+                                        </motion.div>
 
-                                                    <div className="mb-6">
-                                                        <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
-                                                        <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">LIVING</h1>
-                                                    </div>
-                                                    <div className="mt-8 opacity-80 flex flex-col items-center">
-                                                        {event?.theme_custom_logo_url ? (
-                                                            <img src={event.theme_custom_logo_url} className="h-16 object-contain mb-3" alt="Logo Evento" />
-                                                        ) : (
-                                                            <div className="text-white text-xl font-bold border-2 border-white p-2 mb-3">INGRESO VIP</div>
-                                                        )}
-                                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">Idea de Tecno Eventos</p>
-                                                    </div>
+                                        {/* Nombre del Invitado */}
+                                        <motion.h2
+                                            initial={{ y: 20, opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            transition={{ delay: 0.4 }}
+                                            className="text-4xl md:text-6xl font-black text-white drop-shadow-2xl font-display mb-8"
+                                            style={{ textShadow: `0 4px 20px ${themeColors.primary}88` }}
+                                        >
+                                            {selectedGuest.display_name || `${selectedGuest.first_name} ${selectedGuest.last_name}`}
+                                        </motion.h2>
+
+                                        {/* LOGICA DE CONTENIDO SEGÚN TIPO DE GUEST */}
+                                        {selectedGuest.is_after_party && !selectedGuest.table_info && !selectedGuest.has_puff ? (
+                                            // --- TRASNOCHE ONLY ---
+                                            <div className="bg-black/20 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-md w-full max-w-md shadow-2xl ring-1 ring-white/20">
+                                                <div className="text-6xl mb-4 animate-bounce">🌙</div>
+                                                <h3 className="text-2xl font-bold text-[#FBBF24] uppercase tracking-widest mb-2">Acceso Trasnoche</h3>
+                                                <div className="text-5xl font-mono font-bold text-white tracking-wider my-4">
+                                                    {timeRemaining || event?.after_party_time || "--:--"}
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // --- STANDARD TABLE VIEW ---
-                                    <div className="w-full h-full flex flex-col items-center justify-center">
-
-                                        {/* 1. VIDEO PLAYER - FULLSCREEN OVERLAY */}
-                                        {getVideoUrl(selectedGuest) && !videoFinished ? (
-                                            <div
-                                                className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-                                                onClick={() => {
-                                                    // UNMUTE ON CLICK (user interactions everywhere)
-                                                    if (videoRef.current) {
-                                                        videoRef.current.muted = false;
-                                                        videoRef.current.volume = 1.0;
-                                                        videoRef.current.play().catch(() => { });
-                                                    }
-                                                }}
-                                            >
-                                                <video
-                                                    ref={videoRef}
-                                                    src={getVideoUrl(selectedGuest)}
-                                                    className="w-full h-full"
-                                                    style={{ objectFit: 'contain' }}
-                                                    autoPlay
-                                                    playsInline
-                                                    muted={true} // Start muted for mobile autoplay
-                                                    onEnded={() => setVideoFinished(true)}
-                                                    onError={() => setVideoFinished(true)}
-                                                />
+                                                <p className="text-sm text-white/50 uppercase tracking-widest">Tiempo restante</p>
+                                            </div>
+                                        ) : selectedGuest.has_puff ? (
+                                            // --- LIVING ---
+                                            <div className="bg-white/10 p-10 rounded-[3rem] border border-white/20 backdrop-blur-xl shadow-[0_0_40px_rgba(255,255,255,0.1)] ring-1 ring-white/30">
+                                                <span className="text-6xl block mb-4">🛋️</span>
+                                                <h1 className="text-5xl md:text-7xl font-bold text-white font-display uppercase tracking-tight">
+                                                    Living
+                                                </h1>
+                                                <p className="text-white/70 mt-2 text-lg font-light tracking-wide">Tu espacio exclusivo</p>
                                             </div>
                                         ) : (
-                                            // --- PANTALLA FINAL (MESA + LOGO + TRASNOCHE) ---
-                                            <div className="flex flex-col items-center justify-center h-full bg-slate-900 border border-white/10 p-8 text-center animate-in zoom-in-95 duration-700">
-
-                                                {selectedGuest.is_after_party && (
-                                                    <div className="mb-4">
-                                                        <h2 className="text-3xl md:text-5xl font-bold text-[#FBBF24] font-display uppercase tracking-widest drop-shadow-lg animate-pulse">
-                                                            BIENVENIDOS AL TRASNOCHE
-                                                        </h2>
+                                            // --- MESA ASIGNADA ---
+                                            <div className="flex flex-col items-center">
+                                                {selectedGuest.table_info ? (
+                                                    <div className="relative group">
+                                                        {/* Glass Card for Table */}
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 blur-xl rounded-full group-hover:blur-2xl transition-all duration-700 opacity-50"></div>
+                                                        <div
+                                                            className="relative bg-black/20 p-12 px-16 rounded-[3rem] border border-white/10 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-white/20 flex flex-col items-center transform transition-transform hover:scale-105 duration-500"
+                                                        >
+                                                            <p className="text-blue-200 uppercase tracking-[0.3em] text-sm mb-4 font-semibold">Tu ubicación</p>
+                                                            <h1 className="text-8xl md:text-9xl font-black text-white font-display tracking-tighter" style={{ textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                                                                {selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')}
+                                                            </h1>
+                                                            {(/^\d+$/.test(selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')) || selectedGuest.table_info.toLowerCase().includes('mesa')) && (
+                                                                <div className="mt-4 px-6 py-2 rounded-full bg-[#FBBF24] text-black font-bold text-lg uppercase tracking-widest shadow-lg">
+                                                                    Mesa
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    // SIN MESA
+                                                    <div className="bg-white/10 p-10 rounded-[3rem] border border-white/20 backdrop-blur-xl shadow-2xl">
+                                                        <h1 className="text-5xl md:text-7xl font-bold text-white font-display leading-tight">
+                                                            ¡PUEDES<br />INGRESAR!
+                                                        </h1>
                                                     </div>
                                                 )}
 
-                                                <div className="mb-6">
-                                                    {selectedGuest.table_info ? (
-                                                        <>
-                                                            <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
-                                                            <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                                {selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')}
-                                                            </h1>
-                                                            {/* Mostrar "Mesa" solo si table_info es numérico o empieza con "Mesa" explícitamente */}
-                                                            {(/^\d+$/.test(selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')) || selectedGuest.table_info.toLowerCase().includes('mesa')) && (
-                                                                <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <p className="text-2xl text-slate-300 uppercase tracking-widest font-light mb-4">¡BIENVENIDO!</p>
-                                                            <h1 className="text-5xl md:text-7xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                                PUEDES INGRESAR
-                                                            </h1>
-                                                        </>
-                                                    )}
-                                                </div>
-
-                                                <div className="mt-8 opacity-80 flex flex-col items-center">
-                                                    {event?.theme_custom_logo_url ? (
-                                                        <img src={event.theme_custom_logo_url} className="h-16 object-contain mb-3" alt="Logo Evento" />
-                                                    ) : (
-                                                        <div className="text-white text-xl font-bold border-2 border-white p-2 mb-3">INGRESO VIP</div>
-                                                    )}
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">
-                                                        Idea de Tecno Eventos
-                                                    </p>
-                                                </div>
+                                                {/* TRASNOCHE BADGE ON TABLE SCREEN */}
+                                                {selectedGuest.is_after_party && (
+                                                    <div className="mt-8 bg-[#FBBF24]/20 border border-[#FBBF24]/50 px-8 py-3 rounded-full backdrop-blur-md animate-pulse">
+                                                        <span className="text-[#FBBF24] font-bold uppercase tracking-widest text-sm">✨ Invitado Trasnoche</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-                                    </div>
 
-                            <button
-                                onClick={() => {
-                                    setView('search');
-                                    setSelectedGuest(null);
-                                }}
-                                className="fixed bottom-8 left-1/2 transform -translate-x-1/2 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium border border-white/10 backdrop-blur-md z-40"
-                            >
-                                ← Buscar otro invitado
-                            </button>
-                        </div>
-                        </motion.div>
+                                        {/* Logo del Evento (Footer) */}
+                                        <div className="mt-12 opacity-60 hover:opacity-100 transition-opacity">
+                                            {event?.theme_custom_logo_url ? (
+                                                <img src={event.theme_custom_logo_url} className="h-16 md:h-20 object-contain drop-shadow-md" alt="Logo Evento" />
+                                            ) : (
+                                                <span className="text-white text-lg font-bold border-2 border-white px-4 py-2 rounded-lg">INGRESO VIP</span>
+                                            )}
+                                        </div>
+
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     )}
                 </AnimatePresence>
 
