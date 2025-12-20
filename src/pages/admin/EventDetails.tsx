@@ -792,6 +792,23 @@ export default function EventDetails() {
         }
     };
 
+    const handleUpdateGuestStatus = async (guestId: string, newStatus: string) => {
+        try {
+            const { error } = await supabase
+                .from('guests')
+                .update({ status: newStatus })
+                .eq('id', guestId);
+
+            if (error) throw error;
+
+            // Optimistic update
+            setGuests(prev => prev.map(g => g.id === guestId ? { ...g, status: newStatus as any } : g));
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Error al actualizar estado');
+        }
+    };
+
     const filteredGuests = guests.filter(g => {
         const matchesSearch = (g.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             g.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1091,6 +1108,34 @@ export default function EventDetails() {
                                                                     <div className="p-1 flex flex-col gap-1">
                                                                         {event.status !== 'closed' && (
                                                                             <>
+                                                                                {guest.status === 'pending' && (
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            handleUpdateGuestStatus(guest.id, 'confirmed');
+                                                                                            setOpenMenuId(null);
+                                                                                        }}
+                                                                                        className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-md transition-colors flex items-center gap-2"
+                                                                                    >
+                                                                                        <CheckCircle2 size={14} className="text-slate-400 hover:text-emerald-500" />
+                                                                                        Confirmar
+                                                                                    </button>
+                                                                                )}
+
+                                                                                {guest.status === 'confirmed' && (
+                                                                                    <button
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            handleUpdateGuestStatus(guest.id, 'pending');
+                                                                                            setOpenMenuId(null);
+                                                                                        }}
+                                                                                        className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-md transition-colors flex items-center gap-2"
+                                                                                    >
+                                                                                        <Clock size={14} className="text-slate-400 hover:text-amber-500" />
+                                                                                        Marcar Pendiente
+                                                                                    </button>
+                                                                                )}
+
                                                                                 <button
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
