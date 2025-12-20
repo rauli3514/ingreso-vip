@@ -14,7 +14,7 @@ import GuestApp from './pages/guest/GuestApp';
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter basename="/ingreso-vip">
+            <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<Landing />} />
                     <Route path="/login" element={<Login />} />
