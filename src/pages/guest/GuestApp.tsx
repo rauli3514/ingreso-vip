@@ -43,7 +43,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.5');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.6');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -597,17 +597,44 @@ export default function GuestApp() {
                                                         autoPlay
                                                         playsInline
                                                         loop={false}
-                                                        muted={false}
+                                                        muted={true} // Autoplay en móvil REQUIERE muted=true
                                                         onEnded={() => setVideoFinished(true)}
                                                         onError={() => setVideoFinished(true)}
                                                     />
+
+                                                    {/* Botón Grande para Activar Sonido (Overlay) */}
+                                                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            exit={{ opacity: 0 }}
+                                                            className="bg-black/40 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 flex items-center gap-3 pointer-events-auto cursor-pointer hover:bg-black/60 transition-all"
+                                                            onClick={() => {
+                                                                if (videoRef.current) {
+                                                                    videoRef.current.muted = false;
+                                                                    videoRef.current.volume = 1.0;
+                                                                    // Forzar play de nuevo por si se pausó
+                                                                    videoRef.current.play().catch(e => console.error("Error playing:", e));
+                                                                    // Ocultar este botón tras click (truco visual: desaparece el div padre o se cambia estado local si se quisiera, por ahora dejamos el botón estático abajo también)
+                                                                    const btn = document.getElementById('unmute-overlay');
+                                                                    if (btn) btn.style.display = 'none';
+                                                                }
+                                                            }}
+                                                            id="unmute-overlay"
+                                                        >
+                                                            <span className="text-2xl animate-pulse">🔇</span>
+                                                            <span className="text-white font-bold text-sm tracking-widest uppercase">Activar Sonido</span>
+                                                        </motion.div>
+                                                    </div>
+
                                                     <div className="absolute bottom-4 right-4 z-20">
                                                         <button
                                                             onClick={() => {
                                                                 if (videoRef.current) {
                                                                     videoRef.current.muted = false;
                                                                     videoRef.current.volume = 1.0;
-                                                                    videoRef.current.play();
+                                                                    const btn = document.getElementById('unmute-overlay');
+                                                                    if (btn) btn.style.display = 'none';
                                                                 }
                                                             }}
                                                             className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full border border-white/20 transition-all backdrop-blur-sm"
