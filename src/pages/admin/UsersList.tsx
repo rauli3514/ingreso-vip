@@ -93,9 +93,9 @@ export default function UsersList() {
 
             setIsModalOpen(false);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving user:', error);
-            alert('Error al guardar usuario');
+            alert(`Error al guardar usuario: ${error.message || JSON.stringify(error)}`);
         }
     };
 
@@ -111,30 +111,46 @@ export default function UsersList() {
     };
 
     const handleDelete = async (userId: string) => {
-        if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+        if (!confirm('¿Estás seguro de eliminar este usuario? Esto deshabilitará su acceso.')) return;
+
         try {
-            const { error } = await supabase.from('profiles').delete().eq('id', userId);
-            if (error) throw error;
+            // Opción 1: Eliminar perfil y deshabilitar acceso
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    role: 'disabled',
+                    email: null
+                })
+                .eq('id', userId);
+
+            if (profileError) {
+                console.error('Error al deshabilitar perfil:', profileError);
+                throw profileError;
+            }
+
+            alert('Usuario deshabilitado correctamente. Ya no podrá acceder al sistema.');
             fetchData();
-        } catch (err) {
-            console.error(err);
-            alert('Error al eliminar');
+        } catch (err: any) {
+            console.error('Error completo:', err);
+            alert(`Error al deshabilitar usuario: ${err.message || 'Error desconocido'}`);
         }
     };
 
-    // Filter users
-    const filteredUsers = users.filter(u =>
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.role.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter users (exclude disabled)
+    const filteredUsers = users
+        .filter(u => u.role !== 'disabled') // No mostrar deshabilitados
+        .filter(u =>
+            u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.role.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     return (
         <DashboardLayout>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground tracking-tight font-display mb-2">Gestión de Usuarios</h1>
-                    <p className="text-muted-foreground text-sm">Administra proveedores y asigna accesos a eventos.</p>
+                    <h1 className="text-3xl font-bold mb-2">Administración de Usuarios</h1>
+                    <p className="text-muted-foreground">Administra proveedores, asigna eventos y controla accesos.</p>
                 </div>
                 <button
                     onClick={handleCreateClick}
