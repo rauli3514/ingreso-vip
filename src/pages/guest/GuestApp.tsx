@@ -43,7 +43,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.4');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.5');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -577,22 +577,23 @@ export default function GuestApp() {
                                     </div>
                                 ) : (
                                     // --- STANDARD TABLE VIEW ---
-                                    <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-500">
+                                    <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-500 flex flex-col items-center">
                                         {selectedGuest.table_info && (
-                                            <div className="bg-white/10 px-8 py-4 rounded-full border border-white/20 backdrop-blur-md mb-8 inline-flex items-center gap-3">
-                                                <span className="text-2xl">📍</span>
-                                                <span className="text-xl font-bold">{selectedGuest.table_info}</span>
+                                            <div className="bg-white/10 px-6 py-3 rounded-full border border-white/20 backdrop-blur-md mb-6 inline-flex items-center gap-3 shadow-lg">
+                                                <span className="text-xl">📍</span>
+                                                <span className="text-lg font-bold">{selectedGuest.table_info}</span>
                                             </div>
                                         )}
 
-                                        {/* Video Section */}
-                                        <div className="w-full rounded-3xl overflow-hidden shadow-2xl relative bg-black/50 aspect-video">
+                                        {/* Video Section - Adaptable Height */}
+                                        <div className="w-full rounded-3xl overflow-hidden shadow-2xl relative bg-black aspect-[3/4] md:aspect-video flex items-center justify-center ring-1 ring-white/10">
                                             {getVideoUrl(selectedGuest) && !videoFinished ? (
                                                 <>
                                                     <video
                                                         ref={videoRef}
                                                         src={getVideoUrl(selectedGuest)}
-                                                        className="w-full h-full object-cover"
+                                                        className="w-full h-full"
+                                                        style={{ objectFit: 'contain' }}
                                                         autoPlay
                                                         playsInline
                                                         loop={false}
@@ -609,7 +610,7 @@ export default function GuestApp() {
                                                                     videoRef.current.play();
                                                                 }
                                                             }}
-                                                            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full border border-white/20 transition-all"
+                                                            className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full border border-white/20 transition-all backdrop-blur-sm"
                                                             title="Activar Sonido"
                                                         >
                                                             🔊
