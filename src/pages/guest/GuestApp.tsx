@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { Event, Guest } from '../../types';
-import { Search, Mic, Sparkles, Instagram, MessageCircle } from 'lucide-react';
+import { Search, Mic, Sparkles, Instagram } from 'lucide-react';
 import { getThemeById } from '../../lib/themes';
 
 // Iconos de redes sociales
