@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="w-8" /> {/* Spacer for centering */}
                 </div>
 
-                <div className="max-w-6xl mx-auto p-4 md:p-10">
+                <div className="max-w-7xl mx-auto p-6 md:p-8">
                     {children}
                 </div>
             </main>

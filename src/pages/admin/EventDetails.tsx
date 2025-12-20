@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import GuestImportModal from '../../components/GuestImportModal';
 import CreateGuestModal from '../../components/CreateGuestModal';
+import QRCode from 'qrcode';
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function EventDetails() {
     const [searchQuery, setSearchQuery] = useState('');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+    const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
     // Filtering
     const [filterTable, setFilterTable] = useState<string>('all');
@@ -193,6 +195,100 @@ export default function EventDetails() {
     const getGuestUrl = () => {
         const baseUrl = window.location.pathname.startsWith('/ingreso-vip') ? '/ingreso-vip' : '';
         return `${window.location.origin}${baseUrl}/evento/${event?.id}`;
+    };
+
+    const generateQRPoster = async (orientation: 'portrait' | 'landscape') => {
+        if (!event) return;
+        setIsGeneratingQR(true);
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('No context');
+
+            const width = orientation === 'landscape' ? 1920 : 1080;
+            const height = orientation === 'landscape' ? 1080 : 1920;
+            canvas.width = width;
+            canvas.height = height;
+
+            // 1. Background
+            ctx.fillStyle = '#1e1e1e'; // Dark bg
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Event Background Image if available
+            if (event.theme_background_url) {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    img.src = event.theme_background_url;
+                    await new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = resolve; // Skip if error
+                    });
+                    // Aspect Fill
+                    const scale = Math.max(width / img.width, height / img.height);
+                    const x = (width / 2) - (img.width / 2) * scale;
+                    const y = (height / 2) - (img.height / 2) * scale;
+                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+                    // Overlay
+                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                    ctx.fillRect(0, 0, width, height);
+
+                } catch (e) { console.warn('Bg load failed', e); }
+            }
+
+            // 2. Generate QR
+            const qrUrl = await QRCode.toDataURL(getGuestUrl(), {
+                width: 800,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            });
+
+            const qrImg = new Image();
+            qrImg.src = qrUrl;
+            await new Promise(r => qrImg.onload = r);
+
+            // 3. Draw QR in Center
+            const qrSize = orientation === 'landscape' ? 500 : 800;
+            const qrX = (width - qrSize) / 2;
+            const qrY = (height - qrSize) / 2;
+
+            // Draw White Container for QR
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40);
+
+            ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+            // 4. Texts
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = "black";
+            ctx.shadowBlur = 20;
+
+            // Title
+            ctx.font = 'bold 80px sans-serif';
+            ctx.fillText(event.name, width / 2, qrY - 100);
+
+            // Instruction
+            ctx.font = '50px sans-serif';
+            ctx.fillText('Escanea para ingresar', width / 2, qrY + qrSize + 100);
+
+            // 5. Download
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const link = document.createElement('a');
+            link.download = `${event.name}-QR-${orientation}.jpg`;
+            link.href = dataUrl;
+            link.click();
+
+        } catch (error) {
+            console.error('Error generating QR:', error);
+            alert('Error generando imagen QR. Es posible que la imagen de fondo tenga restricciones de seguridad (CORS).');
+        } finally {
+            setIsGeneratingQR(false);
+        }
     };
 
     const handleUpdateEvent = async (e: React.FormEvent) => {
@@ -1139,22 +1235,31 @@ export default function EventDetails() {
                                         <QrCode size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-foreground">Acceso Invitados</h4>
-                                        <p className="text-sm text-muted">Enlace directo a la experiencia QR.</p>
+                                        <h4 className="font-bold text-foreground">Acceso Invitados (QR)</h4>
+                                        <p className="text-sm text-muted">Genera imágenes para pantallas.</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <input
-                                        readOnly
-                                        value={getGuestUrl()}
-                                        className="input-field text-xs"
-                                    />
                                     <button
-                                        onClick={() => window.open(getGuestUrl(), '_blank')}
-                                        className="btn btn-primary px-3"
+                                        onClick={() => generateQRPoster('portrait')}
+                                        disabled={isGeneratingQR}
+                                        className="btn btn-outline flex-1 text-xs justify-center"
                                     >
-                                        <ArrowRight size={16} />
+                                        <Download size={14} className="mr-2" /> Vertical
                                     </button>
+                                    <button
+                                        onClick={() => generateQRPoster('landscape')}
+                                        disabled={isGeneratingQR}
+                                        className="btn btn-outline flex-1 text-xs justify-center"
+                                    >
+                                        <Download size={14} className="mr-2" /> Horizontal
+                                    </button>
+                                </div>
+                                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                                    <span className="text-xs text-muted">Link directo:</span>
+                                    <a href={getGuestUrl()} target="_blank" className="text-xs text-accent hover:underline flex items-center gap-1">
+                                        Ver App <ArrowRight size={10} />
+                                    </a>
                                 </div>
                             </div>
                         </div>
