@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { MessageCircle, Instagram, Globe } from 'lucide-react';
 
 export default function Landing() {
     const navigate = useNavigate();
@@ -33,8 +34,30 @@ export default function Landing() {
                 </div>
             </div>
 
-            <footer className="mt-12 text-[10px] text-slate-500 opacity-40 uppercase tracking-widest fixed bottom-4">
-                &copy; 2025 Tecno Eventos
+            {/* Floating WhatsApp Button */}
+            <a
+                href="https://wa.me/5491112345678" // TODO: Replace with actual number
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fixed bottom-6 right-6 p-4 bg-green-500 rounded-full shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all duration-300 z-50 hover:scale-110 group"
+                aria-label="Contactar por WhatsApp"
+            >
+                <div className="absolute -top-10 right-0 bg-white text-slate-900 text-xs font-bold px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+                    ¡Hablemos!
+                </div>
+                <MessageCircle className="w-7 h-7 text-white" />
+            </a>
+
+            <footer className="mt-12 text-[10px] text-slate-500 uppercase tracking-widest fixed bottom-4 flex flex-col items-center gap-3 w-full">
+                <div className="flex gap-6 opacity-60">
+                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-pink-500 transition-colors duration-300">
+                        <Instagram className="w-5 h-5" />
+                    </a>
+                    <a href="https://tecnoeventos.com.ar" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors duration-300">
+                        <Globe className="w-5 h-5" />
+                    </a>
+                </div>
+                <span className="opacity-40">&copy; 2025 Tecno Eventos</span>
             </footer>
         </div>
     );
