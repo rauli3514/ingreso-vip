@@ -198,96 +198,116 @@ export default function EventDetails() {
     };
 
     const generateQRPoster = async (orientation: 'portrait' | 'landscape') => {
-        if (!event) return;
+        if (!event) {
+            alert('No hay evento seleccionado');
+            return;
+        }
+
         setIsGeneratingQR(true);
+        console.log('🎨 Iniciando generación de QR poster...', { orientation, eventId: event.id });
+
         try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx) throw new Error('No context');
-
-            const width = orientation === 'landscape' ? 1920 : 1080;
-            const height = orientation === 'landscape' ? 1080 : 1920;
-            canvas.width = width;
-            canvas.height = height;
-
-            // 1. Background
-            ctx.fillStyle = '#1e1e1e'; // Dark bg
-            ctx.fillRect(0, 0, width, height);
-
-            // Draw Event Background Image if available
-            if (event.theme_background_url) {
-                try {
-                    const img = new Image();
-                    img.crossOrigin = 'Anonymous';
-                    img.src = event.theme_background_url;
-                    await new Promise((resolve) => {
-                        img.onload = resolve;
-                        img.onerror = resolve; // Skip if error
-                    });
-                    // Aspect Fill
-                    const scale = Math.max(width / img.width, height / img.height);
-                    const x = (width / 2) - (img.width / 2) * scale;
-                    const y = (height / 2) - (img.height / 2) * scale;
-                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-                    // Overlay
-                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                    ctx.fillRect(0, 0, width, height);
-
-                } catch (e) { console.warn('Bg load failed', e); }
-            }
-
-            // 2. Generate QR
-            const qrUrl = await QRCode.toDataURL(getGuestUrl(), {
+            // 1. Generate QR Code first
+            console.log('📱 Generando código QR para:', getGuestUrl());
+            const qrDataUrl = await QRCode.toDataURL(getGuestUrl(), {
                 width: 800,
                 margin: 2,
                 color: {
                     dark: '#000000',
                     light: '#ffffff'
-                }
+                },
+                errorCorrectionLevel: 'H'
             });
+            console.log('✅ QR Code generado exitosamente');
 
+            // 2. Create Canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('No se pudo crear contexto de canvas');
+
+            const width = orientation === 'landscape' ? 1920 : 1080;
+            const height = orientation === 'landscape' ? 1080 : 1920;
+            canvas.width = width;
+            canvas.height = height;
+            console.log('🖼️ Canvas creado:', { width, height });
+
+            // 3. Fill background with gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(0.5, '#16213e');
+            gradient.addColorStop(1, '#0f1419');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            console.log('🎨 Fondo aplicado');
+
+            // 4. Load and draw QR image
             const qrImg = new Image();
-            qrImg.src = qrUrl;
-            await new Promise(r => qrImg.onload = r);
+            qrImg.src = qrDataUrl;
 
-            // 3. Draw QR in Center
+            await new Promise((resolve, reject) => {
+                qrImg.onload = resolve;
+                qrImg.onerror = () => reject(new Error('Error cargando imagen QR'));
+                setTimeout(() => reject(new Error('Timeout cargando QR')), 5000);
+            });
+            console.log('✅ Imagen QR cargada');
+
+            // 5. Calculate QR position and size
             const qrSize = orientation === 'landscape' ? 500 : 800;
             const qrX = (width - qrSize) / 2;
             const qrY = (height - qrSize) / 2;
 
-            // Draw White Container for QR
+            // Draw white container with border radius effect (using multiple rects)
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40);
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 20;
+            ctx.fillRect(qrX - 30, qrY - 30, qrSize + 60, qrSize + 60);
+            ctx.shadowBlur = 0;
 
+            // Draw QR
             ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+            console.log('✅ QR dibujado en canvas');
 
-            // 4. Texts
+            // 6. Add texts
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
-            ctx.shadowColor = "black";
-            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 30;
 
-            // Title
-            ctx.font = 'bold 80px sans-serif';
-            ctx.fillText(event.name, width / 2, qrY - 100);
+            // Event name
+            ctx.font = 'bold 90px system-ui, sans-serif';
+            ctx.fillText(event.name, width / 2, qrY - 120);
 
             // Instruction
-            ctx.font = '50px sans-serif';
-            ctx.fillText('Escanea para ingresar', width / 2, qrY + qrSize + 100);
+            ctx.font = '55px system-ui, sans-serif';
+            ctx.fillText('Escanea para encontrar tu mesa', width / 2, qrY + qrSize + 140);
 
-            // 5. Download
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            // Logo/branding
+            ctx.font = '30px system-ui, sans-serif';
+            ctx.fillStyle = '#FBBF24';
+            ctx.fillText('INGRESO VIP • by Tecno Eventos', width / 2, height - 80);
+
+            console.log('✅ Textos agregados');
+
+            // 7. Convert to image and download
+            console.log('💾 Generando descarga...');
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
             const link = document.createElement('a');
-            link.download = `${event.name}-QR-${orientation}.jpg`;
+            link.download = `${event.name.replace(/[^a-z0-9]/gi, '_')}_QR_${orientation}.jpg`;
             link.href = dataUrl;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
+
+            console.log('✅ ¡Descarga iniciada exitosamente!');
+            alert(`✅ Poster QR ${orientation === 'landscape' ? 'horizontal' : 'vertical'} generado correctamente`);
 
         } catch (error) {
-            console.error('Error generating QR:', error);
-            alert('Error generando imagen QR. Es posible que la imagen de fondo tenga restricciones de seguridad (CORS).');
+            console.error('❌ Error generando QR poster:', error);
+            const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
+            alert(`❌ Error al generar QR: ${errorMsg}\n\nRevisa la consola para más detalles (F12).`);
         } finally {
             setIsGeneratingQR(false);
+            console.log('🏁 Proceso de generación finalizado');
         }
     };
 
