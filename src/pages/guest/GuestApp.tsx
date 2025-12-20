@@ -43,7 +43,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.8');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.9');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -119,6 +119,29 @@ export default function GuestApp() {
         return event?.video_url_default;
     };
 
+    const [videoFinished, setVideoFinished] = useState(false);
+
+    // 4. Fallback recovery for Autoplay with Sound
+    useEffect(() => {
+        if (view === 'video' && videoRef.current && selectedGuest && !videoFinished) {
+            const videoEl = videoRef.current;
+
+            // Intentamos reproducir
+            const playPromise = videoEl.play();
+
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Autoplay with sound failed. Fallback to muted.", error);
+                    // Si falla el autoplay con sonido, lo intentamos muteado
+                    if (videoEl) {
+                        videoEl.muted = true;
+                        videoEl.play().catch(e => console.error("Muted autoplay also failed", e));
+                    }
+                });
+            }
+        }
+    }, [view, selectedGuest, videoFinished]);
+
     useEffect(() => {
         if (id) fetchEventData();
     }, [id]);
@@ -151,7 +174,6 @@ export default function GuestApp() {
     };
 
 
-    const [videoFinished, setVideoFinished] = useState(false);
 
 
     const toggleMic = () => {
@@ -501,7 +523,8 @@ export default function GuestApp() {
                                         style={{ objectFit: 'contain' }}
                                         autoPlay
                                         playsInline
-                                        muted={true} // Start muted for mobile autoplay
+                                        // Intentamos iniciar con sonido (muted={false} por defecto al no ponerlo o false explícito)
+                                        muted={false}
                                         onEnded={() => setVideoFinished(true)}
                                         onError={() => setVideoFinished(true)}
                                     />
