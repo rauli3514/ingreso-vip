@@ -3,13 +3,27 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { Event, Guest } from '../../types';
-import { Search, Mic, ArrowRight, Volume2 } from 'lucide-react';
+import { Search, Mic, Sparkles, Instagram, MessageCircle } from 'lucide-react';
+import { getThemeById } from '../../lib/themes';
+
+// Iconos de redes sociales
+const WhatsAppIcon = () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+    </svg>
+);
+
+const TikTokIcon = () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z" />
+    </svg>
+);
 
 export default function GuestApp() {
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
-    const [view, setView] = useState<'welcome' | 'search' | 'result'>('welcome');
+    const [view, setView] = useState<'welcome' | 'search' | 'video'>('welcome');
     const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -18,13 +32,21 @@ export default function GuestApp() {
     const [guests, setGuests] = useState<Guest[]>([]);
     const [isListening, setIsListening] = useState(false);
 
+    // Get theme colors
+    const theme = getThemeById(event?.theme_id || 'default');
+    const themeColors = theme?.colors || {
+        primary: '#6b21a8',
+        secondary: '#581c87',
+        accent: '#FBBF24',
+        background: '#1a1030'
+    };
+
     useEffect(() => {
         if (id) fetchEventData();
     }, [id]);
 
     const fetchEventData = async () => {
         try {
-            // Fetch Event
             const { data: eventData, error: eventError } = await supabase
                 .from('events')
                 .select('*')
@@ -34,7 +56,6 @@ export default function GuestApp() {
             if (eventError) throw eventError;
             setEvent(eventData);
 
-            // Fetch Guests
             const { data: guestsData, error: guestsError } = await supabase
                 .from('guests')
                 .select('id, event_id, status, first_name, last_name, display_name, table_info, assigned_video_url')
@@ -45,26 +66,20 @@ export default function GuestApp() {
 
         } catch (error) {
             console.error('Error loading event data:', error);
-            // Fallback for demo
             setEvent({
                 id: '123',
                 name: 'Evento de Demostración',
                 date: '2025-12-25',
-                theme_background_url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2098&auto=format&fit=crop',
+                theme_background_url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2098',
                 is_approved: true
             } as any);
             setGuests([
-                { id: '1', first_name: 'Juan', last_name: 'Pérez', display_name: 'Juan Pérez', table_info: 'Mesa 5' },
+                { id: '1', first_name: 'Juan', last_name: 'Pérez', display_name: 'Juan Pérez', table_info: 'Mesa 5', assigned_video_url: 'https://www.w3schools.com/html/mov_bbb.mp4' },
                 { id: '2', first_name: 'María', last_name: 'Gómez', display_name: 'María Gómez', table_info: 'Mesa 1' },
-                { id: '3', first_name: 'Carlos', last_name: 'López', display_name: 'Charlie', table_info: 'VIP' },
             ] as any);
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSearch = (query: string) => {
-        setSearchQuery(query);
     };
 
     const toggleMic = () => {
@@ -90,237 +105,352 @@ export default function GuestApp() {
         recognition.onend = () => setIsListening(false);
     };
 
+    const handleGuestSelect = (guest: Guest) => {
+        setSelectedGuest(guest);
+        setView('video');
+
+        // Reproducir video si existe
+        const videoUrl = guest.assigned_video_url || event?.video_url_default;
+        if (videoUrl && videoRef.current) {
+            setTimeout(() => {
+                videoRef.current?.play().catch(err => console.log('Autoplay prevented:', err));
+            }, 500);
+        }
+    };
+
+    // Función para normalizar texto (remover acentos)
+    const normalizeText = (text: string) => {
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, ''); // Remover acentos
+    };
+
     const filteredGuests = searchQuery.length > 2
         ? guests.filter(g => {
-            const fullName = `${g.first_name} ${g.last_name} ${g.display_name || ''}`.toLowerCase();
-            return fullName.includes(searchQuery.toLowerCase());
+            const fullName = `${g.first_name} ${g.last_name} ${g.display_name || ''}`;
+            const normalizedFullName = normalizeText(fullName);
+            const normalizedQuery = normalizeText(searchQuery);
+
+            // Búsqueda flexible: permite coincidencias parciales
+            return normalizedFullName.includes(normalizedQuery);
         })
         : [];
 
-    const handleSelectGuest = (guest: Guest) => {
-        setSelectedGuest(guest);
-        setView('result');
-
-        // Play video if exists
-        setTimeout(() => {
-            if (videoRef.current) {
-                videoRef.current.play().catch(err => console.log('Autoplay prevented:', err));
-            }
-        }, 500);
-    };
-
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-yellow-500 font-medium">Cargando experiencia...</p>
+            <>
+                <style>{`
+                    :root {
+                        --theme-primary: ${themeColors.primary};
+                        --theme-secondary: ${themeColors.secondary};
+                        --theme-accent: ${themeColors.accent};
+                        --theme-bg: ${themeColors.background};
+                    }
+                `}</style>
+                <div
+                    className="min-h-screen flex items-center justify-center"
+                    style={{ background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.primary}, ${themeColors.background})` }}
+                >
+                    <div className="text-center">
+                        <div
+                            className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4"
+                            style={{ borderColor: `${themeColors.accent} transparent transparent transparent` }}
+                        ></div>
+                        <p className="text-white/80 font-medium">Cargando experiencia...</p>
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 
     if (!event) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center text-white p-4">
+            <div
+                className="min-h-screen flex items-center justify-center text-white p-4"
+                style={{ background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.primary}, ${themeColors.background})` }}
+            >
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-2">Evento no encontrado</h2>
-                    <p className="text-slate-400">Verifica el código QR e intenta nuevamente</p>
+                    <p className="text-white/70">Verifica el código QR e intenta nuevamente</p>
                 </div>
             </div>
         );
     }
 
-    const bgImage = event.theme_background_url || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2098&auto=format&fit=crop';
-    const videoUrl = selectedGuest?.assigned_video_url;
+    const bgImage = event.theme_background_url || 'https://images.unsplash.com/photo-5519167758481-83f550bb49b3?q=80&w=2098';
 
     return (
-        <div className="fixed inset-0 bg-slate-950 text-white font-['Outfit'] overflow-hidden">
-            {/* Dynamic Background */}
-            <div className="absolute inset-0 z-0">
-                <img src={bgImage} className="w-full h-full object-cover opacity-30" alt="Background" />
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-900/70 to-slate-950/90" />
-            </div>
+        <>
+            <style>{`
+                :root {
+                    --theme-primary: ${themeColors.primary};
+                    --theme-secondary: ${themeColors.secondary};
+                    --theme-accent: ${themeColors.accent};
+                    --theme-bg: ${themeColors.background};
+                }
+            `}</style>
+            <div className="fixed inset-0 font-['Outfit'] overflow-hidden">
+                {/* Background */}
+                <div className="absolute inset-0">
+                    <img src={bgImage} className="w-full h-full object-cover" alt="Background" />
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            background: `linear-gradient(to bottom, ${themeColors.background}99, ${themeColors.background}66, ${themeColors.background}BB)`
+                        }}
+                    />
+                </div>
 
-            <AnimatePresence mode="wait">
-                {/* WELCOME VIEW */}
-                {view === 'welcome' && (
-                    <motion.div
-                        key="welcome"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 text-center"
-                    >
-                        {/* Logo */}
-                        <div className="mb-8">
-                            {event.theme_custom_logo_url ? (
-                                <img src={event.theme_custom_logo_url} alt="Logo" className="w-40 h-40 object-contain drop-shadow-2xl mx-auto" />
-                            ) : (
-                                <div className="w-32 h-32 mx-auto rounded-full border-4 border-yellow-500 flex items-center justify-center bg-slate-900/50 backdrop-blur-lg shadow-[0_0_40px_rgba(251,191,36,0.3)]">
-                                    <span className="text-5xl font-bold text-yellow-500">{event.name.charAt(0)}</span>
-                                </div>
-                            )}
-                        </div>
-
-                        <h1 className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-2xl bg-gradient-to-r from-yellow-200 to-yellow-500 bg-clip-text text-transparent">{event.name}</h1>
-                        <p className="text-slate-300 mb-12 text-lg max-w-md">Bienvenido a nuestra celebración</p>
-
-                        <button
-                            onClick={() => setView('search')}
-                            className="group px-10 py-5 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-slate-900 font-bold rounded-2xl text-lg shadow-[0_0_30px_rgba(251,191,36,0.4)] hover:shadow-[0_0_40px_rgba(251,191,36,0.6)] transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3"
+                <AnimatePresence mode="wait">
+                    {/* WELCOME VIEW */}
+                    {view === 'welcome' && (
+                        <motion.div
+                            key="welcome"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="relative w-full h-full flex flex-col"
                         >
-                            Encuentra tu mesa
-                            <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
-                        </button>
-
-                        <div className="absolute bottom-8 text-xs text-slate-500 font-medium tracking-widest uppercase">
-                            Powered by <span className="text-yellow-500">Tecno Eventos</span>
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* SEARCH VIEW */}
-                {view === 'search' && (
-                    <motion.div
-                        key="search"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.05 }}
-                        className="relative z-10 flex flex-col min-h-screen p-6 max-w-2xl mx-auto"
-                    >
-                        <div className="flex-none pt-8 pb-6">
-                            <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-200 to-yellow-500 bg-clip-text text-transparent">¿Quién eres?</h2>
-
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400">
-                                    <Search size={22} />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Escribe tu nombre completo..."
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    autoFocus
-                                    className="w-full bg-slate-900/80 border-2 border-yellow-500/30 text-white placeholder:text-slate-500 text-lg rounded-2xl py-5 pl-14 pr-16 focus:outline-none focus:border-yellow-500 focus:bg-slate-900 transition-all shadow-xl backdrop-blur-sm"
-                                />
-                                <button
-                                    onClick={toggleMic}
-                                    className={`absolute inset-y-0 right-3 w-12 flex items-center justify-center rounded-xl transition-all ${isListening ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-400 hover:text-yellow-500 hover:bg-yellow-500/10'}`}
+                            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                                {/* Logo/Icon */}
+                                <motion.div
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="mb-8 p-8 rounded-full"
+                                    style={{
+                                        background: `radial-gradient(circle, ${themeColors.primary}33, ${themeColors.secondary}11)`,
+                                        boxShadow: `0 0 60px ${themeColors.primary}66`
+                                    }}
                                 >
-                                    <Mic size={22} />
-                                </button>
-                            </div>
-                        </div>
+                                    <Sparkles size={80} className="text-white" strokeWidth={1.5} />
+                                </motion.div>
 
-                        <div className="flex-1 overflow-y-auto -mx-6 px-6 pb-20">
-                            {searchQuery.length > 2 ? (
-                                <div className="space-y-3">
-                                    {filteredGuests.length > 0 ? filteredGuests.map(guest => (
-                                        <motion.button
-                                            key={guest.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            onClick={() => handleSelectGuest(guest)}
-                                            className="w-full bg-slate-900/60 backdrop-blur-sm border-2 border-yellow-500/20 p-5 rounded-2xl flex items-center justify-between hover:bg-yellow-500/10 hover:border-yellow-500/50 transition-all group text-left"
+                                {/* Event Name */}
+                                <motion.h1
+                                    initial={{ y: 20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="text-6xl md:text-7xl font-black text-white mb-4 drop-shadow-2xl"
+                                    style={{
+                                        textShadow: `0 0 30px ${themeColors.primary}88, 0 0 60px ${themeColors.secondary}66`
+                                    }}
+                                >
+                                    {event.name}
+                                </motion.h1>
+
+                                <motion.p
+                                    initial={{ y: 20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="text-2xl text-white/90 mb-12 font-light"
+                                >
+                                    ¡Entrá para ver tu mesa!
+                                </motion.p>
+
+                                {/* CTA Button */}
+                                <motion.button
+                                    initial={{ y: 20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.5 }}
+                                    onClick={() => setView('search')}
+                                    className="px-16 py-6 rounded-full text-white text-2xl font-bold shadow-2xl transition-all duration-300 hover:scale-105 flex items-center gap-3"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.secondary})`,
+                                        boxShadow: `0 8px 32px ${themeColors.primary}66`,
+                                        border: `3px solid ${themeColors.accent}`
+                                    }}
+                                >
+                                    <Search size={28} />
+                                    Buscar mi Nombre
+                                </motion.button>
+                            </div>
+
+                            {/* Footer con redes sociales */}
+                            <div className="pb-8 px-4">
+                                <div className="flex flex-col items-center gap-4">
+                                    {/* Social Links */}
+                                    <div className="flex items-center gap-6">
+                                        <a
+                                            href="https://wa.me/5491234567890"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-white/80 hover:text-white transition-colors hover:scale-110 transform duration-200"
                                         >
-                                            <div>
-                                                <div className="font-bold text-xl group-hover:text-yellow-500 transition-colors">
-                                                    {guest.first_name} {guest.last_name}
-                                                </div>
-                                                {guest.display_name && guest.display_name !== `${guest.first_name} ${guest.last_name}` && (
-                                                    <div className="text-sm text-slate-400 italic mt-1">"{guest.display_name}"</div>
-                                                )}
-                                            </div>
-                                            <div className="w-12 h-12 rounded-full bg-yellow-500/10 border-2 border-yellow-500/30 flex items-center justify-center group-hover:bg-yellow-500 group-hover:border-yellow-500 group-hover:text-slate-900 transition-all">
-                                                <ArrowRight size={20} />
-                                            </div>
-                                        </motion.button>
-                                    )) : (
-                                        <div className="text-center py-12 text-slate-400">
-                                            <Search size={48} className="mx-auto mb-4 opacity-30" />
-                                            <p>No encontramos invitados con ese nombre.</p>
-                                            <p className="text-sm mt-2">Intenta escribir solo tu nombre o apellido.</p>
+                                            <WhatsAppIcon />
+                                        </a>
+                                        <a
+                                            href="https://instagram.com/ingresovip"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-white/80 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                                        >
+                                            <Instagram size={24} />
+                                        </a>
+                                        <a
+                                            href="https://tiktok.com/@ingresovip"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-white/80 hover:text-white transition-colors hover:scale-110 transform duration-200"
+                                        >
+                                            <TikTokIcon />
+                                        </a>
+                                    </div>
+
+                                    {/* Copyright */}
+                                    <p className="text-white/60 text-sm">
+                                        Todos los derechos reservados - <span className="font-semibold">INGRESO VIP by Tecno Eventos</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* SEARCH VIEW */}
+                    {view === 'search' && (
+                        <motion.div
+                            key="search"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="relative w-full h-full"
+                            style={{
+                                background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.primary}, ${themeColors.background})`
+                            }}
+                        >
+                            <div className="flex flex-col items-center justify-center h-full p-6">
+                                <motion.h2
+                                    initial={{ y: -20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    className="text-4xl md:text-5xl font-black text-white mb-4 text-center"
+                                >
+                                    Buscá tu Mesa
+                                </motion.h2>
+
+                                <p className="text-white/80 text-lg mb-8 text-center">
+                                    Presioná el botón y decí tu nombre completo
+                                </p>
+
+                                {/* Search Container */}
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="w-full max-w-2xl space-y-4"
+                                >
+                                    {/* Voice Button (PRIMERO) */}
+                                    <button
+                                        onClick={toggleMic}
+                                        className="w-full p-6 rounded-2xl transition-all flex items-center justify-center gap-3 text-xl font-bold shadow-2xl"
+                                        style={{
+                                            background: isListening
+                                                ? `linear-gradient(135deg, ${themeColors.accent}, ${themeColors.primary})`
+                                                : `${themeColors.primary}DD`,
+                                            border: `2px solid ${themeColors.accent}${isListening ? 'FF' : '66'}`
+                                        }}
+                                    >
+                                        <Mic size={32} className={`${isListening ? 'animate-pulse text-white' : 'text-white'}`} />
+                                        <span className="text-white">
+                                            {isListening ? 'Escuchando...' : 'Decir mi nombre'}
+                                        </span>
+                                    </button>
+
+                                    {/* Text Input (DESPUÉS) */}
+                                    <div className="relative">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={24} />
+                                        <input
+                                            type="text"
+                                            placeholder="O escribe tu nombre completo..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full text-white placeholder:text-white/50 text-lg rounded-2xl py-5 pl-14 pr-6 focus:outline-none transition-all backdrop-blur-sm"
+                                            style={{
+                                                background: `${themeColors.background}80`,
+                                                border: `2px solid ${themeColors.accent}33`,
+                                                boxShadow: `0 4px 24px ${themeColors.primary}22`
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Results */}
+                                    {searchQuery && filteredGuests.length > 0 && (
+                                        <div className="mt-4 max-h-80 overflow-y-auto space-y-2">
+                                            {filteredGuests.map((guest) => (
+                                                <button
+                                                    key={guest.id}
+                                                    onClick={() => handleGuestSelect(guest)}
+                                                    className="w-full backdrop-blur-sm p-6 rounded-2xl text-white text-xl font-semibold transition-all"
+                                                    style={{
+                                                        background: `${themeColors.background}CC`,
+                                                        border: `1px solid ${themeColors.accent}20`,
+                                                        boxShadow: `0 4px 16px ${themeColors.primary}22`
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span>{guest.display_name || `${guest.first_name} ${guest.last_name}`}</span>
+                                                        <div
+                                                            className="px-4 py-1 rounded-full text-sm font-normal"
+                                                            style={{ background: `${themeColors.accent}33`, color: themeColors.accent }}
+                                                        >
+                                                            {guest.table_info || 'Sin mesa'}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {searchQuery && searchQuery.length > 2 && filteredGuests.length === 0 && (
+                                        <div className="text-center text-white/70 p-6">
+                                            No se encontraron coincidencias
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* VIDEO VIEW (Simple - Solo video) */}
+                    {view === 'video' && selectedGuest && (
+                        <motion.div
+                            key="video"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="relative w-full h-full"
+                            style={{
+                                background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.primary}, ${themeColors.background})`
+                            }}
+                        >
+                            <div className="flex flex-col items-center justify-center h-full p-8">
+                                {/* Video Section */}
+                                <div className="w-full max-w-4xl mb-12">
+                                    {selectedGuest.assigned_video_url || event.video_url_default ? (
+                                        <video
+                                            ref={videoRef}
+                                            src={selectedGuest.assigned_video_url || event.video_url_default}
+                                            className="w-full h-auto rounded-3xl shadow-2xl"
+                                            controls
+                                            autoPlay
+                                            loop
+                                            muted
+                                            playsInline
+                                            style={{ boxShadow: `0 20px 60px ${themeColors.primary}66` }}
+                                        />
+                                    ) : (
+                                        <div className="text-center text-white">
+                                            <h3 className="text-3xl font-bold mb-4">
+                                                {selectedGuest.display_name || `${selectedGuest.first_name} ${selectedGuest.last_name}`}
+                                            </h3>
+                                            <p className="text-white/70">No hay video disponible para este invitado</p>
                                         </div>
                                     )}
                                 </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-slate-500 opacity-50">
-                                    <Search size={64} className="mb-4" />
-                                    <p className="text-lg">Empieza a escribir para buscarte</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={() => setView('welcome')}
-                            className="absolute bottom-6 left-1/2 -translate-x-1/2 py-3 px-6 text-slate-400 text-sm hover:text-white transition-colors bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700 hover:border-slate-500"
-                        >
-                            ← Volver al inicio
-                        </button>
-                    </motion.div>
-                )}
-
-                {/* RESULT VIEW */}
-                {view === 'result' && selectedGuest && (
-                    <motion.div
-                        key="result"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="relative z-20 flex flex-col h-full bg-slate-950"
-                    >
-                        {/* Video/Image Background */}
-                        <div className="absolute inset-0 z-0">
-                            {videoUrl ? (
-                                <video
-                                    ref={videoRef}
-                                    src={videoUrl}
-                                    playsInline
-                                    muted
-                                    loop
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full relative overflow-hidden">
-                                    <img src={bgImage} className="w-full h-full object-cover opacity-50" alt="Background" />
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-24 h-24 rounded-full bg-yellow-500 flex items-center justify-center animate-pulse shadow-[0_0_60px_rgba(251,191,36,0.6)]">
-                                            <Volume2 size={48} className="text-slate-900 ml-2" />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-                        </div>
-
-                        {/* Overlay Content */}
-                        <div className="relative z-10 flex flex-col justify-end min-h-screen p-8 pb-20">
-                            <motion.div
-                                initial={{ opacity: 0, y: 50 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 }}
-                                className="text-center"
-                            >
-                                <h3 className="text-slate-300 text-2xl mb-3">¡Hola, {selectedGuest.first_name}!</h3>
-                                <div className="text-4xl md:text-6xl font-black text-white mb-3 drop-shadow-2xl tracking-tight">
-                                    TU MESA ES LA
-                                </div>
-                                <div className="text-7xl md:text-9xl font-black bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(251,191,36,0.9)] scale-110 transform mb-8">
-                                    {selectedGuest.table_info ? selectedGuest.table_info.replace('Mesa ', '') : 'S/A'}
-                                </div>
-                                <div className="mt-8">
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="text-base text-slate-300 hover:text-white border-2 border-yellow-500/30 hover:border-yellow-500 px-8 py-3 rounded-xl backdrop-blur-md bg-slate-900/50 hover:bg-yellow-500/10 transition-all"
-                                    >
-                                        Escanear de nuevo
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </>
     );
 }

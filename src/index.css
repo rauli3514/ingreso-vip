@@ -1,11 +1,11 @@
-/* EventPix Design System - Ingreso VIP */
+/* Ingreso VIP Design System */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* EventPix Color Palette */
+    /* Ingreso VIP Color Palette */
     --color-bg-primary: 10 14 39;
     /* #0a0e27 - Fondo principal oscuro */
     --color-bg-secondary: 13 17 23;
@@ -22,7 +22,7 @@
     --color-text-muted: 71 85 105;
     /* #475569 - Texto muted */
 
-    /* EventPix Blue - Color principal */
+    /* Ingreso VIP Blue - Color principal */
     --color-primary: 65 105 225;
     /* #4169E1 - Azul eléctrico */
     --color-primary-hover: 91 141 239;
@@ -122,7 +122,7 @@ h6 {
     border-color: rgba(var(--color-border));
   }
 
-  /* Cards Premium EventPix Style */
+  /* Cards Premium Ingreso VIP Style */
   .card-premium {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(12px);
@@ -148,7 +148,7 @@ h6 {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
-  /* Buttons EventPix Style */
+  /* Buttons Ingreso VIP Style */
   .btn {
     @apply px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 text-sm;
   }
@@ -219,7 +219,7 @@ h6 {
     @apply text-xs uppercase tracking-wider text-muted font-semibold;
   }
 
-  /* Tabs EventPix Style */
+  /* Tabs Ingreso VIP Style */
   .tab {
     @apply px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer;
   }

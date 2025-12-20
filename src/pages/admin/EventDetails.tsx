@@ -14,7 +14,10 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import GuestImportModal from '../../components/GuestImportModal';
 import CreateGuestModal from '../../components/CreateGuestModal';
+import ThemeSelector from '../../components/ThemeSelector';
+import { getThemeById } from '../../lib/themes';
 import QRCode from 'qrcode';
+import jsPDF from 'jspdf';
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>();
@@ -197,6 +200,132 @@ export default function EventDetails() {
         return `${window.location.origin}${baseUrl}/evento/${event?.id}`;
     };
 
+    const downloadGuestsPDF = () => {
+        if (!guests.length) {
+            alert('No hay invitados para descargar.');
+            return;
+        }
+        if (!event) {
+            alert('No hay evento seleccionado');
+            return;
+        }
+
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        let yPos = margin;
+
+        // Título
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Lista de Invitados - ${event.name}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 10;
+
+        // Fecha
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const eventDate = event.date ? format(new Date(event.date), 'dd/MM/yyyy', { locale: es }) : 'Sin fecha';
+        doc.text(`Fecha: ${eventDate}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 15;
+
+        // Ordenar invitados por mesa
+        const sortedGuests = [...guests].sort((a, b) => {
+            const mesaA = a.table_info || 'Sin mesa';
+            const mesaB = b.table_info || 'Sin mesa';
+            return mesaA.localeCompare(mesaB);
+        });
+
+        // Tabla de invitados
+        doc.setFontSize(9);
+        const colWidths = [70, 70, 30, 25];
+        const headers = ['Nombre Completo', 'Mesa', 'Estado', ''];
+
+        // Header
+        doc.setFont('helvetica', 'bold');
+        doc.setFillColor(79, 70, 229);
+        doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'F');
+        doc.setTextColor(255, 255, 255);
+
+        let xPos = margin + 2;
+        headers.forEach((header, i) => {
+            doc.text(header, xPos, yPos + 5);
+            xPos += colWidths[i];
+        });
+        yPos += 7;
+
+        // Rows
+        doc.setFont('helvetica', 'normal');
+        sortedGuests.forEach((guest, index) => {
+            // Check if new page needed
+            if (yPos > pageHeight - 30) {
+                doc.addPage();
+                yPos = margin;
+
+                // Re-draw header
+                doc.setFont('helvetica', 'bold');
+                doc.setFillColor(79, 70, 229);
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'F');
+                doc.setTextColor(255, 255, 255);
+
+                xPos = margin + 2;
+                headers.forEach((header, i) => {
+                    doc.text(header, xPos, yPos + 5);
+                    xPos += colWidths[i];
+                });
+                yPos += 7;
+            }
+
+            // Row background
+            if (index % 2 === 0) {
+                doc.setFillColor(249, 250, 251);
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 6, 'F');
+            }
+
+            // Row data
+            doc.setTextColor(0, 0, 0);
+            xPos = margin + 2;
+
+            // Nombre completo
+            const fullName = guest.display_name || `${guest.first_name} ${guest.last_name}`;
+            doc.text(fullName, xPos, yPos + 4.5, { maxWidth: colWidths[0] - 4 });
+            xPos += colWidths[0];
+
+            // Mesa
+            doc.text(guest.table_info || 'Sin mesa', xPos, yPos + 4.5);
+            xPos += colWidths[1];
+
+            // Estado con color
+            const statusColors: any = {
+                confirmed: [16, 185, 129],
+                pending: [251, 191, 36],
+                cancelled: [239, 68, 68]
+            };
+            const statusLabels: any = {
+                confirmed: 'Confirmado',
+                pending: 'Pendiente',
+                cancelled: 'Cancelado'
+            };
+
+            const color = statusColors[guest.status] || [156, 163, 175];
+            doc.setTextColor(color[0], color[1], color[2]);
+            doc.text(statusLabels[guest.status] || guest.status, xPos, yPos + 4.5);
+            doc.setTextColor(0, 0, 0);
+
+            yPos += 6;
+        });
+
+        // Footer
+        yPos = pageHeight - 15;
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Total de invitados: ${guests.length}`, margin, yPos);
+        doc.text(`Generado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, yPos, { align: 'right' });
+
+        // Download
+        doc.save(`${event.name}_invitados.pdf`);
+    };
+
     const generateQRPoster = async (orientation: 'portrait' | 'landscape') => {
         if (!event) {
             alert('No hay evento seleccionado');
@@ -207,6 +336,15 @@ export default function EventDetails() {
         console.log('🎨 Iniciando generación de QR poster...', { orientation, eventId: event.id });
 
         try {
+            // Get theme colors
+            const theme = getThemeById(event.theme_id || 'default');
+            const themeColors = theme?.colors || {
+                primary: '#6b21a8',
+                secondary: '#581c87',
+                accent: '#FBBF24',
+                background: '#1a1030'
+            };
+
             // 1. Generate QR Code first
             console.log('📱 Generando código QR para:', getGuestUrl());
             const qrDataUrl = await QRCode.toDataURL(getGuestUrl(), {
@@ -231,14 +369,96 @@ export default function EventDetails() {
             canvas.height = height;
             console.log('🖼️ Canvas creado:', { width, height });
 
-            // 3. Fill background with gradient
-            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, '#1a1a2e');
-            gradient.addColorStop(0.5, '#16213e');
-            gradient.addColorStop(1, '#0f1419');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
-            console.log('🎨 Fondo aplicado');
+            // 3. FONDO PERSONALIZADO CON BLUR (si existe) o gradiente del tema
+            if (event.theme_background_url) {
+                const bgImg = new Image();
+                bgImg.crossOrigin = 'anonymous';
+                bgImg.src = event.theme_background_url;
+
+                await new Promise((resolve) => {
+                    bgImg.onload = resolve;
+                    bgImg.onerror = () => {
+                        console.warn('Error cargando fondo personalizado, usando gradiente');
+                        resolve(null);
+                    };
+                    setTimeout(() => resolve(null), 5000);
+                });
+
+                if (bgImg.complete && bgImg.naturalWidth > 0) {
+                    // PASO 1: Fondo blureado (cubre todo el canvas)
+                    ctx.filter = 'blur(40px) brightness(0.7)';
+
+                    // Calcular dimensiones para cubrir todo sin distorsionar
+                    const bgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
+                    const canvasAspect = width / height;
+
+                    let bgDrawWidth, bgDrawHeight, bgX, bgY;
+
+                    if (bgAspect > canvasAspect) {
+                        bgDrawHeight = height;
+                        bgDrawWidth = height * bgAspect;
+                        bgX = -(bgDrawWidth - width) / 2;
+                        bgY = 0;
+                    } else {
+                        bgDrawWidth = width;
+                        bgDrawHeight = width / bgAspect;
+                        bgX = 0;
+                        bgY = -(bgDrawHeight - height) / 2;
+                    }
+
+                    ctx.drawImage(bgImg, bgX, bgY, bgDrawWidth, bgDrawHeight);
+                    ctx.filter = 'none';
+
+                    // PASO 2: Imagen principal centrada (contenida, sin crop)
+                    const maxImgWidth = width * 0.9;
+                    const maxImgHeight = height * 0.9;
+
+                    let mainImgWidth = bgImg.naturalWidth;
+                    let mainImgHeight = bgImg.naturalHeight;
+
+                    // Escalar para que quepa manteniendo aspect ratio
+                    if (mainImgWidth > maxImgWidth) {
+                        mainImgHeight = (maxImgWidth / mainImgWidth) * mainImgHeight;
+                        mainImgWidth = maxImgWidth;
+                    }
+                    if (mainImgHeight > maxImgHeight) {
+                        mainImgWidth = (maxImgHeight / mainImgHeight) * mainImgWidth;
+                        mainImgHeight = maxImgHeight;
+                    }
+
+                    const mainImgX = (width - mainImgWidth) / 2;
+                    const mainImgY = (height - mainImgHeight) / 2;
+
+                    // Dibujar imagen principal nítida y centrada
+                    ctx.globalAlpha = 0.85;
+                    ctx.drawImage(bgImg, mainImgX, mainImgY, mainImgWidth, mainImgHeight);
+                    ctx.globalAlpha = 1.0;
+
+                    // Overlay para legibilidad
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                    ctx.fillRect(0, 0, width, height);
+
+                    console.log('🎨 Fondo personalizado aplicado con blur');
+                } else {
+                    // Fallback: gradiente del tema
+                    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                    gradient.addColorStop(0, themeColors.secondary);
+                    gradient.addColorStop(0.5, themeColors.primary);
+                    gradient.addColorStop(1, themeColors.background);
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, width, height);
+                    console.log('🎨 Fondo gradiente aplicado (fallback)');
+                }
+            } else {
+                // Gradiente del tema
+                const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, themeColors.secondary);
+                gradient.addColorStop(0.5, themeColors.primary);
+                gradient.addColorStop(1, themeColors.background);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+                console.log('🎨 Fondo con tema:', event.theme_id);
+            }
 
             // 4. Load and draw QR image
             const qrImg = new Image();
@@ -251,40 +471,126 @@ export default function EventDetails() {
             });
             console.log('✅ Imagen QR cargada');
 
-            // 5. Calculate QR position and size
-            const qrSize = orientation === 'landscape' ? 500 : 800;
+            // 5. Calculate QR position and size (optimizado para TV 50")
+            const qrSize = orientation === 'landscape' ? 350 : 450;
             const qrX = (width - qrSize) / 2;
             const qrY = (height - qrSize) / 2;
 
-            // Draw white container with border radius effect (using multiple rects)
+            // Draw white container with shadow
             ctx.fillStyle = '#ffffff';
             ctx.shadowColor = 'rgba(0,0,0,0.3)';
             ctx.shadowBlur = 20;
-            ctx.fillRect(qrX - 30, qrY - 30, qrSize + 60, qrSize + 60);
+            ctx.fillRect(qrX - 25, qrY - 25, qrSize + 50, qrSize + 50);
             ctx.shadowBlur = 0;
 
             // Draw QR
             ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
             console.log('✅ QR dibujado en canvas');
 
-            // 6. Add texts
+            // 6. Add texts (optimizados para TV)
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0,0,0,0.8)';
             ctx.shadowBlur = 30;
 
-            // Event name
-            ctx.font = 'bold 90px system-ui, sans-serif';
-            ctx.fillText(event.name, width / 2, qrY - 120);
+            // Event name (más pequeño)
+            ctx.font = `bold ${orientation === 'landscape' ? '70' : '80'}px system-ui, sans-serif`;
+            ctx.fillText(event.name, width / 2, qrY - 80);
 
-            // Instruction
-            ctx.font = '55px system-ui, sans-serif';
-            ctx.fillText('Escanea para encontrar tu mesa', width / 2, qrY + qrSize + 140);
+            // Instruction (más pequeño y más cerca)
+            ctx.font = `${orientation === 'landscape' ? '40' : '45'}px system-ui, sans-serif`;
+            ctx.fillText('Escanea para encontrar tu mesa', width / 2, qrY + qrSize + 90);
 
-            // Logo/branding
-            ctx.font = '30px system-ui, sans-serif';
-            ctx.fillStyle = '#FBBF24';
-            ctx.fillText('INGRESO VIP • by Tecno Eventos', width / 2, height - 80);
+            // 7. LOGO CIRCULAR CON EFECTO CRISTAL (si existe)
+            if (event.theme_custom_logo_url) {
+                const logoImg = new Image();
+                logoImg.crossOrigin = 'anonymous';
+                logoImg.src = event.theme_custom_logo_url;
+
+                await new Promise((resolve) => {
+                    logoImg.onload = resolve;
+                    logoImg.onerror = () => {
+                        console.warn('Error cargando logo');
+                        resolve(null);
+                    };
+                    setTimeout(() => resolve(null), 5000);
+                });
+
+                if (logoImg.complete && logoImg.naturalWidth > 0) {
+                    // Tamaño del logo circular (reducido para TV)
+                    const logoSize = orientation === 'landscape' ? 140 : 160;
+                    const logoRadius = logoSize / 2;
+
+                    // Posición: esquina superior derecha
+                    const logoX = width - logoSize - 80;
+                    const logoY = 80;
+
+                    // EFECTO GLASSMORPHISM (CRISTAL)
+                    ctx.save();
+
+                    // Clip circular
+                    ctx.beginPath();
+                    ctx.arc(logoX + logoRadius, logoY + logoRadius, logoRadius, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip();
+
+                    // Fondo glassmorphism
+                    const glassGradient = ctx.createRadialGradient(
+                        logoX + logoRadius, logoY + logoRadius, 0,
+                        logoX + logoRadius, logoY + logoRadius, logoRadius
+                    );
+                    glassGradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+                    glassGradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+                    ctx.fillStyle = glassGradient;
+                    ctx.fillRect(logoX, logoY, logoSize, logoSize);
+
+                    // Dibujar logo dentro del círculo
+                    ctx.globalAlpha = 0.95;
+
+                    // Calcular tamaño del logo manteniendo aspect ratio (75% del círculo)
+                    const logoInnerSize = logoSize * 0.75;
+                    let logoDrawWidth = logoImg.naturalWidth;
+                    let logoDrawHeight = logoImg.naturalHeight;
+
+                    if (logoDrawWidth > logoDrawHeight) {
+                        logoDrawHeight = (logoInnerSize / logoDrawWidth) * logoDrawHeight;
+                        logoDrawWidth = logoInnerSize;
+                    } else {
+                        logoDrawWidth = (logoInnerSize / logoDrawHeight) * logoDrawWidth;
+                        logoDrawHeight = logoInnerSize;
+                    }
+
+                    const logoDrawX = logoX + (logoSize - logoDrawWidth) / 2;
+                    const logoDrawY = logoY + (logoSize - logoDrawHeight) / 2;
+
+                    ctx.drawImage(logoImg, logoDrawX, logoDrawY, logoDrawWidth, logoDrawHeight);
+                    ctx.globalAlpha = 1.0;
+
+                    ctx.restore();
+
+                    // BORDE Y SOMBRA DEL CÍ RCULO
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                    ctx.shadowBlur = 25;
+                    ctx.shadowOffsetY = 8;
+
+                    // Borde blanco semitransparente
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(logoX + logoRadius, logoY + logoRadius, logoRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.restore();
+
+                    console.log('✅ Logo circular agregado');
+                }
+            }
+
+            //Logo/branding
+            ctx.font = `${orientation === 'landscape' ? '24' : '28'}px system-ui, sans-serif`;
+            ctx.fillStyle = themeColors.accent;
+            ctx.fillText('INGRESO VIP • by Tecno Eventos', width / 2, height - 60);
 
             console.log('✅ Textos agregados');
 
@@ -308,6 +614,25 @@ export default function EventDetails() {
         } finally {
             setIsGeneratingQR(false);
             console.log('🏁 Proceso de generación finalizado');
+        }
+    };
+
+    const handleThemeChange = async (themeId: string) => {
+        if (!event) return;
+
+        try {
+            const { error } = await supabase
+                .from('events')
+                .update({ theme_id: themeId })
+                .eq('id', event.id);
+
+            if (error) throw error;
+
+            setEvent({ ...event, theme_id: themeId });
+            alert('Tema actualizado correctamente');
+        } catch (error) {
+            console.error('Error updating theme:', error);
+            alert('Error al actualizar tema');
         }
     };
 
@@ -894,19 +1219,11 @@ export default function EventDetails() {
                                 {/* Theme Selection */}
                                 <div className="space-y-4">
                                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Tema del Evento</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="aspect-video rounded-xl bg-gradient-to-br from-slate-900 to-black border-2 border-[#FBBF24] relative overflow-hidden group cursor-pointer">
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="font-bold text-white">Dark Premium</span>
-                                            </div>
-                                            <div className="absolute top-2 right-2 bg-[#FBBF24] text-black text-[10px] font-bold px-2 py-0.5 rounded-full">Activo</div>
-                                        </div>
-                                        <div className="aspect-video rounded-xl bg-gradient-to-br from-slate-100 to-white border border-white/10 relative overflow-hidden group cursor-pointer opacity-50 hover:opacity-100 transition-opacity">
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="font-bold text-slate-800">Light Elegant</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <ThemeSelector
+                                        selectedThemeId={event.theme_id || 'default'}
+                                        onThemeSelect={handleThemeChange}
+                                        compact
+                                    />
                                 </div>
 
                                 {/* Background Upload */}
@@ -1170,10 +1487,21 @@ export default function EventDetails() {
                                     <div className="relative z-10 mt-2 text-[#FBBF24] text-sm">Tecno Eventos</div>
                                 </div>
 
-                                <button className="btn btn-primary w-full flex items-center justify-center gap-2">
-                                    <Download size={16} /> Descargar QR (JPG)
-                                </button>
-                                <p className="text-xs text-slate-500 mt-2">Formato 1080x1920 para pantallas verticales</p>
+                                <div className="space-y-3">
+                                    <button
+                                        className="btn btn-primary w-full flex items-center justify-center gap-2"
+                                        onClick={() => generateQRPoster('portrait')}
+                                    >
+                                        <Download size={16} /> QR Vertical (1080x1920)
+                                    </button>
+                                    <button
+                                        className="btn btn-secondary w-full flex items-center justify-center gap-2"
+                                        onClick={() => generateQRPoster('landscape')}
+                                    >
+                                        <Download size={16} /> QR Horizontal (1920x1080)
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">Elige el formato según tu pantalla</p>
                             </div>
 
                             {/* Lists Section */}
@@ -1194,7 +1522,10 @@ export default function EventDetails() {
                                                     <FileText size={16} />
                                                 </div>
                                             </div>
-                                            <button className="text-xs text-[#FBBF24] font-medium hover:underline flex items-center gap-1">
+                                            <button
+                                                className="text-xs text-[#FBBF24] font-medium hover:underline flex items-center gap-1"
+                                                onClick={downloadGuestsCSV}
+                                            >
                                                 Descargar CSV <Download size={10} />
                                             </button>
                                         </div>
@@ -1209,7 +1540,10 @@ export default function EventDetails() {
                                                     <FileText size={16} />
                                                 </div>
                                             </div>
-                                            <button className="text-xs text-[#FBBF24] font-medium hover:underline flex items-center gap-1">
+                                            <button
+                                                className="text-xs text-[#FBBF24] font-medium hover:underline flex items-center gap-1"
+                                                onClick={downloadGuestsPDF}
+                                            >
                                                 Descargar PDF <Download size={10} />
                                             </button>
                                         </div>

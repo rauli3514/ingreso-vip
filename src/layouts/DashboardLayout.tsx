@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-white leading-none">
-                                EventPix <span className="text-blue-400">Panel</span>
+                                Ingreso VIP <span className="text-blue-400">Panel</span>
                             </h2>
                             <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">
                                 {role === 'superadmin' ? 'SUPER ADMIN' : 'Proveedor'}
@@ -140,7 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                             <Zap size={16} className="text-white" strokeWidth={2.5} />
                         </div>
-                        <span className="font-bold text-white">EventPix</span>
+                        <span className="font-bold text-white">Ingreso VIP</span>
                     </div>
                     <div className="w-10" /> {/* Spacer */}
                 </div>
@@ -164,8 +164,8 @@ function NavItem({ icon, label, active = false, onClick }: {
         <button
             onClick={onClick}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all group ${active
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
         >
             <div className={active ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'}>

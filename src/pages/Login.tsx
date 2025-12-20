@@ -62,7 +62,7 @@ export default function Login() {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-2xl font-bold text-white mb-1">
-                        EventPix
+                        Ingreso VIP
                     </h1>
                     <p className="text-sm text-slate-400">Acceso Administrativo</p>
                 </div>

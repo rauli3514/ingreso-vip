@@ -26,6 +26,9 @@ export interface Event {
     status: EventStatus;
     created_at?: string;
 
+    // Theme selection
+    theme_id?: string; // ID del tema seleccionado (neon, boda, tecno, etc.)
+
     // Customization - from DB can be JSON column or separate columns
     theme_background_url?: string;
     theme_font_family?: string;
