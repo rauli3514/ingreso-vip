@@ -6,6 +6,7 @@ export interface UserProfile {
     username?: string;
     role: UserRole;
     is_active: boolean;
+    assigned_event_ids?: string[]; // Array of UUIDs for assigned events
     created_at: string;
 }
 
@@ -17,7 +18,7 @@ export interface Event {
     date: string;
     owner_id?: string;
     guest_count_total: number;
-    table_assignment_type: 'none' | 'partial' | 'full';
+    table_assignment: 'none' | 'partial' | 'full';
     table_count: number;
     guests_per_table_default: number;
     has_living_room: boolean;
@@ -29,6 +30,11 @@ export interface Event {
     theme_background_url?: string;
     theme_font_family?: string;
     theme_custom_logo_url?: string;
+
+    // New fields
+    description?: string;
+    video_url_default?: string;
+    video_configuration?: Record<string, string>; // Map table_name -> video_url
 }
 
 export interface Guest {

@@ -22,7 +22,6 @@ interface ParsedGuest {
 export default function GuestImportModal({ isOpen, onClose, event, onImportComplete }: GuestImportModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState<'upload' | 'preview' | 'uploading'>('upload');
-    const [file, setFile] = useState<File | null>(null);
     const [parsedGuests, setParsedGuests] = useState<ParsedGuest[]>([]);
     const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +30,7 @@ export default function GuestImportModal({ isOpen, onClose, event, onImportCompl
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
-            setFile(selectedFile);
+
             parseFile(selectedFile);
         }
     };
@@ -147,7 +146,6 @@ export default function GuestImportModal({ isOpen, onClose, event, onImportCompl
     };
 
     const handleClose = () => {
-        setFile(null);
         setParsedGuests([]);
         setStep('upload');
         setError(null);
@@ -322,7 +320,7 @@ export default function GuestImportModal({ isOpen, onClose, event, onImportCompl
                     {step === 'preview' && (
                         <>
                             <button
-                                onClick={() => { setStep('upload'); setFile(null); }}
+                                onClick={() => { setStep('upload'); }}
                                 className="btn btn-outline flex-1 py-2.5 text-sm"
                             >
                                 Atrás

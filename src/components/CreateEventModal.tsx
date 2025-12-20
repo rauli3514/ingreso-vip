@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, Users, MapPin, Check } from 'lucide-react';
+import { X, Users, MapPin, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -12,6 +12,7 @@ interface CreateEventModalProps {
 export default function CreateEventModal({ isOpen, onClose, onEventCreated }: CreateEventModalProps) {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Form State
     const [name, setName] = useState('');
@@ -25,20 +26,46 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }: Cr
     const [hasLiving, setHasLiving] = useState(false);
     const [hasAfter, setHasAfter] = useState(false);
 
+    // New state for guest import dropdown
+    const [isGuestImportOpen, setIsGuestImportOpen] = useState(false);
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
         setLoading(true);
+        setError(null);
 
         try {
-            const { error } = await supabase.from('events').insert({
+            // 1. Ensure Profile Exists (Fix for FK Error)
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError && profileError.code === 'PGRST116') {
+                // Profile doesn't exist (or select failed), try UPSERT to be safe (create or update)
+                const { error: insertError } = await supabase.from('profiles').upsert({
+                    id: user.id,
+                    email: user.email,
+                    role: 'provider' // Default role
+                });
+
+                if (insertError) {
+                    console.error('Error auto-creating profile:', insertError);
+                    throw new Error(`Error técnico al crear perfil: ${insertError.message} (Código: ${insertError.code})`);
+                }
+            }
+
+            // 2. Create Event
+            const { error: eventError } = await supabase.from('events').insert({
                 owner_id: user.id,
                 name,
                 date,
                 guest_count_total: Number(guestCount),
-                table_assignment_type: tableType,
+                table_assignment: tableType,
                 table_count: Number(tableCount) || 0,
                 guests_per_table_default: guestsPerTable,
                 has_living_room: hasLiving,
@@ -46,21 +73,21 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }: Cr
                 status: 'pending' // Default Red
             });
 
-            if (error) throw error;
+            if (eventError) throw eventError;
 
             onEventCreated();
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating event:', error);
-            alert('Error al crear el evento');
+            setError(error.message || error.details || 'Error desconocido al crear el evento');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="glass-card w-full max-w-2xl bg-[#030712] relative animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-10 md:pt-20 bg-black/80 backdrop-blur-sm">
+            <div className="glass-card w-full max-w-2xl bg-[#030712] relative animate-in zoom-in-95 duration-200 flex flex-col shadow-2xl shadow-black/50 border border-white/10 max-h-[85vh]">
 
                 {/* Header */}
                 <div className="p-5 border-b border-white/5 flex justify-between items-center bg-black/40">
@@ -76,7 +103,44 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }: Cr
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    {error && (
+                        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                            <strong>Error:</strong> {error}
+                        </div>
+                    )}
                     <form id="create-event-form" onSubmit={handleSubmit} className="space-y-6">
+
+                        {/* Dropdown for bulk data upload */}
+                        <div className="border border-white/5 rounded-xl overflow-hidden bg-white/[0.02]">
+                            <button
+                                type="button"
+                                onClick={() => setIsGuestImportOpen(!isGuestImportOpen)}
+                                className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-[#FBBF24]/10 text-[#FBBF24]">
+                                        <Users size={16} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-white">Carga Masiva (Opcional)</p>
+                                        <p className="text-[10px] text-slate-400">Importar lista de invitados ahora</p>
+                                    </div>
+                                </div>
+                                {isGuestImportOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                            </button>
+
+                            {isGuestImportOpen && (
+                                <div className="p-4 border-t border-white/5 bg-black/20">
+                                    <p className="text-xs text-slate-400 mb-3 text-center">
+                                        Podrás importar tu lista de invitados una vez creado el evento desde el panel de administración.
+                                    </p>
+                                    <div className="p-3 border border-dashed border-white/10 rounded-lg bg-white/5 text-center">
+                                        <p className="text-xs text-slate-500 italic">La importación estará disponible en el paso siguiente.</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* General Info */}
                         <div className="space-y-4">
                             <h3 className="text-xs font-bold text-[#FBBF24] uppercase tracking-widest leading-none">General</h3>

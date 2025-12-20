@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchUserRole(session.user.id);
+                fetchUserRole(session.user.id, session.user.email);
             } else {
                 setLoading(false);
             }
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchUserRole(session.user.id);
+                fetchUserRole(session.user.id, session.user.email);
             } else {
                 setRole(null);
                 setLoading(false);
@@ -54,7 +54,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => subscription.unsubscribe();
     }, []);
 
-    const fetchUserRole = async (userId: string) => {
+    const fetchUserRole = async (userId: string, email?: string) => {
+        // Temporary: Force superadmin for specific email
+        if (email === 'rauli3514@gmail.com') {
+            setRole('superadmin');
+            setLoading(false);
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('profiles')

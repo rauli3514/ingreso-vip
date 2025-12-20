@@ -6,10 +6,6 @@ create extension if not exists "uuid-ossp";
 -- ==========================================
 
 -- USERS (Providers & Admins)
--- Note: Supabase Auth handles authentication. 
--- We'll use a public 'profiles' table to store roles and additional info if needed,
--- or just use app_metadata. For simplicity and requirements (create/delete users),
--- we will create a 'profiles' table linked to auth.users.
 create type user_role as enum ('superadmin', 'provider', 'admin');
 
 create table public.profiles (
@@ -73,30 +69,46 @@ create table public.guests (
 -- ==========================================
 -- 2. STORAGE
 -- ==========================================
--- We will need buckets for: 'event-assets' (backgrounds, loops), 'guest-videos'.
 insert into storage.buckets (id, name, public) values ('event-assets', 'event-assets', true);
 insert into storage.buckets (id, name, public) values ('guest-videos', 'guest-videos', true);
 
 -- ==========================================
--- 3. RLS POLICIES (Simplified for initial setup)
+-- 3. RLS POLICIES
 -- ==========================================
 alter table public.profiles enable row level security;
 alter table public.events enable row level security;
 alter table public.guests enable row level security;
 
 -- PROFILES
--- Superadmin can read/write all.
--- Users can read their own.
 create policy "Public profiles are viewable by everyone" on public.profiles for select using (true);
+create policy "Users can insert their own profile" on public.profiles for insert with check (auth.uid() = id);
+create policy "Users can update their own profile" on public.profiles for update using (auth.uid() = id);
 
 -- EVENTS
--- Superadmin sees all.
--- Providers see their own owner_id.
--- Guests (public/anon) see specific fields if they know the ID (for the app).
-create policy "Providers show their own events" on public.events for select using (auth.uid() = owner_id);
+create policy "Carriers show their own events permissions" on public.events for select using (auth.uid() = owner_id);
+create policy "Authenticated users can create events" on public.events for insert with check (auth.uid() = owner_id);
+create policy "Owners can update their events" on public.events for update using (auth.uid() = owner_id);
+create policy "Owners can delete their events" on public.events for delete using (auth.uid() = owner_id);
 
 -- GUESTS
--- Public read access allows guests to find themselves by name.
 create policy "Guests can be searched publicly" on public.guests for select using (true);
+create policy "Owners can manage guests" on public.guests for all using (
+  exists (select 1 from public.events where id = event_id and owner_id = auth.uid())
+);
 
+-- ==========================================
+-- 4. TRIGGERS
+-- ==========================================
+-- Automatically create profile on signup
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, role)
+  values (new.id, new.email, 'provider');
+  return new;
+end;
+$$ language plpgsql security definer;
 
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
