@@ -20,7 +20,7 @@ const TikTokIcon = () => (
 );
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.2');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -46,13 +46,36 @@ export default function GuestApp() {
         // 1. Prioridad: Video Específico del Invitado
         if (g.assigned_video_url) return g.assigned_video_url;
 
-        // 2. Prioridad: Video de la Mesa (si existe configuración para su mesa)
-        // Normalizamos el nombre de la mesa (ej: "Mesa 1" o "Mesa 01")
+        // 2. Prioridad: Video de la Mesa
         if (g.table_info && event?.video_configuration) {
-            const tableKey = g.table_info; // La clave en JSON debe coincidir con el nombre de la mesa
-            if (event.video_configuration[tableKey]) {
-                return event.video_configuration[tableKey];
-            }
+            const config = event.video_configuration;
+            const tableInfo = g.table_info.trim(); // ej: "Mesa 1", "1", "mesa 1"
+
+            // a) Coincidencia Exacta
+            if (config[tableInfo]) return config[tableInfo];
+
+            // b) Buscar ignorando mayúsculas/minúsculas
+            const lowerTableInfo = tableInfo.toLowerCase();
+            const configKeys = Object.keys(config);
+
+            // Normalizar: Extraer solo el número o identificador (quitar "Mesa", "Table")
+            const cleanTableNumber = lowerTableInfo.replace(/^(mesa|table)\s*/i, ''); // "1"
+
+            // Buscar match flexible en las keys de la config
+            const foundKey = configKeys.find(key => {
+                const lowerKey = key.toLowerCase();
+                const cleanKeyNumber = lowerKey.replace(/^(mesa|table)\s*/i, '');
+
+                // Match exacto ignorando case
+                if (lowerKey === lowerTableInfo) return true;
+
+                // Match solo números (ej: config has "1" and guest has "Mesa 1")
+                if (cleanKeyNumber === cleanTableNumber) return true;
+
+                return false;
+            });
+
+            if (foundKey) return config[foundKey];
         }
 
         // 3. Fallback: Video Default del Evento
@@ -433,8 +456,8 @@ export default function GuestApp() {
                                 </h2>
 
                                 {/* CONDITIONAL CONTENT */}
-                                {selectedGuest.is_after_party ? (
-                                    // --- TRASNOCHE VIEW ---
+                                {selectedGuest.is_after_party && !selectedGuest.table_info && !selectedGuest.has_puff ? (
+                                    // --- TRASNOCHE VIEW ONLY (Sin mesa ni living) ---
                                     <div className="bg-black/30 p-8 rounded-3xl border border-purple-500/30 backdrop-blur-md max-w-md w-full animate-in zoom-in duration-300">
                                         <div className="text-6xl mb-6">🌙</div>
                                         <h3 className="text-2xl font-bold mb-3 text-purple-200 uppercase tracking-widest">Acceso Trasnoche</h3>
@@ -469,6 +492,7 @@ export default function GuestApp() {
                                                         loop={false}
                                                         muted={false}
                                                         onEnded={() => setVideoFinished(true)}
+                                                        onError={() => setVideoFinished(true)}
                                                     />
                                                     <div className="absolute bottom-4 right-4 z-20">
                                                         <button
@@ -486,9 +510,18 @@ export default function GuestApp() {
                                                         </button>
                                                     </div>
                                                 </>
-                                            ) : videoFinished ? (
-                                                // --- PANTALLA FINAL LIVING ---
+                                            ) : (
+                                                // --- PANTALLA FINAL LIVING / TRASNOCHE ---
                                                 <div className="flex flex-col items-center justify-center h-full bg-slate-900 border border-white/10 p-8 text-center animate-in zoom-in-95 duration-700">
+
+                                                    {selectedGuest.is_after_party && (
+                                                        <div className="mb-4">
+                                                            <h2 className="text-3xl md:text-5xl font-bold text-[#FBBF24] font-display uppercase tracking-widest drop-shadow-lg animate-pulse">
+                                                                BIENVENIDOS AL TRASNOCHE
+                                                            </h2>
+                                                        </div>
+                                                    )}
+
                                                     <div className="mb-6">
                                                         <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
                                                         <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">LIVING</h1>
@@ -501,10 +534,6 @@ export default function GuestApp() {
                                                         )}
                                                         <p className="text-[10px] text-slate-500 uppercase tracking-widest">Idea de Tecno Eventos</p>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full text-white/50">
-                                                    <p>¡Bienvenido a la fiesta!</p>
                                                 </div>
                                             )}
                                         </div>
@@ -532,6 +561,7 @@ export default function GuestApp() {
                                                         loop={false}
                                                         muted={false}
                                                         onEnded={() => setVideoFinished(true)}
+                                                        onError={() => setVideoFinished(true)}
                                                     />
                                                     <div className="absolute bottom-4 right-4 z-20">
                                                         <button
@@ -549,15 +579,24 @@ export default function GuestApp() {
                                                         </button>
                                                     </div>
                                                 </>
-                                            ) : videoFinished ? (
-                                                // --- PANTALLA FINAL (MESA + LOGO) ---
+                                            ) : (
+                                                // --- PANTALLA FINAL (MESA + LOGO + TRASNOCHE) ---
                                                 <div className="flex flex-col items-center justify-center h-full bg-slate-900 border border-white/10 p-8 text-center animate-in zoom-in-95 duration-700">
+
+                                                    {selectedGuest.is_after_party && (
+                                                        <div className="mb-4">
+                                                            <h2 className="text-3xl md:text-5xl font-bold text-[#FBBF24] font-display uppercase tracking-widest drop-shadow-lg animate-pulse">
+                                                                BIENVENIDOS AL TRASNOCHE
+                                                            </h2>
+                                                        </div>
+                                                    )}
+
                                                     <div className="mb-6">
                                                         <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
                                                         <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                            {selectedGuest.table_info ? selectedGuest.table_info.replace('Mesa ', '') : ''}
+                                                            {selectedGuest.table_info ? selectedGuest.table_info.replace('Mesa ', '') : 'INVITADO VIP'}
                                                         </h1>
-                                                        <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
+                                                        {selectedGuest.table_info && <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>}
                                                     </div>
 
                                                     <div className="mt-8 opacity-80 flex flex-col items-center">
@@ -569,14 +608,6 @@ export default function GuestApp() {
                                                         <p className="text-[10px] text-slate-500 uppercase tracking-widest">
                                                             Idea de Tecno Eventos
                                                         </p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full text-white/50 bg-black/40">
-                                                    <div className="text-center p-6">
-                                                        <h3 className="text-2xl font-bold text-white mb-2">{selectedGuest.display_name || selectedGuest.first_name}</h3>
-                                                        <p className="text-sm text-slate-300">No hay video disponible para este invitado</p>
-                                                        {event?.owner_id && <p className="text-[10px] text-slate-500 mt-4 opacity-50">ID: {selectedGuest.id.slice(0, 4)}</p>}
                                                     </div>
                                                 </div>
                                             )}
