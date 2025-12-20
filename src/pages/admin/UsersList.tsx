@@ -136,13 +136,15 @@ export default function UsersList() {
         }
     };
 
-    // Filter users (exclude disabled)
+    // Filter users (exclude disabled) - Defensive check
     const filteredUsers = users
-        .filter(u => u.role !== 'disabled') // No mostrar deshabilitados
-        .filter(u =>
-            u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.role.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        .filter(u => u && u.role !== 'disabled')
+        .filter(u => {
+            const email = u.email || '';
+            const role = u.role || '';
+            const search = searchTerm.toLowerCase();
+            return email.toLowerCase().includes(search) || role.toLowerCase().includes(search);
+        });
 
     return (
         <DashboardLayout>
