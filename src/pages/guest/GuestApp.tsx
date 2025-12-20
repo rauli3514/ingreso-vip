@@ -19,8 +19,31 @@ const TikTokIcon = () => (
     </svg>
 );
 
+// Helper for countdown
+const calculateTimeRemaining = (targetTime: string) => {
+    if (!targetTime) return null;
+    const now = new Date();
+    const [hours, minutes] = targetTime.split(':').map(Number);
+    let target = new Date();
+    target.setHours(hours, minutes, 0, 0);
+
+    // Si el target ya pasó hoy (ej: target 02:00, ahora 22:00), asumimos que es mañana
+    if (target < now) {
+        if (now.getHours() > 12 && target.getHours() < 12) {
+            target.setDate(target.getDate() + 1);
+        }
+    }
+
+    const diff = target.getTime() - now.getTime();
+    if (diff <= 0) return '¡YA PUEDES INGRESAR!';
+
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${h}h ${m}m`;
+};
+
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.2');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.3');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -32,6 +55,20 @@ export default function GuestApp() {
     const [searchQuery, setSearchQuery] = useState('');
     const [guests, setGuests] = useState<Guest[]>([]);
     const [isListening, setIsListening] = useState(false);
+    const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+    // Timer for Trasnoche
+    useEffect(() => {
+        if (event?.after_party_time) {
+            const updateTimer = () => {
+                const left = calculateTimeRemaining(event.after_party_time || '');
+                if (left) setTimeRemaining(left);
+            };
+            updateTimer();
+            const interval = setInterval(updateTimer, 60000);
+            return () => clearInterval(interval);
+        }
+    }, [event?.after_party_time]);
 
     // Get theme colors
     const theme = getThemeById(event?.theme_id || 'default');
@@ -463,10 +500,10 @@ export default function GuestApp() {
                                         <h3 className="text-2xl font-bold mb-3 text-purple-200 uppercase tracking-widest">Acceso Trasnoche</h3>
                                         <div className="w-full h-px bg-purple-500/30 my-4"></div>
                                         <p className="text-lg text-white mb-2">
-                                            Tu ingreso está habilitado a partir de las:
+                                            Faltan para tu ingreso:
                                         </p>
                                         <div className="text-6xl font-bold text-[#FBBF24] my-6 font-mono drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-                                            {event?.after_party_time || "00:00"} hs
+                                            {timeRemaining || event?.after_party_time || "--:--"}
                                         </div>
                                         <p className="text-sm text-slate-400">Te esperamos para celebrar juntos.</p>
                                     </div>
@@ -592,11 +629,22 @@ export default function GuestApp() {
                                                     )}
 
                                                     <div className="mb-6">
-                                                        <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
-                                                        <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                            {selectedGuest.table_info ? selectedGuest.table_info.replace('Mesa ', '') : 'INVITADO VIP'}
-                                                        </h1>
-                                                        {selectedGuest.table_info && <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>}
+                                                        {selectedGuest.table_info ? (
+                                                            <>
+                                                                <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
+                                                                <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
+                                                                    {selectedGuest.table_info.replace('Mesa ', '')}
+                                                                </h1>
+                                                                <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-2xl text-slate-300 uppercase tracking-widest font-light mb-4">¡BIENVENIDO!</p>
+                                                                <h1 className="text-5xl md:text-7xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
+                                                                    PUEDES INGRESAR
+                                                                </h1>
+                                                            </>
+                                                        )}
                                                     </div>
 
                                                     <div className="mt-8 opacity-80 flex flex-col items-center">
