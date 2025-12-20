@@ -190,6 +190,11 @@ export default function EventDetails() {
         document.body.removeChild(link);
     };
 
+    const getGuestUrl = () => {
+        const baseUrl = window.location.pathname.startsWith('/ingreso-vip') ? '/ingreso-vip' : '';
+        return `${window.location.origin}${baseUrl}/evento/${event?.id}`;
+    };
+
     const handleUpdateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (event?.id === '123') {
@@ -374,7 +379,7 @@ export default function EventDetails() {
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => window.open(`/guest/${event.id}`, '_blank')}
+                            onClick={() => window.open(getGuestUrl(), '_blank')}
                             className="btn btn-outline border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 dark:border-purple-900/50 dark:text-purple-400 dark:hover:bg-purple-900/20"
                             title="Ver vista del invitado"
                         >
@@ -1141,11 +1146,11 @@ export default function EventDetails() {
                                 <div className="flex gap-2">
                                     <input
                                         readOnly
-                                        value={`${window.location.origin}/guest/${event?.id}`}
+                                        value={getGuestUrl()}
                                         className="input-field text-xs"
                                     />
                                     <button
-                                        onClick={() => window.open(`/guest/${event?.id}`, '_blank')}
+                                        onClick={() => window.open(getGuestUrl(), '_blank')}
                                         className="btn btn-primary px-3"
                                     >
                                         <ArrowRight size={16} />
