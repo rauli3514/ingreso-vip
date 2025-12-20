@@ -43,7 +43,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.3');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.4');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -633,9 +633,12 @@ export default function GuestApp() {
                                                             <>
                                                                 <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
                                                                 <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                                    {selectedGuest.table_info.replace('Mesa ', '')}
+                                                                    {selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')}
                                                                 </h1>
-                                                                <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
+                                                                {/* Mostrar "Mesa" solo si table_info es numérico o empieza con "Mesa" explícitamente */}
+                                                                {(/^\d+$/.test(selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')) || selectedGuest.table_info.toLowerCase().includes('mesa')) && (
+                                                                    <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
+                                                                )}
                                                             </>
                                                         ) : (
                                                             <>
