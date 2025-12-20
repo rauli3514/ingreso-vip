@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Calendar, User, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,13 +43,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ensureProfileExists();
     }, [user]);
 
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     return (
         <div className="flex h-screen overflow-hidden bg-background relative transition-colors duration-300">
-            {/* Sidebar - Semantic Theme Surface */}
-            <aside className="w-64 flex flex-col z-20 border-r border-border bg-sidebar shrink-0 shadow-sm transition-colors duration-300">
-                <div className="p-6">
-                    <h2 className="text-xl font-bold tracking-tight text-foreground font-display">INGRESO<span className="text-accent">VIP</span></h2>
-                    <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-[0.2em] font-medium pl-1">by Tecno Eventos</p>
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            {/* Sidebar - Semantic Theme Surface (Responsive) */}
+            <aside className={`
+                fixed inset-y-0 left-0 z-30 w-64 flex flex-col border-r border-border bg-sidebar shadow-xl md:shadow-none transition-transform duration-300 ease-in-out
+                md:relative md:translate-x-0
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                <div className="p-6 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold tracking-tight text-foreground font-display">INGRESO<span className="text-accent">VIP</span></h2>
+                        <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-[0.2em] font-medium pl-1">by Tecno Eventos</p>
+                    </div>
+                    {/* Close button for mobile */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="md:hidden p-1 text-muted hover:text-foreground rounded-lg"
+                    >
+                        <LogOut size={20} className="rotate-180" /> {/* Simulating back/close icon */}
+                    </button>
                 </div>
 
                 <nav className="flex-1 px-4 space-y-1.5 mt-2">
@@ -57,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         icon={<Calendar size={18} />}
                         label="Eventos"
                         active={location.pathname.includes('/admin/dashboard')}
-                        onClick={() => navigate('/admin/dashboard')}
+                        onClick={() => { navigate('/admin/dashboard'); setIsMobileMenuOpen(false); }}
                     />
 
                     {role === 'superadmin' && (
@@ -65,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             icon={<Users size={18} />}
                             label="Usuarios"
                             active={location.pathname.includes('/admin/users')}
-                            onClick={() => navigate('/admin/users')}
+                            onClick={() => { navigate('/admin/users'); setIsMobileMenuOpen(false); }}
                         />
                     )}
 
@@ -94,8 +117,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto bg-background relative z-10 transition-colors duration-300">
-                <div className="max-w-6xl mx-auto p-6 md:p-10">
+            <main className="flex-1 overflow-auto bg-background relative z-10 transition-colors duration-300 w-full">
+                {/* Mobile Header Trigger */}
+                <div className="md:hidden p-4 bg-surface border-b border-border flex items-center justify-between sticky top-0 z-10">
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="p-2 -ml-2 text-foreground rounded-lg hover:bg-background"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
+                    <span className="font-display font-bold text-foreground">IngresoVIP</span>
+                    <div className="w-8" /> {/* Spacer for centering */}
+                </div>
+
+                <div className="max-w-6xl mx-auto p-4 md:p-10">
                     {children}
                 </div>
             </main>
