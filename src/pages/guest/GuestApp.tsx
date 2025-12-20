@@ -43,7 +43,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.6');
+    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.7');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -577,138 +577,96 @@ export default function GuestApp() {
                                     </div>
                                 ) : (
                                     // --- STANDARD TABLE VIEW ---
-                                    <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-500 flex flex-col items-center">
-                                        {selectedGuest.table_info && (
-                                            <div className="bg-white/10 px-6 py-3 rounded-full border border-white/20 backdrop-blur-md mb-6 inline-flex items-center gap-3 shadow-lg">
-                                                <span className="text-xl">📍</span>
-                                                <span className="text-lg font-bold">{selectedGuest.table_info}</span>
+                                    <div className="w-full h-full flex flex-col items-center justify-center">
+
+                                        {/* 1. VIDEO PLAYER - FULLSCREEN OVERLAY */}
+                                        {getVideoUrl(selectedGuest) && !videoFinished ? (
+                                            <div
+                                                className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+                                                onClick={() => {
+                                                    // UNMUTE ON CLICK (user interactions everywhere)
+                                                    if (videoRef.current) {
+                                                        videoRef.current.muted = false;
+                                                        videoRef.current.volume = 1.0;
+                                                        videoRef.current.play().catch(() => { });
+                                                    }
+                                                }}
+                                            >
+                                                <video
+                                                    ref={videoRef}
+                                                    src={getVideoUrl(selectedGuest)}
+                                                    className="w-full h-full"
+                                                    style={{ objectFit: 'contain' }}
+                                                    autoPlay
+                                                    playsInline
+                                                    muted={true} // Start muted for mobile autoplay
+                                                    onEnded={() => setVideoFinished(true)}
+                                                    onError={() => setVideoFinished(true)}
+                                                />
+                                            </div>
+                                        ) : (
+                                            // --- PANTALLA FINAL (MESA + LOGO + TRASNOCHE) ---
+                                            <div className="flex flex-col items-center justify-center h-full bg-slate-900 border border-white/10 p-8 text-center animate-in zoom-in-95 duration-700">
+
+                                                {selectedGuest.is_after_party && (
+                                                    <div className="mb-4">
+                                                        <h2 className="text-3xl md:text-5xl font-bold text-[#FBBF24] font-display uppercase tracking-widest drop-shadow-lg animate-pulse">
+                                                            BIENVENIDOS AL TRASNOCHE
+                                                        </h2>
+                                                    </div>
+                                                )}
+
+                                                <div className="mb-6">
+                                                    {selectedGuest.table_info ? (
+                                                        <>
+                                                            <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
+                                                            <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
+                                                                {selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')}
+                                                            </h1>
+                                                            {/* Mostrar "Mesa" solo si table_info es numérico o empieza con "Mesa" explícitamente */}
+                                                            {(/^\d+$/.test(selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')) || selectedGuest.table_info.toLowerCase().includes('mesa')) && (
+                                                                <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-2xl text-slate-300 uppercase tracking-widest font-light mb-4">¡BIENVENIDO!</p>
+                                                            <h1 className="text-5xl md:text-7xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
+                                                                PUEDES INGRESAR
+                                                            </h1>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-8 opacity-80 flex flex-col items-center">
+                                                    {event?.theme_custom_logo_url ? (
+                                                        <img src={event.theme_custom_logo_url} className="h-16 object-contain mb-3" alt="Logo Evento" />
+                                                    ) : (
+                                                        <div className="text-white text-xl font-bold border-2 border-white p-2 mb-3">INGRESO VIP</div>
+                                                    )}
+                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+                                                        Idea de Tecno Eventos
+                                                    </p>
+                                                </div>
                                             </div>
                                         )}
-
-                                        {/* Video Section - Adaptable Height */}
-                                        <div className="w-full rounded-3xl overflow-hidden shadow-2xl relative bg-black aspect-[3/4] md:aspect-video flex items-center justify-center ring-1 ring-white/10">
-                                            {getVideoUrl(selectedGuest) && !videoFinished ? (
-                                                <>
-                                                    <video
-                                                        ref={videoRef}
-                                                        src={getVideoUrl(selectedGuest)}
-                                                        className="w-full h-full"
-                                                        style={{ objectFit: 'contain' }}
-                                                        autoPlay
-                                                        playsInline
-                                                        loop={false}
-                                                        muted={true} // Autoplay en móvil REQUIERE muted=true
-                                                        onEnded={() => setVideoFinished(true)}
-                                                        onError={() => setVideoFinished(true)}
-                                                    />
-
-                                                    {/* Botón Grande para Activar Sonido (Overlay) */}
-                                                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                                                        <motion.div
-                                                            initial={{ opacity: 0, scale: 0.8 }}
-                                                            animate={{ opacity: 1, scale: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            className="bg-black/40 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 flex items-center gap-3 pointer-events-auto cursor-pointer hover:bg-black/60 transition-all"
-                                                            onClick={() => {
-                                                                if (videoRef.current) {
-                                                                    videoRef.current.muted = false;
-                                                                    videoRef.current.volume = 1.0;
-                                                                    // Forzar play de nuevo por si se pausó
-                                                                    videoRef.current.play().catch(e => console.error("Error playing:", e));
-                                                                    // Ocultar este botón tras click (truco visual: desaparece el div padre o se cambia estado local si se quisiera, por ahora dejamos el botón estático abajo también)
-                                                                    const btn = document.getElementById('unmute-overlay');
-                                                                    if (btn) btn.style.display = 'none';
-                                                                }
-                                                            }}
-                                                            id="unmute-overlay"
-                                                        >
-                                                            <span className="text-2xl animate-pulse">🔇</span>
-                                                            <span className="text-white font-bold text-sm tracking-widest uppercase">Activar Sonido</span>
-                                                        </motion.div>
-                                                    </div>
-
-                                                    <div className="absolute bottom-4 right-4 z-20">
-                                                        <button
-                                                            onClick={() => {
-                                                                if (videoRef.current) {
-                                                                    videoRef.current.muted = false;
-                                                                    videoRef.current.volume = 1.0;
-                                                                    const btn = document.getElementById('unmute-overlay');
-                                                                    if (btn) btn.style.display = 'none';
-                                                                }
-                                                            }}
-                                                            className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full border border-white/20 transition-all backdrop-blur-sm"
-                                                            title="Activar Sonido"
-                                                        >
-                                                            🔊
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                // --- PANTALLA FINAL (MESA + LOGO + TRASNOCHE) ---
-                                                <div className="flex flex-col items-center justify-center h-full bg-slate-900 border border-white/10 p-8 text-center animate-in zoom-in-95 duration-700">
-
-                                                    {selectedGuest.is_after_party && (
-                                                        <div className="mb-4">
-                                                            <h2 className="text-3xl md:text-5xl font-bold text-[#FBBF24] font-display uppercase tracking-widest drop-shadow-lg animate-pulse">
-                                                                BIENVENIDOS AL TRASNOCHE
-                                                            </h2>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="mb-6">
-                                                        {selectedGuest.table_info ? (
-                                                            <>
-                                                                <p className="text-xl text-slate-300 uppercase tracking-widest font-light mb-2">Tu ubicación es</p>
-                                                                <h1 className="text-6xl md:text-8xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                                    {selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')}
-                                                                </h1>
-                                                                {/* Mostrar "Mesa" solo si table_info es numérico o empieza con "Mesa" explícitamente */}
-                                                                {(/^\d+$/.test(selectedGuest.table_info.replace(/^(mesa|table)\s*/i, '')) || selectedGuest.table_info.toLowerCase().includes('mesa')) && (
-                                                                    <p className="text-2xl text-[#FBBF24] font-serif italic mt-2">Mesa</p>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <p className="text-2xl text-slate-300 uppercase tracking-widest font-light mb-4">¡BIENVENIDO!</p>
-                                                                <h1 className="text-5xl md:text-7xl font-bold text-white font-display tracking-tight drop-shadow-2xl">
-                                                                    PUEDES INGRESAR
-                                                                </h1>
-                                                            </>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="mt-8 opacity-80 flex flex-col items-center">
-                                                        {event?.theme_custom_logo_url ? (
-                                                            <img src={event.theme_custom_logo_url} className="h-16 object-contain mb-3" alt="Logo Evento" />
-                                                        ) : (
-                                                            <div className="text-white text-xl font-bold border-2 border-white p-2 mb-3">INGRESO VIP</div>
-                                                        )}
-                                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">
-                                                            Idea de Tecno Eventos
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
-                                )}
 
-                                <button
-                                    onClick={() => {
-                                        setView('search');
-                                        setSelectedGuest(null);
-                                    }}
-                                    className="mt-10 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium border border-white/10"
-                                >
-                                    ← Buscar otro invitado
-                                </button>
-                            </div>
+                            <button
+                                onClick={() => {
+                                    setView('search');
+                                    setSelectedGuest(null);
+                                }}
+                                className="fixed bottom-8 left-1/2 transform -translate-x-1/2 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium border border-white/10 backdrop-blur-md z-40"
+                            >
+                                ← Buscar otro invitado
+                            </button>
+                        </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-            </div>
+            </div >
         </>
     );
 }
