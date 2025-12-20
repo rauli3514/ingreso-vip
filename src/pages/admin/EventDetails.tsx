@@ -8,7 +8,7 @@ import {
     ArrowLeft, Calendar, Users, MapPin, Search,
     Upload, Plus, Filter, MoreVertical, CheckCircle2, Clock,
     Edit2, Trash2, Settings,
-    Palette, Video, Download, QrCode, FileText, Shield
+    Palette, Video, Download, QrCode, FileText, Shield, ArrowRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -160,6 +160,34 @@ export default function EventDetails() {
             // Revert on error
             fetchGuests();
         }
+    };
+
+    const downloadGuestsCSV = () => {
+        if (!guests.length) return alert('No hay invitados para descargar.');
+
+        // Define columns
+        const headers = ['Nombre', 'Apellido', 'Display Name', 'Mesa', 'Estado', 'Email', 'Telefono'];
+        const csvContent = [
+            headers.join(','),
+            ...guests.map(g => [
+                `"${g.first_name || ''}"`,
+                `"${g.last_name || ''}"`,
+                `"${g.display_name || ''}"`,
+                `"${g.table_info || ''}"`,
+                `"${g.status}"`,
+                `"${(g as any).email || ''}"`,
+                `"${(g as any).phone || ''}"`
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${event?.name || 'evento'}_invitados.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const handleUpdateEvent = async (e: React.FormEvent) => {
@@ -1065,107 +1093,162 @@ export default function EventDetails() {
                 )
             }
 
-            {/* Settings Tab */}
-            {
-                activeTab === 'settings' && (
-                    <div className="animate-in fade-in duration-300 max-w-2xl">
-                        <form onSubmit={handleUpdateEvent} className="glass-card p-6 space-y-6">
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-bold text-white border-b border-white/5 pb-2 mb-4">Información General</h3>
+            {/* Downloads Tab */}
+            {activeTab === 'downloads' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="card-premium p-6">
+                        <h3 className="text-xl font-bold text-foreground mb-4 font-display">Descargas y Recursos</h3>
+                        <p className="text-muted-foreground mb-6">Descarga la información de tu evento o genera códigos QR.</p>
 
-                                <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Nombre del Evento</label>
-                                        <input
-                                            type="text"
-                                            defaultValue={event.name}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600"
-                                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* CSV Download */}
+                            <div className="p-4 border border-border rounded-xl bg-surface hover:border-accent/50 transition-colors">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                        <FileText size={24} />
                                     </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Descripción (Opcional)</label>
-                                        <textarea
-                                            defaultValue={event.description}
-                                            rows={3}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600 resize-none"
-                                            placeholder="Detalles adicionales del evento..."
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Fecha</label>
-                                            <input
-                                                type="date"
-                                                defaultValue={event.date}
-                                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600 appearance-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Estado</label>
-                                            <select
-                                                defaultValue={event.status}
-                                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
-                                            >
-                                                <option value="pending">Pendiente</option>
-                                                <option value="active">Activo</option>
-                                                <option value="disabled">Deshabilitado</option>
-                                                <option value="closed">Cerrado</option>
-                                            </select>
-                                        </div>
+                                    <div>
+                                        <h4 className="font-bold text-foreground">Lista de Invitados</h4>
+                                        <p className="text-sm text-muted">Formato CSV compatible con Excel.</p>
                                     </div>
                                 </div>
+                                <button
+                                    onClick={downloadGuestsCSV}
+                                    className="btn btn-outline w-full justify-center"
+                                >
+                                    <Download size={16} className="mr-2" /> Descargar CSV
+                                </button>
                             </div>
 
-                            <div className="space-y-4 pt-4">
-                                <h3 className="text-lg font-bold text-white border-b border-white/5 pb-2 mb-4">Configuración de Mesas y Áreas</h3>
+                            {/* QR Code Link */}
+                            <div className="p-4 border border-border rounded-xl bg-surface hover:border-accent/50 transition-colors">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600">
+                                        <QrCode size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-foreground">Acceso Invitados</h4>
+                                        <p className="text-sm text-muted">Enlace directo a la experiencia QR.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <input
+                                        readOnly
+                                        value={`${window.location.origin}/guest/${event?.id}`}
+                                        className="input-field text-xs"
+                                    />
+                                    <button
+                                        onClick={() => window.open(`/guest/${event?.id}`, '_blank')}
+                                        className="btn btn-primary px-3"
+                                    >
+                                        <ArrowRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'settings' && (
+                <div className="animate-in fade-in duration-300 max-w-2xl">
+                    <form onSubmit={handleUpdateEvent} className="glass-card p-6 space-y-6">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-white border-b border-white/5 pb-2 mb-4">Información General</h3>
+
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Nombre del Evento</label>
+                                    <input
+                                        type="text"
+                                        defaultValue={event.name}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Descripción (Opcional)</label>
+                                    <textarea
+                                        defaultValue={event.description}
+                                        rows={3}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600 resize-none"
+                                        placeholder="Detalles adicionales del evento..."
+                                    />
+                                </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Cantidad de Mesas</label>
+                                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Fecha</label>
                                         <input
-                                            type="number"
-                                            defaultValue={event.table_count || 10}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                                            type="date"
+                                            defaultValue={event.date}
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600 appearance-none"
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Invitados por Mesa</label>
-                                        <input
-                                            type="number"
-                                            defaultValue={event.guests_per_table_default || 10}
+                                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Estado</label>
+                                        <select
+                                            defaultValue={event.status}
                                             className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
-                                        />
+                                        >
+                                            <option value="pending">Pendiente</option>
+                                            <option value="active">Activo</option>
+                                            <option value="disabled">Deshabilitado</option>
+                                            <option value="closed">Cerrado</option>
+                                        </select>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                                    <div>
-                                        <div className="text-sm font-medium text-white">Habilitar Living (Adolescentes)</div>
-                                        <div className="text-xs text-slate-500">Área sin numeración estricta</div>
-                                    </div>
-                                    <input type="checkbox" defaultChecked={event.has_living_room} className="toggle toggle-warning toggle-sm" />
+                        <div className="space-y-4 pt-4">
+                            <h3 className="text-lg font-bold text-white border-b border-white/5 pb-2 mb-4">Configuración de Mesas y Áreas</h3>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Cantidad de Mesas</label>
+                                    <input
+                                        type="number"
+                                        defaultValue={event.table_count || 10}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                                    />
                                 </div>
-
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                                    <div>
-                                        <div className="text-sm font-medium text-white">Habilitar Trasnoche</div>
-                                        <div className="text-xs text-slate-500">Invitados post-cena</div>
-                                    </div>
-                                    <input type="checkbox" defaultChecked={event.has_after_party} className="toggle toggle-warning toggle-sm" />
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Invitados por Mesa</label>
+                                    <input
+                                        type="number"
+                                        defaultValue={event.guests_per_table_default || 10}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                                    />
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
-                                <button type="button" className="btn btn-ghost text-slate-400 hover:text-white">Cancelar</button>
-                                <button type="submit" className="btn btn-primary py-2.5 px-6 shadow-lg shadow-yellow-500/20">
-                                    Guardar Cambios
-                                </button>
+                            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                <div>
+                                    <div className="text-sm font-medium text-white">Habilitar Living (Adolescentes)</div>
+                                    <div className="text-xs text-slate-500">Área sin numeración estricta</div>
+                                </div>
+                                <input type="checkbox" defaultChecked={event.has_living_room} className="toggle toggle-warning toggle-sm" />
                             </div>
-                        </form>
-                    </div>
-                )
+
+                            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                                <div>
+                                    <div className="text-sm font-medium text-white">Habilitar Trasnoche</div>
+                                    <div className="text-xs text-slate-500">Invitados post-cena</div>
+                                </div>
+                                <input type="checkbox" defaultChecked={event.has_after_party} className="toggle toggle-warning toggle-sm" />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+                            <button type="button" className="btn btn-ghost text-slate-400 hover:text-white">Cancelar</button>
+                            <button type="submit" className="btn btn-primary py-2.5 px-6 shadow-lg shadow-yellow-500/20">
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )
             }
             <input
                 type="file"
