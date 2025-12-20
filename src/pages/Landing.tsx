@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Instagram, Globe } from 'lucide-react';
+import { MessageCircle, Instagram } from 'lucide-react';
 
 export default function Landing() {
     const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function Landing() {
 
             {/* Floating WhatsApp Button */}
             <a
-                href="https://wa.me/5491112345678" // TODO: Replace with actual number
+                href="https://wa.me/543624055257"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="fixed bottom-6 right-6 p-4 bg-green-500 rounded-full shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all duration-300 z-50 hover:scale-110 group"
@@ -50,11 +50,22 @@ export default function Landing() {
 
             <footer className="mt-12 text-[10px] text-slate-500 uppercase tracking-widest fixed bottom-4 flex flex-col items-center gap-3 w-full">
                 <div className="flex gap-6 opacity-60">
-                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-pink-500 transition-colors duration-300">
+                    <a href="https://www.instagram.com/tecno_eventos_arg/" target="_blank" rel="noopener noreferrer" className="hover:text-pink-500 transition-colors duration-300">
                         <Instagram className="w-5 h-5" />
                     </a>
-                    <a href="https://tecnoeventos.com.ar" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors duration-300">
-                        <Globe className="w-5 h-5" />
+                    <a href="https://www.tiktok.com/@tecno_eventos_arg" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors duration-300">
+                        {/* TikTok Icon SVG */}
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-5 h-5"
+                        >
+                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                        </svg>
                     </a>
                 </div>
                 <span className="opacity-40">&copy; 2025 Tecno Eventos</span>
