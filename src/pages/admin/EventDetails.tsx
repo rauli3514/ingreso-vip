@@ -373,6 +373,13 @@ export default function EventDetails() {
                     </div>
 
                     <div className="flex gap-3">
+                        <button
+                            onClick={() => window.open(`/guest/${event.id}`, '_blank')}
+                            className="btn btn-outline border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 dark:border-purple-900/50 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                            title="Ver vista del invitado"
+                        >
+                            <QrCode size={16} className="mr-2" /> Ver App
+                        </button>
                         {event.status !== 'closed' && (
                             <>
                                 <button
