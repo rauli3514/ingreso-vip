@@ -354,7 +354,7 @@ export default function GuestApp() {
                                     {/* Social Links */}
                                     <div className="flex items-center gap-6">
                                         <a
-                                            href="https://wa.me/5491234567890"
+                                            href="https://wa.me/543624055257"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-white/80 hover:text-white transition-colors hover:scale-110 transform duration-200"
@@ -362,7 +362,7 @@ export default function GuestApp() {
                                             <WhatsAppIcon />
                                         </a>
                                         <a
-                                            href="https://instagram.com/ingresovip"
+                                            href="https://www.instagram.com/tecno_eventos_arg/"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-white/80 hover:text-white transition-colors hover:scale-110 transform duration-200"
@@ -370,7 +370,7 @@ export default function GuestApp() {
                                             <Instagram size={24} />
                                         </a>
                                         <a
-                                            href="https://tiktok.com/@ingresovip"
+                                            href="https://www.tiktok.com/@tecno_eventos_arg"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-white/80 hover:text-white transition-colors hover:scale-110 transform duration-200"
