@@ -397,21 +397,69 @@ export default function GuestApp() {
                             className="relative w-full h-full flex flex-col"
                         >
                             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                                {/* Logo VIP */}
+                                {/* Logo VIP con efecto Liquid Glass */}
                                 <motion.div
                                     initial={{ scale: 0.8, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ delay: 0.2 }}
-                                    className="mb-8"
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="mb-8 relative"
                                 >
-                                    <img
-                                        src="/vip-logo.jpg"
-                                        alt="VIP Logo"
-                                        className="w-32 h-32 md:w-40 md:h-40 mx-auto object-contain"
+                                    {/* Glow externo */}
+                                    <div
+                                        className="absolute inset-0 rounded-full blur-3xl opacity-60"
                                         style={{
-                                            filter: 'drop-shadow(0 0 30px rgba(255,215,0,0.3))'
+                                            background: 'radial-gradient(circle, rgba(255,215,0,0.6), rgba(218,165,32,0.3), transparent 70%)',
+                                            transform: 'scale(1.3)'
                                         }}
                                     />
+
+                                    {/* Contenedor circular con liquid glass */}
+                                    <div className="relative w-40 h-40 md:w-48 md:h-48 mx-auto">
+                                        {/* Glass background */}
+                                        <div
+                                            className="absolute inset-0 rounded-full backdrop-blur-xl"
+                                            style={{
+                                                background: 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1))',
+                                                boxShadow: `
+                                                    0 8px 32px rgba(0, 0, 0, 0.4),
+                                                    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+                                                    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+                                                    0 0 60px rgba(255, 215, 0, 0.4)
+                                                `,
+                                                border: '1px solid rgba(255, 255, 255, 0.3)'
+                                            }}
+                                        />
+
+                                        {/* Highlight superior */}
+                                        <div
+                                            className="absolute inset-x-0 top-0 h-1/2 rounded-t-full overflow-hidden"
+                                            style={{
+                                                background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%)',
+                                                opacity: 0.6
+                                            }}
+                                        />
+
+                                        {/* Logo VIP */}
+                                        <div className="absolute inset-0 flex items-center justify-center p-4">
+                                            <img
+                                                src="/vip-logo.jpg"
+                                                alt="VIP Logo"
+                                                className="w-full h-full object-contain"
+                                                style={{
+                                                    filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))'
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Border de luz dorada */}
+                                        <div
+                                            className="absolute inset-0 rounded-full"
+                                            style={{
+                                                border: '2px solid rgba(255, 215, 0, 0.5)',
+                                                boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)'
+                                            }}
+                                        />
+                                    </div>
                                 </motion.div>
 
                                 {/* Event Name */}
