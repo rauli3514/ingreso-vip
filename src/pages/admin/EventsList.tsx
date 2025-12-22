@@ -16,7 +16,8 @@ export default function EventsList() {
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const { user } = useAuth();
+    const { user, role } = useAuth();
+
 
     useEffect(() => {
         if (user) fetchEvents();
@@ -116,13 +117,16 @@ export default function EventsList() {
                     </p>
                 </div>
 
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="btn btn-primary shadow-lg shadow-amber-500/20"
-                >
-                    <Plus size={20} />
-                    Nuevo Evento
-                </button>
+                {/* BLOQUEO: Solo superadmin puede crear eventos */}
+                {role === 'superadmin' && (
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="btn btn-primary shadow-lg shadow-amber-500/20"
+                    >
+                        <Plus size={20} />
+                        Nuevo Evento
+                    </button>
+                )}
             </div>
 
             <div className="glass p-1 rounded-xl mb-10 max-w-md w-full flex items-center gap-3">

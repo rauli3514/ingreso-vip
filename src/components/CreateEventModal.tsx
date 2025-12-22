@@ -10,7 +10,7 @@ interface CreateEventModalProps {
 }
 
 export default function CreateEventModal({ isOpen, onClose, onEventCreated }: CreateEventModalProps) {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +34,13 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }: Cr
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+
+        // 🔒 BLOQUEO: Solo superadmin puede crear eventos
+        if (role !== 'superadmin') {
+            setError('⛔ Acceso denegado. Solo superadmins pueden crear eventos.');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
