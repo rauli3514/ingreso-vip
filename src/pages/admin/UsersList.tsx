@@ -3,12 +3,14 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import { User, Plus, Search, Trash2, CheckCircle2, XCircle, Shield, Calendar, Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { UserProfile, Event } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ExtendedUser extends UserProfile {
     assigned_event_ids?: string[]; // Array of event IDs
 }
 
 export default function UsersList() {
+    const { user, role } = useAuth();
     const [users, setUsers] = useState<ExtendedUser[]>([]);
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
@@ -30,18 +32,42 @@ export default function UsersList() {
     const fetchData = async () => {
         try {
             setLoading(true);
+            console.log('🔍 Fetching users and events...');
+
             const [usersResponse, eventsResponse] = await Promise.all([
                 supabase.from('profiles').select('*').order('created_at', { ascending: false }),
                 supabase.from('events').select('*').order('date', { ascending: false })
             ]);
 
-            if (usersResponse.error) throw usersResponse.error;
-            if (eventsResponse.error) throw eventsResponse.error;
+            console.log('📊 Users response:', usersResponse);
+            console.log('📊 Events response:', eventsResponse);
 
-            setUsers(usersResponse.data || []);
-            setEvents(eventsResponse.data || []);
+            if (usersResponse.error) {
+                console.error('❌ Error fetching users:', usersResponse.error);
+                throw usersResponse.error;
+            }
+            if (eventsResponse.error) {
+                console.error('❌ Error fetching events:', eventsResponse.error);
+                throw eventsResponse.error;
+            }
+
+            // FILTRADO DE SEGURIDAD: Solo superadmins ven todos los usuarios
+            let filteredUsers = usersResponse.data || [];
+            if (role !== 'superadmin') {
+                // Providers solo ven su propio perfil
+                filteredUsers = filteredUsers.filter(u => u.id === user?.id);
+                console.log('⚠️ Provider view - showing only own profile');
+            }
+
+            const fetchedEvents = eventsResponse.data || [];
+
+            console.log(`✅ Fetched ${filteredUsers.length} users and ${fetchedEvents.length} events`);
+
+            setUsers(filteredUsers);
+            setEvents(fetchedEvents);
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('❌ Error fetching data:', error);
+            alert('Error al cargar datos. Revisa la consola para más detalles.');
         } finally {
             setLoading(false);
         }
@@ -111,34 +137,43 @@ export default function UsersList() {
     };
 
     const handleDelete = async (userId: string) => {
-        if (!confirm('¿Estás seguro de eliminar este usuario? Esto deshabilitará su acceso.')) return;
+        if (!confirm('¿Estás seguro de deshabilitar este usuario? Ya no podrá acceder al sistema.')) return;
 
         try {
-            // Opción 1: Eliminar perfil y deshabilitar acceso
-            const { error: profileError } = await supabase
+            console.log('🗑️ Deshabilitando usuario:', userId);
+
+            // Deshabilitar usuario en lugar de eliminar
+            const { data, error: profileError } = await supabase
                 .from('profiles')
                 .update({
-                    role: 'disabled',
-                    email: null
+                    is_active: false
                 })
                 .eq('id', userId);
 
+            console.log('📊 Resultado:', { data, error: profileError });
+
             if (profileError) {
-                console.error('Error al deshabilitar perfil:', profileError);
+                console.error('❌ Error detallado:', {
+                    message: profileError.message,
+                    details: profileError.details,
+                    hint: profileError.hint,
+                    code: profileError.code
+                });
                 throw profileError;
             }
 
             alert('Usuario deshabilitado correctamente. Ya no podrá acceder al sistema.');
             fetchData();
         } catch (err: any) {
-            console.error('Error completo:', err);
-            alert(`Error al deshabilitar usuario: ${err.message || 'Error desconocido'}`);
+            console.error('❌ Error completo:', err);
+            const errorMsg = `Error: ${err.message || 'Desconocido'}\nDetalles: ${err.details || 'N/A'}\nHint: ${err.hint || 'N/A'}`;
+            alert(`Error al deshabilitar usuario:\n\n${errorMsg}`);
         }
     };
 
-    // Filter users (exclude disabled) - Defensive check
+    // Filter users (exclude inactive users) - Defensive check
     const filteredUsers = users
-        .filter(u => u && u.role !== 'disabled')
+        .filter(u => u && u.is_active !== false) // Excluir usuarios deshabilitados
         .filter(u => {
             const email = u.email || '';
             const role = u.role || '';
@@ -195,11 +230,7 @@ export default function UsersList() {
                                 <tr>
                                     <td colSpan={5} className="py-12 text-center text-muted">Cargando usuarios...</td>
                                 </tr>
-                            ) : filteredUsers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="py-12 text-center text-muted">No hay usuarios registrados.</td>
-                                </tr>
-                            ) : (
+                            ) : filteredUsers.length > 0 ? (
                                 filteredUsers.map((user) => (
                                     <tr key={user.id} className="hover:bg-surface/50 transition-colors group">
                                         <td className="px-6 py-4">
@@ -270,6 +301,27 @@ export default function UsersList() {
                                         </td>
                                     </tr>
                                 ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <User size={48} className="text-muted-foreground opacity-50" />
+                                            <div>
+                                                <p className="text-foreground font-semibold mb-1">No se encontraron usuarios</p>
+                                                <p className="text-muted text-sm">
+                                                    {searchTerm
+                                                        ? 'Intenta con otro término de búsqueda'
+                                                        : 'Crea tu primer usuario para comenzar'}
+                                                </p>
+                                                {!searchTerm && users.length === 0 && (
+                                                    <p className="text-xs text-rose-600 mt-2">
+                                                        ⚠️ Si deberían existir usuarios, verifica los permisos de Supabase (RLS)
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>

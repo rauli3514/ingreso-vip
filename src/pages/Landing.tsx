@@ -27,7 +27,10 @@ export default function Landing() {
                         >
                             Iniciar Sesión
                         </button>
-                        <button className="btn btn-outline w-full py-3 text-sm opacity-70 hover:opacity-100 border-slate-600 hover:bg-slate-800">
+                        <button
+                            onClick={() => navigate('/evento/demo')}
+                            className="btn btn-outline w-full py-3 text-sm opacity-70 hover:opacity-100 border-slate-600 hover:bg-slate-800"
+                        >
                             Escanear QR (Demo)
                         </button>
                     </div>

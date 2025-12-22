@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Event } from '../../types';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import { Plus, Search, Calendar, Users as UsersIcon, MapPin, Loader2 } from 'lucide-react';
+import { Plus, Search, Calendar, Users as UsersIcon, MapPin, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CreateEventModal from '../../components/CreateEventModal';
@@ -66,6 +66,29 @@ export default function EventsList() {
     };
 
 
+
+    const handleDeleteEvent = async (eventId: string, eventName: string) => {
+        const confirmFirst = confirm(`¿Estás seguro de que deseas eliminar el evento "${eventName}"?\n\nEsta acción no se puede deshacer.`);
+        if (!confirmFirst) return;
+
+        const confirmSecond = confirm(`CONFIRMACIÓN FINAL:\n\n¿Realmente deseas eliminar "${eventName}" y todos sus invitados?\n\nEscribe OK en tu mente y presiona Aceptar para continuar.`);
+        if (!confirmSecond) return;
+
+        try {
+            const { error } = await supabase
+                .from('events')
+                .delete()
+                .eq('id', eventId);
+
+            if (error) throw error;
+
+            alert('✅ Evento eliminado correctamente');
+            fetchEvents();
+        } catch (error: any) {
+            console.error('Error deleting event:', error);
+            alert(`❌ Error al eliminar evento: ${error.message}`);
+        }
+    };
 
     const getStatusLabel = (status: Event['status']) => {
         switch (status) {
@@ -186,7 +209,19 @@ export default function EventsList() {
                             {/* Footer */}
                             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
                                 <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">ID: {event.id.slice(0, 8)}...</span>
-                                <span className="text-[10px] text-amber-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteEvent(event.id, event.name);
+                                        }}
+                                        className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                        title="Eliminar evento"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                    <span className="text-[10px] text-amber-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>
+                                </div>
                             </div>
                         </div>
                     ))}

@@ -361,7 +361,7 @@ export default function EventDetails() {
             canvas.height = height;
             console.log('🖼️ Canvas creado:', { width, height });
 
-            // 3. FONDO PERSONALIZADO CON BLUR (si existe) o gradiente del tema
+            // 3. FONDO PERSONALIZADO (si existe) o gradiente del tema
             if (event.theme_background_url) {
                 const bgImg = new Image();
                 bgImg.crossOrigin = 'anonymous';
@@ -377,15 +377,13 @@ export default function EventDetails() {
                 });
 
                 if (bgImg.complete && bgImg.naturalWidth > 0) {
-                    // PASO 1: Fondo blureado (cubre todo el canvas)
-                    ctx.filter = 'blur(40px) brightness(0.7)';
-
-                    // Calcular dimensiones para cubrir todo sin distorsionar
+                    // Fondo que cubre toda la pantalla sin blur
                     const bgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
                     const canvasAspect = width / height;
 
                     let bgDrawWidth, bgDrawHeight, bgX, bgY;
 
+                    // Calcular para cubrir todo el canvas (cover)
                     if (bgAspect > canvasAspect) {
                         bgDrawHeight = height;
                         bgDrawWidth = height * bgAspect;
@@ -398,39 +396,14 @@ export default function EventDetails() {
                         bgY = -(bgDrawHeight - height) / 2;
                     }
 
+                    // Dibujar imagen de fondo cubriendo todo
                     ctx.drawImage(bgImg, bgX, bgY, bgDrawWidth, bgDrawHeight);
-                    ctx.filter = 'none';
 
-                    // PASO 2: Imagen principal centrada (contenida, sin crop)
-                    const maxImgWidth = width * 0.9;
-                    const maxImgHeight = height * 0.9;
-
-                    let mainImgWidth = bgImg.naturalWidth;
-                    let mainImgHeight = bgImg.naturalHeight;
-
-                    // Escalar para que quepa manteniendo aspect ratio
-                    if (mainImgWidth > maxImgWidth) {
-                        mainImgHeight = (maxImgWidth / mainImgWidth) * mainImgHeight;
-                        mainImgWidth = maxImgWidth;
-                    }
-                    if (mainImgHeight > maxImgHeight) {
-                        mainImgWidth = (maxImgHeight / mainImgHeight) * mainImgWidth;
-                        mainImgHeight = maxImgHeight;
-                    }
-
-                    const mainImgX = (width - mainImgWidth) / 2;
-                    const mainImgY = (height - mainImgHeight) / 2;
-
-                    // Dibujar imagen principal nítida y centrada
-                    ctx.globalAlpha = 0.85;
-                    ctx.drawImage(bgImg, mainImgX, mainImgY, mainImgWidth, mainImgHeight);
-                    ctx.globalAlpha = 1.0;
-
-                    // Overlay para legibilidad
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                    // Overlay oscuro sutil para mejorar legibilidad del QR
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
                     ctx.fillRect(0, 0, width, height);
 
-                    console.log('🎨 Fondo personalizado aplicado con blur');
+                    console.log('🎨 Fondo personalizado aplicado cubriendo toda la pantalla');
                 } else {
                     // Fallback: gradiente del tema
                     const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -463,10 +436,11 @@ export default function EventDetails() {
             });
             console.log('✅ Imagen QR cargada');
 
-            // 5. Calculate QR position and size (optimizado para TV 50")
+            // 5. Calculate QR position and size (optimizado para TV 50\")
             const qrSize = orientation === 'landscape' ? 350 : 450;
             const qrX = (width - qrSize) / 2;
-            const qrY = (height - qrSize) / 2;
+            // Posicionar el QR en el tercio inferior (70% de la altura)
+            const qrY = height * 0.70 - qrSize / 2;
 
             // Draw white container with shadow
             ctx.fillStyle = '#ffffff';
@@ -485,11 +459,11 @@ export default function EventDetails() {
             ctx.shadowColor = 'rgba(0,0,0,0.8)';
             ctx.shadowBlur = 30;
 
-            // Event name (más pequeño)
+            // Event name (arriba del QR)
             ctx.font = `bold ${orientation === 'landscape' ? '70' : '80'}px system-ui, sans-serif`;
             ctx.fillText(event.name, width / 2, qrY - 80);
 
-            // Instruction (más pequeño y más cerca)
+            // Instruction (debajo del QR)
             ctx.font = `${orientation === 'landscape' ? '40' : '45'}px system-ui, sans-serif`;
             ctx.fillText('Escanea para encontrar tu mesa', width / 2, qrY + qrSize + 90);
 
@@ -1309,6 +1283,78 @@ export default function EventDetails() {
                                         });
                                     })()
                                 }
+
+                                {/* Living Card - Solo si está habilitado */}
+                                {event.has_living_room && (
+                                    <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-0 flex flex-col h-96">
+                                        <div className="p-4 border-b border-indigo-200 bg-indigo-100 rounded-t-xl">
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-2xl">🛋️</span>
+                                                    <h3 className="font-bold text-indigo-900">Living</h3>
+                                                </div>
+                                                <span className="text-xs bg-indigo-200 text-indigo-700 px-2 py-1 rounded-full font-bold">
+                                                    {guests.filter(g => g.has_puff && !g.table_info).length}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                                            {guests.filter(g => g.has_puff && !g.table_info).map((guest) => (
+                                                <div
+                                                    key={guest.id}
+                                                    className="p-3 mb-2 rounded-lg bg-white border border-indigo-200 shadow-sm"
+                                                >
+                                                    <span className="text-sm text-indigo-900 font-medium">{guest.last_name}, {guest.first_name}</span>
+                                                </div>
+                                            ))}
+                                            {guests.filter(g => g.has_puff && !g.table_info).length === 0 && (
+                                                <div className="h-full flex flex-col items-center justify-center text-indigo-400 text-xs italic">
+                                                    Sin invitados en Living
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Trasnoche Card - Solo si está habilitado */}
+                                {event.has_after_party && (
+                                    <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-0 flex flex-col h-96">
+                                        <div className="p-4 border-b border-purple-200 bg-purple-100 rounded-t-xl">
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-2xl">🌙</span>
+                                                    <h3 className="font-bold text-purple-900">Trasnoche</h3>
+                                                </div>
+                                                <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full font-bold">
+                                                    {guests.filter(g => g.is_after_party).length}
+                                                </span>
+                                            </div>
+                                            {event.after_party_time && (
+                                                <p className="text-xs text-purple-600 mt-2">Inicio: {event.after_party_time}</p>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                                            {guests.filter(g => g.is_after_party).map((guest) => (
+                                                <div
+                                                    key={guest.id}
+                                                    className="p-3 mb-2 rounded-lg bg-white border border-purple-200 shadow-sm"
+                                                >
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm text-purple-900 font-medium">{guest.last_name}, {guest.first_name}</span>
+                                                        {guest.table_info && (
+                                                            <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded">{guest.table_info}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {guests.filter(g => g.is_after_party).length === 0 && (
+                                                <div className="h-full flex flex-col items-center justify-center text-purple-400 text-xs italic">
+                                                    Sin invitados de trasnoche
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </DragDropContext>
@@ -1388,11 +1434,39 @@ export default function EventDetails() {
                                 {/* Font Selection */}
                                 <div className="space-y-4">
                                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Tipografía</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50">
-                                        <option value="Outfit">Outfit (Moderna)</option>
-                                        <option value="Inter">Inter (Estándar)</option>
-                                        <option value="Playfair Display">Playfair Display (Elegante)</option>
+                                    <select
+                                        name="theme_font_family"
+                                        value={event.theme_font_family || 'Outfit'}
+                                        onChange={async (e) => {
+                                            const newFont = e.target.value;
+                                            try {
+                                                const { error } = await supabase
+                                                    .from('events')
+                                                    .update({ theme_font_family: newFont })
+                                                    .eq('id', event.id);
+
+                                                if (error) throw error;
+                                                setEvent({ ...event, theme_font_family: newFont });
+                                                alert('✅ Tipografía actualizada');
+                                            } catch (error) {
+                                                console.error('Error updating font:', error);
+                                                alert('Error al actualizar tipografía');
+                                            }
+                                        }}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                                    >
+                                        <option value="Outfit" style={{ fontFamily: 'Outfit' }}>Outfit (Moderna y Limpia)</option>
+                                        <option value="Inter" style={{ fontFamily: 'Inter' }}>Inter (Profesional)</option>
+                                        <option value="Playfair Display" style={{ fontFamily: 'Playfair Display' }}>Playfair Display (Elegante)</option>
+                                        <option value="Montserrat" style={{ fontFamily: 'Montserrat' }}>Montserrat (Geométrica)</option>
+                                        <option value="Bebas Neue" style={{ fontFamily: 'Bebas Neue' }}>Bebas Neue (Impactante)</option>
+                                        <option value="Raleway" style={{ fontFamily: 'Raleway' }}>Raleway (Sofisticada)</option>
+                                        <option value="Oswald" style={{ fontFamily: 'Oswald' }}>Oswald (Condensada)</option>
+                                        <option value="Dancing Script" style={{ fontFamily: 'Dancing Script' }}>Dancing Script (Cursiva)</option>
+                                        <option value="Righteous" style={{ fontFamily: 'Righteous' }}>Righteous (Retro)</option>
+                                        <option value="Anton" style={{ fontFamily: 'Anton' }}>Anton (Bold Display)</option>
                                     </select>
+                                    <p className="text-xs text-slate-500 mt-2">La fuente se aplicará en el QR y la pantalla del usuario</p>
                                 </div>
                             </div>
                         </div>

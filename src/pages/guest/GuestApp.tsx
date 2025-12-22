@@ -21,25 +21,36 @@ const TikTokIcon = () => (
 
 // Helper for countdown
 const calculateTimeRemaining = (targetTime: string) => {
-    if (!targetTime) return null;
-    const now = new Date();
-    const [hours, minutes] = targetTime.split(':').map(Number);
-    let target = new Date();
-    target.setHours(hours, minutes, 0, 0);
+    if (!targetTime) return '00:00';
 
-    // Si el target ya pasó hoy (ej: target 02:00, ahora 22:00), asumimos que es mañana
-    if (target < now) {
-        if (now.getHours() > 12 && target.getHours() < 12) {
-            target.setDate(target.getDate() + 1);
+    try {
+        const now = new Date();
+        const [hours, minutes] = targetTime.split(':').map(Number);
+        let target = new Date();
+        target.setHours(hours, minutes, 0, 0);
+
+        // Si el target ya pasó hoy (ej: target 02:00, ahora 22:00), asumimos que es mañana
+        if (target < now) {
+            if (now.getHours() > 12 && target.getHours() < 12) {
+                target.setDate(target.getDate() + 1);
+            } else {
+                return '¡YA PUEDES INGRESAR!';
+            }
         }
+
+        const diff = target.getTime() - now.getTime();
+        if (diff <= 0) return '¡YA PUEDES INGRESAR!';
+
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        // Formato con segundos para ser más dinámico
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    } catch (error) {
+        console.error('Error calculating time:', error);
+        return '00:00:00';
     }
-
-    const diff = target.getTime() - now.getTime();
-    if (diff <= 0) return '¡YA PUEDES INGRESAR!';
-
-    const h = Math.floor(diff / (1000 * 60 * 60));
-    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${h}h ${m}m`;
 };
 
 export default function GuestApp() {
@@ -64,8 +75,8 @@ export default function GuestApp() {
                 const left = calculateTimeRemaining(event.after_party_time || '');
                 if (left) setTimeRemaining(left);
             };
-            updateTimer();
-            const interval = setInterval(updateTimer, 60000);
+            updateTimer(); // Actualizar inmediatamente
+            const interval = setInterval(updateTimer, 1000); // Actualizar cada segundo
             return () => clearInterval(interval);
         }
     }, [event?.after_party_time]);
@@ -148,6 +159,98 @@ export default function GuestApp() {
 
     const fetchEventData = async () => {
         try {
+            // Si el ID es 'demo', usar datos de demostración
+            if (id === 'demo') {
+                setEvent({
+                    id: 'demo',
+                    name: 'Evento Demo - Ingreso VIP',
+                    description: 'Evento de demostración',
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'active',
+                    guest_count_total: 5,
+                    table_count: 2,
+                    table_assignment: 'partial',
+                    guests_per_table_default: 10,
+                    has_living_room: true,
+                    has_after_party: true,
+                    after_party_time: '02:00',
+                    theme_id: 'default',
+                    theme_background_url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=2098',
+                    theme_custom_logo_url: undefined,
+                    video_url_default: undefined,
+                    video_configuration: {},
+                    owner_id: 'demo',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                } as Event);
+
+                setGuests([
+                    {
+                        id: '1',
+                        event_id: 'demo',
+                        first_name: 'Juan',
+                        last_name: 'Pérez',
+                        display_name: 'Juan Pérez',
+                        table_info: 'Mesa 1',
+                        status: 'confirmed',
+                        is_after_party: false,
+                        has_puff: false,
+                        assigned_video_url: undefined
+                    },
+                    {
+                        id: '2',
+                        event_id: 'demo',
+                        first_name: 'María',
+                        last_name: 'González',
+                        display_name: 'María González',
+                        table_info: 'Mesa 2',
+                        status: 'confirmed',
+                        is_after_party: true,
+                        has_puff: false,
+                        assigned_video_url: undefined
+                    },
+                    {
+                        id: '3',
+                        event_id: 'demo',
+                        first_name: 'Carlos',
+                        last_name: 'Rodríguez',
+                        display_name: 'Carlos Rodríguez',
+                        table_info: undefined,
+                        status: 'confirmed',
+                        is_after_party: false,
+                        has_puff: true,
+                        assigned_video_url: undefined
+                    },
+                    {
+                        id: '4',
+                        event_id: 'demo',
+                        first_name: 'Ana',
+                        last_name: 'Martínez',
+                        display_name: 'Ana Martínez',
+                        table_info: undefined,
+                        status: 'confirmed',
+                        is_after_party: true,
+                        has_puff: false,
+                        assigned_video_url: undefined
+                    },
+                    {
+                        id: '5',
+                        event_id: 'demo',
+                        first_name: 'Luis',
+                        last_name: 'Fernández',
+                        display_name: 'Luis Fernández',
+                        table_info: 'Mesa 1',
+                        status: 'confirmed',
+                        is_after_party: false,
+                        has_puff: false,
+                        assigned_video_url: undefined
+                    }
+                ] as Guest[]);
+
+                setLoading(false);
+                return;
+            }
+
             const { data: eventData, error: eventError } = await supabase
                 .from('events')
                 .select('*')
@@ -271,7 +374,7 @@ export default function GuestApp() {
                     --theme-bg: ${themeColors.background};
                 }
             `}</style>
-            <div className="fixed inset-0 font-['Outfit'] overflow-hidden">
+            <div className="fixed inset-0 overflow-hidden" style={{ fontFamily: event.theme_font_family || 'Outfit' }}>
                 {/* Background */}
                 <div className="absolute inset-0">
                     <img src={bgImage} className="w-full h-full object-cover" alt="Background" />
@@ -329,6 +432,25 @@ export default function GuestApp() {
                                 >
                                     ¡Entrá para ver tu mesa!
                                 </motion.p>
+
+                                {/* Demo names hint - Solo para evento demo */}
+                                {id === 'demo' && (
+                                    <motion.div
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.45 }}
+                                        className="mb-8 p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 max-w-md"
+                                    >
+                                        <p className="text-white/90 text-sm font-semibold mb-3">📝 Nombres disponibles para probar:</p>
+                                        <div className="grid grid-cols-1 gap-2 text-left">
+                                            <div className="text-white/80 text-sm">• Juan Pérez (Mesa 1)</div>
+                                            <div className="text-white/80 text-sm">• María González (Mesa 2 + Trasnoche)</div>
+                                            <div className="text-white/80 text-sm">• Carlos Rodríguez (Living)</div>
+                                            <div className="text-white/80 text-sm">• Ana Martínez (Trasnoche)</div>
+                                            <div className="text-white/80 text-sm">• Luis Fernández (Mesa 1)</div>
+                                        </div>
+                                    </motion.div>
+                                )}
 
                                 {/* CTA Button */}
                                 <motion.button

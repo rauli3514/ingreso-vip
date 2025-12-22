@@ -55,27 +55,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const fetchUserRole = async (userId: string, email?: string) => {
+        console.log('🔐 Fetching user role for:', { userId, email });
+
         // Temporary: Force superadmin for specific email
         if (email === 'rauli3514@gmail.com') {
+            console.log('✅ Forcing superadmin role for rauli3514@gmail.com');
             setRole('superadmin');
             setLoading(false);
             return;
         }
 
         try {
+            console.log('📡 Querying profiles table...');
             const { data, error } = await supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', userId)
                 .single();
 
+            console.log('📊 Profile query result:', { data, error });
+
             if (error) {
-                console.error('Error fetching role:', error);
+                console.error('❌ Error fetching role:', error);
             } else {
+                console.log('✅ Role fetched successfully:', data?.role);
                 setRole(data?.role as UserRole);
             }
         } catch (err) {
-            console.error('Error:', err);
+            console.error('❌ Unexpected error:', err);
         } finally {
             setLoading(false);
         }
