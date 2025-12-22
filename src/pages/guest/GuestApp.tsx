@@ -439,15 +439,17 @@ export default function GuestApp() {
                                         initial={{ y: 20, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
                                         transition={{ delay: 0.45 }}
-                                        className="mb-8 p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 max-w-md"
+                                        className="mb-6 p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 max-w-md mx-4"
                                     >
-                                        <p className="text-white/90 text-sm font-semibold mb-3">📝 Nombres disponibles para probar:</p>
-                                        <div className="grid grid-cols-1 gap-2 text-left">
-                                            <div className="text-white/80 text-sm">• Juan Pérez (Mesa 1)</div>
-                                            <div className="text-white/80 text-sm">• María González (Mesa 2 + Trasnoche)</div>
-                                            <div className="text-white/80 text-sm">• Carlos Rodríguez (Living)</div>
-                                            <div className="text-white/80 text-sm">• Ana Martínez (Trasnoche)</div>
-                                            <div className="text-white/80 text-sm">• Luis Fernández (Mesa 1)</div>
+                                        <p className="text-white/90 text-xs font-semibold mb-2">📝 Nombres de prueba:</p>
+                                        <div className="max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                                            <div className="grid grid-cols-1 gap-1 text-left pr-2">
+                                                <div className="text-white/80 text-xs">• Juan Pérez (Mesa 1)</div>
+                                                <div className="text-white/80 text-xs">• María González (Mesa 2 + Trasnoche)</div>
+                                                <div className="text-white/80 text-xs">• Carlos Rodríguez (Living)</div>
+                                                <div className="text-white/80 text-xs">• Ana Martínez (Trasnoche)</div>
+                                                <div className="text-white/80 text-xs">• Luis Fernández (Mesa 1)</div>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 )}
