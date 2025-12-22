@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { Event, Guest } from '../../types';
-import { Search, Mic, Sparkles, Instagram } from 'lucide-react';
+import { Search, Mic, Instagram } from 'lucide-react';
 import { getThemeById } from '../../lib/themes';
 
 // Iconos de redes sociales
@@ -397,18 +397,21 @@ export default function GuestApp() {
                             className="relative w-full h-full flex flex-col"
                         >
                             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                                {/* Logo/Icon */}
+                                {/* Logo VIP */}
                                 <motion.div
                                     initial={{ scale: 0.8, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ delay: 0.2 }}
-                                    className="mb-8 p-8 rounded-full"
-                                    style={{
-                                        background: `radial-gradient(circle, ${themeColors.primary}33, ${themeColors.secondary}11)`,
-                                        boxShadow: `0 0 60px ${themeColors.primary}66`
-                                    }}
+                                    className="mb-8"
                                 >
-                                    <Sparkles size={80} className="text-white" strokeWidth={1.5} />
+                                    <img
+                                        src="/vip-logo.jpg"
+                                        alt="VIP Logo"
+                                        className="w-32 h-32 md:w-40 md:h-40 mx-auto object-contain"
+                                        style={{
+                                            filter: 'drop-shadow(0 0 30px rgba(255,215,0,0.3))'
+                                        }}
+                                    />
                                 </motion.div>
 
                                 {/* Event Name */}
@@ -433,26 +436,7 @@ export default function GuestApp() {
                                     ¡Entrá para ver tu mesa!
                                 </motion.p>
 
-                                {/* Demo names hint - Solo para evento demo */}
-                                {id === 'demo' && (
-                                    <motion.div
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.45 }}
-                                        className="mb-6 p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 max-w-md mx-4"
-                                    >
-                                        <p className="text-white/90 text-xs font-semibold mb-2">📝 Nombres de prueba:</p>
-                                        <div className="max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-                                            <div className="grid grid-cols-1 gap-1 text-left pr-2">
-                                                <div className="text-white/80 text-xs">• Juan Pérez (Mesa 1)</div>
-                                                <div className="text-white/80 text-xs">• María González (Mesa 2 + Trasnoche)</div>
-                                                <div className="text-white/80 text-xs">• Carlos Rodríguez (Living)</div>
-                                                <div className="text-white/80 text-xs">• Ana Martínez (Trasnoche)</div>
-                                                <div className="text-white/80 text-xs">• Luis Fernández (Mesa 1)</div>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
+
 
                                 {/* CTA Button */}
                                 <motion.button
@@ -536,6 +520,25 @@ export default function GuestApp() {
                                 <p className="text-white/80 text-lg mb-8 text-center">
                                     Presioná el botón y decí tu nombre completo
                                 </p>
+
+                                {/* Demo names hint - Solo para evento demo */}
+                                {id === 'demo' && (
+                                    <motion.div
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.15 }}
+                                        className="mb-6 p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 max-w-md mx-auto"
+                                    >
+                                        <p className="text-white/90 text-xs font-semibold mb-2">📝 Probá con estos nombres:</p>
+                                        <div className="text-xs text-white/80 space-y-0.5 text-center">
+                                            <div>• Juan Pérez</div>
+                                            <div>• María González</div>
+                                            <div>• Carlos Rodríguez</div>
+                                            <div>• Ana Martínez</div>
+                                            <div>• Luis Fernández</div>
+                                        </div>
+                                    </motion.div>
+                                )}
 
                                 {/* Search Container */}
                                 <motion.div
