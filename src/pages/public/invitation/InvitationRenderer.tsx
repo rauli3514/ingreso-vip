@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
-import { Loader2, Heart } from 'lucide-react';
+import { Loader2, Heart, Pause, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 
@@ -237,14 +237,31 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     // --- VISTAS INTRO (Solo si NO es editable) ---
 
     // --- GLOBAL MUSIC PLAYER Helper ---
-    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url && isPlaying ? (
-        <div key="global-music-player" className="fixed bottom-0 right-0 z-[9999] opacity-0 pointer-events-none" style={{ width: 0, height: 0, overflow: 'hidden' }}>
-            <iframe
-                width="100%" height="100%"
-                src={`https://www.youtube.com/embed/${getYouTubeID((invitation.hero_section as any).music.url)}?autoplay=1&start=${(invitation.hero_section as any).music.start || 0}&loop=1&playlist=${getYouTubeID((invitation.hero_section as any).music.url)}&playsinline=1`}
-                title="Music" allow="autoplay; encrypted-media"
-            ></iframe>
-        </div>
+    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
+        <>
+            <div key="global-music-player" className="fixed bottom-0 right-0 z-[9999] opacity-0 pointer-events-none" style={{ width: 0, height: 0, overflow: 'hidden' }}>
+                <iframe
+                    width="100%" height="100%"
+                    src={`https://www.youtube.com/embed/${getYouTubeID((invitation.hero_section as any).music.url)}?autoplay=${isPlaying ? 1 : 0}&start=${(invitation.hero_section as any).music.start || 0}&loop=1&playlist=${getYouTubeID((invitation.hero_section as any).music.url)}&playsinline=1&enablejsapi=1`}
+                    title="Music" allow="autoplay; encrypted-media"
+                ></iframe>
+            </div>
+            {/* Botón flotante de control de música */}
+            {viewState === 'content' && !isEditable && (
+                <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
+                    style={{ backgroundColor: themeColors.primary }}
+                    aria-label={isPlaying ? 'Pausar música' : 'Reproducir música'}
+                >
+                    {isPlaying ? (
+                        <Pause className="w-6 h-6 text-white" fill="white" />
+                    ) : (
+                        <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
+                    )}
+                </button>
+            )}
+        </>
     ) : null;
 
     if (viewState === 'envelope' && !isEditable) {
