@@ -4,8 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
 import { Loader2, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
-// @ts-ignore
-import ReactPlayer from 'react-player';
+
 
 import CountdownRenderer from './components/CountdownRenderer';
 import EventCardRenderer from './components/EventCardRenderer';
@@ -87,6 +86,13 @@ function SectionDivider({ theme = 'elegant' }: { theme?: string }) {
             </svg>
         </div>
     );
+}
+
+function getYouTubeID(url: string) {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
 }
 
 
@@ -230,25 +236,14 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     // --- VISTAS INTRO (Solo si NO es editable) ---
 
-    const Player = ReactPlayer as any;
-    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
-        <div key="global-music-player" style={{ position: 'fixed', bottom: 0, right: 0, width: 1, height: 1, opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
-            {/* @ts-ignore */}
-            <Player
-                url={(invitation.hero_section as any).music.url}
-                playing={isPlaying}
-                loop={true}
-                volume={1}
-                muted={false}
-                width="1px"
-                height="1px"
-                playsinline={true}
-                config={{
-                    youtube: {
-                        playerVars: { showinfo: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1 }
-                    }
-                } as any}
-            />
+    // --- GLOBAL MUSIC PLAYER Helper ---
+    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url && isPlaying ? (
+        <div key="global-music-player" className="fixed bottom-0 right-0 z-[9999] opacity-0 pointer-events-none" style={{ width: 0, height: 0, overflow: 'hidden' }}>
+            <iframe
+                width="100%" height="100%"
+                src={`https://www.youtube.com/embed/${getYouTubeID((invitation.hero_section as any).music.url)}?autoplay=1&start=${(invitation.hero_section as any).music.start || 0}&loop=1&playlist=${getYouTubeID((invitation.hero_section as any).music.url)}&playsinline=1`}
+                title="Music" allow="autoplay; encrypted-media"
+            ></iframe>
         </div>
     ) : null;
 
