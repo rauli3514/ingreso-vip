@@ -5,7 +5,7 @@ import { InvitationData } from '../../../types';
 import { Loader2, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 // @ts-ignore
-import ReactPlayer from 'react-player/youtube';
+import ReactPlayer from 'react-player';
 
 import CountdownRenderer from './components/CountdownRenderer';
 import EventCardRenderer from './components/EventCardRenderer';
@@ -230,10 +230,11 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     // --- VISTAS INTRO (Solo si NO es editable) ---
 
-    // --- GLOBAL MUSIC PLAYER Helper ---
+    const Player = ReactPlayer as any;
     const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
         <div key="global-music-player" style={{ position: 'fixed', bottom: 0, right: 0, width: 1, height: 1, opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
-            <ReactPlayer
+            {/* @ts-ignore */}
+            <Player
                 url={(invitation.hero_section as any).music.url}
                 playing={isPlaying}
                 loop={true}
@@ -246,7 +247,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                     youtube: {
                         playerVars: { showinfo: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1 }
                     }
-                }}
+                } as any}
             />
         </div>
     ) : null;
