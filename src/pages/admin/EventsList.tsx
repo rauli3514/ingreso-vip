@@ -164,15 +164,15 @@ export default function EventsList() {
                     {events.map((event) => (
                         <div
                             key={event.id}
-                            onClick={() => navigate(`/ admin / event / ${event.id} `)}
+                            onClick={() => navigate(`/admin/event/${event.id}`)}
                             className="glass-card p-0 relative overflow-hidden group cursor-pointer bg-white hover:bg-slate-50 border-slate-200"
                         >
 
                             {/* Status Badge */}
                             <div className="absolute top-4 right-4 z-10">
                                 <span className={`badge ${event.status === 'active' ? 'badge-success' :
-                                        event.status === 'pending' ? 'badge-warning' :
-                                            event.status === 'disabled' ? 'badge-neutral' : 'badge-neutral'
+                                    event.status === 'pending' ? 'badge-warning' :
+                                        event.status === 'disabled' ? 'badge-neutral' : 'badge-neutral'
                                     } `}>
                                     {getStatusLabel(event.status)}
                                 </span>
@@ -213,39 +213,38 @@ export default function EventsList() {
                             {/* Footer */}
                             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
                                 <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">ID: {event.id.slice(0, 8)}...</span>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate(`/ admin / event / ${event.id} `);
+                                            navigate(`/admin/event/${event.id}`);
                                         }}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         title="Ver detalles"
                                     >
-                                        <ExternalLink size={14} />
+                                        <ExternalLink size={16} />
                                     </button>
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate(`/ admin / event / ${event.id}/invitation`);
+                                            navigate(`/admin/event/${event.id}/invitation`);
                                         }}
-                                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                                         title="Editar Invitación Web"
                                     >
-                                        <span className="text-base">💌</span>
-                                    </button >
+                                        <span className="text-lg">💌</span>
+                                    </button>
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleDeleteEvent(event.id, event.name);
                                         }}
-                                        className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                        className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                                         title="Eliminar evento"
                                     >
-                                        <Trash2 size={14} />
+                                        <Trash2 size={16} />
                                     </button>
-                                    <span className="text-[10px] text-amber-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>
-                                </div >
+                                </div>
                             </div >
                         </div >
                     ))}

@@ -103,40 +103,6 @@ export interface InvitationData {
     font_weight?: string;
     letter_spacing?: number;
 
-    // Configuración Avanzada (Solo Super Admin)
-    advanced_settings?: {
-        typography: {
-            heading_scale: number; // Multiplicador de tamaño (ej: 1.2)
-            body_scale: number;    // Multiplicador de tamaño
-            line_height: number;
-            weight_titles: '300' | '400' | '600' | '700'; // light, regular, semibold, bold
-            alignment: 'center' | 'left';
-        };
-        colors: {
-            background_override?: string;
-            text_override?: string;
-            accent_override?: string;
-            overlay_opacity: number; // 0 a 1
-        };
-        decorations: Array<{
-            id: string;
-            type: 'image';
-            url: string;
-            position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
-            offset_x: number;
-            offset_y: number;
-            scale: number;
-            opacity: number;
-            rotation: number;
-            z_index: number;
-            filters?: string; // CSS filters (blur, grayscale, etc.)
-        }>;
-        animations: {
-            enabled: boolean;
-            intensity: 'soft' | 'normal'; // Afecta la distancia y duración
-        };
-    };
-
     created_at: string;
     updated_at: string;
 }
