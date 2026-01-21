@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
@@ -101,6 +101,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
+    const musicIframeRef = useRef<HTMLIFrameElement>(null);
     // Inicializar state con previewData si existe, para edición instantánea
     const [invitation, setInvitation] = useState<InvitationData | null>(previewData || null);
     // Si estamos editando, saltamos directo al contenido
@@ -237,19 +238,36 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     // --- VISTAS INTRO (Solo si NO es editable) ---
 
     // --- GLOBAL MUSIC PLAYER Helper ---
-    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
+    const musicUrl = (invitation.hero_section as any)?.music?.url;
+    const musicStart = (invitation.hero_section as any)?.music?.start || 0;
+    const youtubeId = musicUrl ? getYouTubeID(musicUrl) : null;
+
+    const handleMusicToggle = () => {
+        const newPlayingState = !isPlaying;
+        setIsPlaying(newPlayingState);
+
+        // Force reload iframe on mobile to trigger playback
+        if (newPlayingState && musicIframeRef.current && youtubeId) {
+            musicIframeRef.current.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&muted=0&start=${musicStart}&loop=1&playlist=${youtubeId}&playsinline=1&enablejsapi=1`;
+        }
+    };
+
+    const GlobalMusicPlayer = musicUrl ? (
         <>
-            <div key="global-music-player" className="fixed bottom-0 right-0 z-[9999] opacity-0 pointer-events-none" style={{ width: 0, height: 0, overflow: 'hidden' }}>
+            <div key="global-music-player" className="fixed bottom-0 left-0 z-[9999]" style={{ width: '1px', height: '1px', overflow: 'hidden', opacity: 0.01 }}>
                 <iframe
-                    width="100%" height="100%"
-                    src={`https://www.youtube.com/embed/${getYouTubeID((invitation.hero_section as any).music.url)}?autoplay=${isPlaying ? 1 : 0}&start=${(invitation.hero_section as any).music.start || 0}&loop=1&playlist=${getYouTubeID((invitation.hero_section as any).music.url)}&playsinline=1&enablejsapi=1`}
-                    title="Music" allow="autoplay; encrypted-media"
+                    ref={musicIframeRef}
+                    width="1" height="1"
+                    src={youtubeId ? `https://www.youtube.com/embed/${youtubeId}?autoplay=${isPlaying ? 1 : 0}&muted=0&start=${musicStart}&loop=1&playlist=${youtubeId}&playsinline=1&enablejsapi=1` : ''}
+                    title="Music"
+                    allow="autoplay; encrypted-media"
+                    style={{ border: 'none' }}
                 ></iframe>
             </div>
             {/* Botón flotante de control de música */}
             {viewState === 'content' && !isEditable && (
                 <button
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={handleMusicToggle}
                     className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
                     style={{ backgroundColor: themeColors.primary }}
                     aria-label={isPlaying ? 'Pausar música' : 'Reproducir música'}
