@@ -252,6 +252,21 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     const handleEnter = (withMusic: boolean) => {
         setIsPlaying(withMusic);
+
+        // Iniciar reproducción si el usuario eligió música
+        if (withMusic && youtubePlayer) {
+            setTimeout(() => {
+                try {
+                    youtubePlayer.unMute();
+                    youtubePlayer.setVolume(100);
+                    youtubePlayer.playVideo();
+                    console.log('Auto-playing music after user choice');
+                } catch (error) {
+                    console.error('Error auto-playing music:', error);
+                }
+            }, 500);
+        }
+
         // Si hay tarjeta principal, mostramos ese paso intermedio
         if ((invitation as any)?.main_card_url) {
             setViewState('main_card');
@@ -260,26 +275,28 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         }
     };
 
-    const downloadICS = () => {
+    const addToCalendar = () => {
         if (!invitation?.ceremony_section?.start_time) return;
+
         const startDate = new Date(invitation.ceremony_section.start_time);
         const endDate = new Date(startDate.getTime() + (4 * 60 * 60 * 1000));
-        const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
-        const icsContent = [
-            'BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
-            `SUMMARY:Boda de ${invitation.hero_section?.title || 'Laura y Raul'}`,
-            `DTSTART:${formatDate(startDate)}`, `DTEND:${formatDate(endDate)}`,
-            `LOCATION:${invitation.ceremony_section?.address || ''}`,
-            `DESCRIPTION:${invitation.hero_section?.subtitle || '¡Nos casamos!'}\\n\\nInvitación Web: ${window.location.href}`,
-            'END:VEVENT', 'END:VCALENDAR'
-        ].join('\n');
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.setAttribute('download', 'agendar_boda.ics');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+        // Formato para Google Calendar: YYYYMMDDTHHMMSSZ
+        const formatGoogleDate = (date: Date) => {
+            return date.toISOString().replace(/-|:|\.\d+/g, '');
+        };
+
+        const title = encodeURIComponent(`Boda de ${invitation.hero_section?.title || 'Invitación'}`);
+        const details = encodeURIComponent(`${invitation.hero_section?.subtitle || '¡Nos casamos!'}\n\nInvitación: ${window.location.href}`);
+        const location = encodeURIComponent(invitation.ceremony_section?.address || '');
+        const startTime = formatGoogleDate(startDate);
+        const endTime = formatGoogleDate(endDate);
+
+        // URL de Google Calendar (compatible con móviles y desktop)
+        const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}&location=${location}`;
+
+        // Abrir en nueva ventana
+        window.open(googleCalendarUrl, '_blank');
     };
 
     if (loading && !previewData) {
@@ -554,7 +571,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                         </button>
                                     </EditableWrapper>
                                 ) : (
-                                    <button onClick={downloadICS} className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer animate-pulse-soft">
+                                    <button onClick={addToCalendar} className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer animate-pulse-soft">
                                         <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block group-hover:scale-105 transition-transform">
                                             {(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date)
                                                 ? new Date(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
