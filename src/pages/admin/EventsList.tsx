@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Event } from '../../types';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import { Plus, Search, Calendar, Users as UsersIcon, MapPin, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Search, Calendar, Users as UsersIcon, MapPin, Loader2, Trash2, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CreateEventModal from '../../components/CreateEventModal';
@@ -69,10 +69,10 @@ export default function EventsList() {
 
 
     const handleDeleteEvent = async (eventId: string, eventName: string) => {
-        const confirmFirst = confirm(`¿Estás seguro de que deseas eliminar el evento "${eventName}"?\n\nEsta acción no se puede deshacer.`);
+        const confirmFirst = confirm(`¿Estás seguro de que deseas eliminar el evento "${eventName}" ?\n\nEsta acción no se puede deshacer.`);
         if (!confirmFirst) return;
 
-        const confirmSecond = confirm(`CONFIRMACIÓN FINAL:\n\n¿Realmente deseas eliminar "${eventName}" y todos sus invitados?\n\nEscribe OK en tu mente y presiona Aceptar para continuar.`);
+        const confirmSecond = confirm(`CONFIRMACIÓN FINAL: \n\n¿Realmente deseas eliminar "${eventName}" y todos sus invitados ?\n\nEscribe OK en tu mente y presiona Aceptar para continuar.`);
         if (!confirmSecond) return;
 
         try {
@@ -87,7 +87,7 @@ export default function EventsList() {
             fetchEvents();
         } catch (error: any) {
             console.error('Error deleting event:', error);
-            alert(`❌ Error al eliminar evento: ${error.message}`);
+            alert(`❌ Error al eliminar evento: ${error.message} `);
         }
     };
 
@@ -164,16 +164,16 @@ export default function EventsList() {
                     {events.map((event) => (
                         <div
                             key={event.id}
-                            onClick={() => navigate(`/admin/event/${event.id}`)}
+                            onClick={() => navigate(`/ admin / event / ${event.id} `)}
                             className="glass-card p-0 relative overflow-hidden group cursor-pointer bg-white hover:bg-slate-50 border-slate-200"
                         >
 
                             {/* Status Badge */}
                             <div className="absolute top-4 right-4 z-10">
                                 <span className={`badge ${event.status === 'active' ? 'badge-success' :
-                                    event.status === 'pending' ? 'badge-warning' :
-                                        event.status === 'disabled' ? 'badge-neutral' : 'badge-neutral'
-                                    }`}>
+                                        event.status === 'pending' ? 'badge-warning' :
+                                            event.status === 'disabled' ? 'badge-neutral' : 'badge-neutral'
+                                    } `}>
                                     {getStatusLabel(event.status)}
                                 </span>
                             </div>
@@ -217,6 +217,26 @@ export default function EventsList() {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            navigate(`/ admin / event / ${event.id} `);
+                                        }}
+                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Ver detalles"
+                                    >
+                                        <ExternalLink size={14} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/ admin / event / ${event.id}/invitation`);
+                                        }}
+                                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Editar Invitación Web"
+                                    >
+                                        <span className="text-base">💌</span>
+                                    </button >
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             handleDeleteEvent(event.id, event.name);
                                         }}
                                         className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
@@ -225,12 +245,12 @@ export default function EventsList() {
                                         <Trash2 size={14} />
                                     </button>
                                     <span className="text-[10px] text-amber-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Ver detalles →</span>
-                                </div>
-                            </div>
-                        </div>
+                                </div >
+                            </div >
+                        </div >
                     ))}
-                </div>
+                </div >
             )}
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }
