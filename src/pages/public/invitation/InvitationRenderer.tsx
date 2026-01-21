@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
@@ -101,7 +101,8 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
-    const musicIframeRef = useRef<HTMLIFrameElement>(null);
+    const [musicReady, setMusicReady] = useState(false);
+    const [youtubePlayer, setYoutubePlayer] = useState<any>(null);
     // Inicializar state con previewData si existe, para edición instantánea
     const [invitation, setInvitation] = useState<InvitationData | null>(previewData || null);
     // Si estamos editando, saltamos directo al contenido
@@ -187,6 +188,68 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         fetchGuestData();
     }, [guestNameParam, id, isEditable]);
 
+    // YouTube IFrame API Setup
+    useEffect(() => {
+        const musicUrl = (invitation?.hero_section as any)?.music?.url;
+        if (!musicUrl || isEditable) return;
+
+        // Load YouTube IFrame API
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+        // @ts-ignore
+        window.onYouTubeIframeAPIReady = () => {
+            setMusicReady(true);
+        };
+
+        return () => {
+            // @ts-ignore
+            window.onYouTubeIframeAPIReady = undefined;
+        };
+    }, [invitation, isEditable]);
+
+    // Create YouTube Player when ready
+    useEffect(() => {
+        if (!musicReady || youtubePlayer || !invitation) return;
+
+        const musicUrl = (invitation.hero_section as any)?.music?.url;
+        if (!musicUrl) return;
+
+        const videoId = getYouTubeID(musicUrl);
+        if (!videoId) return;
+
+        const startTime = (invitation.hero_section as any)?.music?.start || 0;
+
+        // @ts-ignore
+        const player = new window.YT.Player('youtube-player', {
+            height: '1',
+            width: '1',
+            videoId: videoId,
+            playerVars: {
+                autoplay: 0,
+                controls: 0,
+                disablekb: 1,
+                fs: 0,
+                modestbranding: 1,
+                playsinline: 1,
+                start: startTime,
+                loop: 1,
+                playlist: videoId,
+            },
+            events: {
+                onReady: (event: any) => {
+                    console.log('YouTube player ready');
+                    setYoutubePlayer(event.target);
+                },
+                onStateChange: (event: any) => {
+                    console.log('YouTube player state:', event.data);
+                }
+            }
+        });
+    }, [musicReady, youtubePlayer, invitation]);
+
     const handleEnter = (withMusic: boolean) => {
         setIsPlaying(withMusic);
         // Si hay tarjeta principal, mostramos ese paso intermedio
@@ -238,32 +301,37 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     // --- VISTAS INTRO (Solo si NO es editable) ---
 
     // --- GLOBAL MUSIC PLAYER Helper ---
-    const musicUrl = (invitation.hero_section as any)?.music?.url;
-    const musicStart = (invitation.hero_section as any)?.music?.start || 0;
-    const youtubeId = musicUrl ? getYouTubeID(musicUrl) : null;
-
     const handleMusicToggle = () => {
+        if (!youtubePlayer) {
+            console.warn('YouTube player not ready yet');
+            return;
+        }
+
         const newPlayingState = !isPlaying;
         setIsPlaying(newPlayingState);
 
-        // Force reload iframe on mobile to trigger playback
-        if (newPlayingState && musicIframeRef.current && youtubeId) {
-            musicIframeRef.current.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&muted=0&start=${musicStart}&loop=1&playlist=${youtubeId}&playsinline=1&enablejsapi=1`;
+        try {
+            if (newPlayingState) {
+                youtubePlayer.unMute();
+                youtubePlayer.setVolume(100);
+                youtubePlayer.playVideo();
+                console.log('Playing music');
+            } else {
+                youtubePlayer.pauseVideo();
+                console.log('Pausing music');
+            }
+        } catch (error) {
+            console.error('Error controlling YouTube player:', error);
         }
     };
 
-    const GlobalMusicPlayer = musicUrl ? (
+    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
         <>
-            <div key="global-music-player" className="fixed bottom-0 left-0 z-[9999]" style={{ width: '1px', height: '1px', overflow: 'hidden', opacity: 0.01 }}>
-                <iframe
-                    ref={musicIframeRef}
-                    width="1" height="1"
-                    src={youtubeId ? `https://www.youtube.com/embed/${youtubeId}?autoplay=${isPlaying ? 1 : 0}&muted=0&start=${musicStart}&loop=1&playlist=${youtubeId}&playsinline=1&enablejsapi=1` : ''}
-                    title="Music"
-                    allow="autoplay; encrypted-media"
-                    style={{ border: 'none' }}
-                ></iframe>
-            </div>
+            <div
+                id="youtube-player"
+                className="fixed bottom-0 left-0 z-0"
+                style={{ width: '1px', height: '1px', overflow: 'hidden', opacity: 0.01 }}
+            ></div>
             {/* Botón flotante de control de música */}
             {viewState === 'content' && !isEditable && (
                 <button
