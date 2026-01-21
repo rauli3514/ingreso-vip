@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import EventsList from './pages/admin/EventsList';
 import EventDetails from './pages/admin/EventDetails';
 import UsersList from './pages/admin/UsersList';
+import InvitationEditor from './pages/admin/invitation/InvitationEditor';
 
 import GuestApp from './pages/guest/GuestApp';
 import InvitationRenderer from './pages/invitation/InvitationRenderer';
@@ -27,6 +28,7 @@ function App() {
                         <Route path="dashboard" element={<EventsList />} />
                         <Route path="users" element={<UsersList />} />
                         <Route path="event/:id" element={<EventDetails />} />
+                        <Route path="event/:id/invitation" element={<InvitationEditor />} />
                     </Route>
 
                     {/* Guest Routes */}
