@@ -53,3 +53,27 @@ export interface Guest {
     is_after_party?: boolean; // Es invitado de trasnoche
     has_puff?: boolean; // Tiene puff asignado
 }
+
+export interface InvitationSection {
+    show: boolean;
+    title?: string;
+    description?: string;
+    [key: string]: any;
+}
+
+export interface InvitationData {
+    id: string;
+    event_id: string;
+    theme_id: string;
+    cover_image_url?: string;
+    hero_section: InvitationSection & { subtitle?: string; date_format?: string };
+    countdown_section: InvitationSection & { target_date?: string };
+    ceremony_section: InvitationSection & { location_name?: string; location_url?: string; time?: string };
+    party_section: InvitationSection & { location_name?: string; location_url?: string; time?: string };
+    gallery_section: InvitationSection & { images: string[] };
+    dress_code_section: InvitationSection & { code?: string; note?: string };
+    gifts_section: InvitationSection & { cbu?: string; alias?: string; bank?: string };
+    created_at: string;
+    updated_at: string;
+}
+

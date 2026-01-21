@@ -10,6 +10,7 @@ import EventDetails from './pages/admin/EventDetails';
 import UsersList from './pages/admin/UsersList';
 
 import GuestApp from './pages/guest/GuestApp';
+import InvitationRenderer from './pages/invitation/InvitationRenderer';
 
 function App() {
     return (
@@ -30,6 +31,7 @@ function App() {
 
                     {/* Guest Routes */}
                     <Route path="/evento/:id" element={<GuestApp />} />
+                    <Route path="/invitacion/:id" element={<InvitationRenderer />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
