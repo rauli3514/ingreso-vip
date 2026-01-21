@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, Loader2, Smartphone, Monitor, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Smartphone, Monitor, Sparkles } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
 

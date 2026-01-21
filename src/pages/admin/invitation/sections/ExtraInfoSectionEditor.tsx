@@ -1,4 +1,3 @@
-import React from 'react';
 import { InvitationData } from '../../../../types';
 import { Mail, Shirt, ClipboardList, Music } from 'lucide-react';
 

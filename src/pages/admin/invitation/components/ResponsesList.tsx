@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { InvitationResponse } from '../../../../types';
-import { Loader2, Download, CheckCircle, XCircle, Music } from 'lucide-react';
+import { Download, CheckCircle, XCircle, Music } from 'lucide-react';
 
 interface Props {
     eventId: string;

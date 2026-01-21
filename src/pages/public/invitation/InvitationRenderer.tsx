@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
-import { Loader2, Heart, MapPin, Music } from 'lucide-react';
+import { Loader2, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import CountdownRenderer from './components/CountdownRenderer';
@@ -22,7 +22,7 @@ interface Props {
 }
 
 // Wrapper para elementos editables
-const EditableWrapper = ({ children, isSelected, onClick, id, className = '' }: { children: React.ReactNode, isSelected: boolean, onClick: () => void, id: string, className?: string }) => (
+const EditableWrapper = ({ children, isSelected, onClick, className = '' }: { children: React.ReactNode, isSelected: boolean, onClick: () => void, id?: string, className?: string }) => (
     <div
         onClick={(e) => { e.stopPropagation(); onClick(); }}
         className={`relative group transition-all duration-200 inline-block ${className} ${isSelected ? 'ring-2 ring-indigo-500 rounded-lg' : 'hover:ring-1 hover:ring-indigo-300/50 rounded-lg cursor-pointer'}`}

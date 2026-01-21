@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { InvitationData } from '../../../../types';
-import { Type, Palette, Plus, Trash2, MousePointer2, Move, Sun, X, Upload, Layers, Play, Save, Check } from 'lucide-react';
+import { Type, Palette, Trash2, MousePointer2, Move, Sun, X, Upload, Layers, Play, Check } from 'lucide-react';
 import InvitationRenderer from '../../../public/invitation/InvitationRenderer';
 import { createPortal } from 'react-dom';
 
@@ -10,8 +10,24 @@ interface Props {
     onClose: () => void;
 }
 
-// Ejemplo de librería de assets (Vacía por solicitud del usuario)
-const ASSET_LIBRARY: { type: 'image', url: string, name: string }[] = [];
+const DEFAULT_ADVANCED_SETTINGS: NonNullable<InvitationData['advanced_settings']> = {
+    typography: {
+        heading_scale: 1,
+        body_scale: 1,
+        line_height: 1.5,
+        weight_titles: '400',
+        alignment: 'center'
+    },
+    colors: {
+        overlay_opacity: 0.4
+    },
+    decorations: [],
+    animations: {
+        enabled: true,
+        intensity: 'soft',
+        entry_effect: 'fade'
+    }
+};
 
 const FILTERS = [
     { name: 'Normal', value: 'none' },
@@ -27,8 +43,6 @@ export default function AdvancedEditor({ invitation, onChange, onClose }: Props)
     const [localData, setLocalData] = useState<InvitationData>(invitation);
     const [selectedElement, setSelectedElement] = useState<{ id: string, type: 'text' | 'decoration', index?: number } | null>(null);
     const [activeTab, setActiveTab] = useState<'layers' | 'styles' | 'animation'>('layers');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [sidebarTab, setSidebarTab] = useState<'library' | 'properties'>('properties');
 
     useEffect(() => {
         setLocalData(invitation);
@@ -58,7 +72,8 @@ export default function AdvancedEditor({ invitation, onChange, onClose }: Props)
     // --- DECORACIONES ---
 
     const addDecoration = (url: string) => {
-        const currentDecos = localData.advanced_settings?.decorations || [];
+        const currentSettings = localData.advanced_settings || DEFAULT_ADVANCED_SETTINGS;
+        const currentDecos = currentSettings.decorations || [];
         const newDeco = {
             id: Math.random().toString(36).substr(2, 9),
             type: 'image' as const,
@@ -74,7 +89,7 @@ export default function AdvancedEditor({ invitation, onChange, onClose }: Props)
         };
 
         const newSettings = {
-            ...localData.advanced_settings,
+            ...currentSettings,
             decorations: [...currentDecos, newDeco]
         };
         // @ts-ignore
@@ -101,15 +116,15 @@ export default function AdvancedEditor({ invitation, onChange, onClose }: Props)
         const currentDecos = [...(localData.advanced_settings?.decorations || [])];
         currentDecos[selectedElement.index] = { ...currentDecos[selectedElement.index], ...updates };
 
-        const newSettings = { ...localData.advanced_settings, decorations: currentDecos };
+        const newSettings = { ...localData.advanced_settings!, decorations: currentDecos };
         // @ts-ignore
         updateGlobal({ ...localData, advanced_settings: newSettings });
     };
 
     const removeSelectedDecoration = () => {
         if (!selectedElement || selectedElement.type !== 'decoration' || selectedElement.index === undefined) return;
-        const currentDecos = localData.advanced_settings?.decorations?.filter((_, i) => i !== selectedElement.index);
-        const newSettings = { ...localData.advanced_settings, decorations: currentDecos };
+        const currentDecos = localData.advanced_settings?.decorations?.filter((_, i) => i !== selectedElement.index) || [];
+        const newSettings = { ...localData.advanced_settings!, decorations: currentDecos };
         // @ts-ignore
         updateGlobal({ ...localData, advanced_settings: newSettings });
         setSelectedElement(null);
@@ -130,7 +145,7 @@ export default function AdvancedEditor({ invitation, onChange, onClose }: Props)
             currentDecos[index] = { ...currentDecos[index], ...updates };
 
             // Actualizar estado local y global sin cambiar selección necesariamente (para drag suave)
-            const newSettings = { ...localData.advanced_settings, decorations: currentDecos };
+            const newSettings = { ...localData.advanced_settings!, decorations: currentDecos };
             setLocalData({ ...localData, advanced_settings: newSettings } as InvitationData);
 
             // Debounce global update si fuera necesario, aqui directo
@@ -149,8 +164,7 @@ export default function AdvancedEditor({ invitation, onChange, onClose }: Props)
 
     // --- TEXTO ---
     const updateTypography = (key: string, value: any) => {
-        // @ts-ignore
-        const currentSettings = localData.advanced_settings || {};
+        const currentSettings = localData.advanced_settings || DEFAULT_ADVANCED_SETTINGS;
         const newSettings = {
             ...currentSettings,
             typography: { ...currentSettings.typography, [key]: value }

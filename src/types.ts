@@ -134,6 +134,7 @@ export interface InvitationData {
         animations: {
             enabled: boolean;
             intensity: 'soft' | 'normal'; // Afecta la distancia y duración
+            entry_effect?: 'fade' | 'slide-up' | 'zoom-in' | 'bounce' | 'none';
         };
     };
 

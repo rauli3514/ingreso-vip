@@ -1,4 +1,3 @@
-import React from 'react';
 import { InvitationData } from '../../../../types';
 
 interface Props {

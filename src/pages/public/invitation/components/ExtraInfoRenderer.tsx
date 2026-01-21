@@ -8,7 +8,7 @@ interface Props {
     themeColor: string; // Color de acento/primario del tema
 }
 
-export default function ExtraInfoRenderer({ title = 'Fiesta', subtitle, blocks, onSuggestSong, themeColor }: Props) {
+export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, themeColor }: Props) {
     const musicBlock = blocks?.music || { show: true, title: 'Música' };
     const dressBlock = blocks?.dress_code || { show: true, title: 'Dress Code', content: '' };
     const tipsBlock = blocks?.tips || { show: true, title: 'Tips y Notas', content: '' };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { InvitationData } from '../../../../types';
 import { supabase } from '../../../../lib/supabase';
-import { Loader2, Upload, Instagram, Camera, Link as LinkIcon } from 'lucide-react';
+import { Loader2, Upload, Instagram, Camera } from 'lucide-react';
 
 interface Props {
     invitation: Partial<InvitationData>;
