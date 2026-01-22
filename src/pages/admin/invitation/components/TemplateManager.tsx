@@ -157,10 +157,10 @@ export default function TemplateManager({ invitation, onChange }: Props) {
                         <Smartphone size={24} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-indigo-900 mb-2">Diseño Mobile-First (Overlay)</h3>
+                        <h3 className="text-lg font-bold text-indigo-900 mb-2">Diseño Multi-Dispositivo (Overlay)</h3>
                         <p className="text-indigo-700/80 text-sm leading-relaxed">
-                            Este sistema utiliza una <strong>Plantilla PNG Decorativa</strong> única que se superpone sobre toda la invitación.
-                            Esto garantiza un diseño perfecto sin errores de CSS ni desbordes.
+                            Este sistema utiliza una <strong>Plantilla PNG Decorativa</strong> única que se superpone sobre toda la invitación (Móvil y Web).
+                            Esto garantiza un diseño perfecto, aunque ten en cuenta que la imagen se estirará para adaptarse a la pantalla.
                         </p>
                     </div>
                 </div>
