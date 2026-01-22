@@ -103,6 +103,51 @@ function ConfirmationModal({ type, eventId, invitationRowId, onClose }: { type: 
 
             if (error) throw error;
 
+            // Enviar email usando Resend API
+            try {
+                const typeLabel = type === 'ceremony' ? 'Ceremonia'
+                    : type === 'party' ? 'Fiesta'
+                        : 'Sugerencia de Canción';
+
+                const attendingLabel = (type !== 'song' && status) ? (status === 'yes' ? 'SÍ asistirá' : 'NO asistirá') : '';
+
+                await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer re_PNeK19Gy_6gSACDsLgfUFAoPnQ566bdtG',
+                    },
+                    body: JSON.stringify({
+                        from: 'Invitaciones VIP <onboarding@resend.dev>',
+                        to: ['bodalauyraul2026@gmail.com'],
+                        subject: `📋 Nueva respuesta: ${name} - ${typeLabel}`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <h2 style="color: #4F46E5; border-bottom: 2px solid #4F46E5; padding-bottom: 10px;">
+                                    Nueva Respuesta de Invitación
+                                </h2>
+                                
+                                <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 10px 0;"><strong>📝 Tipo:</strong> ${typeLabel}</p>
+                                    <p style="margin: 10px 0;"><strong>👤 Nombre:</strong> ${name}</p>
+                                    ${attendingLabel ? `<p style="margin: 10px 0;"><strong>✅ Asistencia:</strong> ${attendingLabel}</p>` : ''}
+                                    ${message ? `<p style="margin: 10px 0;"><strong>💬 Mensaje:</strong><br>${message}</p>` : ''}
+                                </div>
+                                
+                                <p style="color: #6B7280; font-size: 12px; margin-top: 30px;">
+                                    Recibido el: ${new Date().toLocaleString('es-AR')}
+                                </p>
+                            </div>
+                        `,
+                    }),
+                });
+
+                console.log('Email enviado correctamente');
+            } catch (emailError) {
+                console.error('Error al enviar email:', emailError);
+                // No bloqueamos el flujo si falla el email
+            }
+
             setSent(true);
         } catch (error: any) {
             console.error(error);
