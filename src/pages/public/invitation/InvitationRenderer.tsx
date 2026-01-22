@@ -13,6 +13,7 @@ import GiftsRenderer from './components/GiftsRenderer';
 import SocialRenderer from './components/SocialRenderer';
 import ExtraInfoRenderer from './components/ExtraInfoRenderer';
 import FooterRenderer from './components/FooterRenderer';
+import TriviaRenderer from './components/TriviaRenderer';
 
 // Interfaces para Props del Editor
 interface Props {
@@ -708,6 +709,13 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         buttons={(invitation.social_section as any).buttons}
                     />
                 )}
+
+
+                {/* 7.5 TRIVIA */}
+                <TriviaRenderer
+                    eventId={id!}
+                    themeColor={themeColors.primary}
+                />
 
                 {/* 8. FOOTER */}
                 {(invitation.footer_section as any)?.show !== false && (

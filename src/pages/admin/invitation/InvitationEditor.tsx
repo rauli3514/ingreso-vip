@@ -15,6 +15,8 @@ import FooterSectionEditor from './sections/FooterSectionEditor';
 import ResponsesList from './components/ResponsesList';
 import GuestsManager from './components/GuestsManager';
 import AdvancedEditor from './components/AdvancedEditor';
+import TriviaEditor from './components/TriviaEditor';
+import TriviaResponses from './components/TriviaResponses';
 
 import DashboardLayout from '../../../layouts/DashboardLayout';
 
@@ -201,6 +203,26 @@ export default function InvitationEditor() {
                         >
                             📋 Lista de Invitados
                         </button>
+
+                        <button
+                            onClick={() => setActiveTab('trivia-preguntas')}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'trivia-preguntas'
+                                ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-100'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`}
+                        >
+                            🎮 Trivia - Preguntas
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('trivia-ranking')}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'trivia-ranking'
+                                ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-100'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`}
+                        >
+                            🏆 Trivia - Ranking
+                        </button>
                     </div>
 
                     {/* Editor Content - Usamos invitation={invitation} para compatibilidad */}
@@ -256,8 +278,18 @@ export default function InvitationEditor() {
                                 <GuestsManager eventId={id} />
                             )}
 
+                            {/* TRIVIA - PREGUNTAS */}
+                            {activeTab === 'trivia-preguntas' && id && (
+                                <TriviaEditor eventId={id} />
+                            )}
+
+                            {/* TRIVIA - RANKING */}
+                            {activeTab === 'trivia-ranking' && id && (
+                                <TriviaResponses eventId={id} />
+                            )}
+
                             {/* Default */}
-                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados'].includes(activeTab) && (
+                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking'].includes(activeTab) && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
                                     <p>Selecciona una sección para comenzar.</p>
                                 </div>

@@ -153,3 +153,25 @@ export interface InvitationResponse {
     created_at: string;
 }
 
+
+
+export interface TriviaQuestion {
+    id: string;
+    event_id: string;
+    question: string;
+    options: string[];
+    correct_answer: number;
+    order_index: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TriviaResponse {
+    id: string;
+    event_id: string;
+    guest_name: string;
+    answers: number[];
+    score: number;
+    completed_at: string;
+    created_at: string;
+}
