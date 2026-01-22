@@ -40,7 +40,7 @@ export default function PlaylistRenderer({
         if (!spotifyPlaylistUrl) return null;
         const match = spotifyPlaylistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
         if (match) {
-            return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0`;
+            return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0&v=${new Date().getTime()}`;
         }
         return null;
     };
