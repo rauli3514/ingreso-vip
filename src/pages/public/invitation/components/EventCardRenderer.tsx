@@ -132,10 +132,6 @@ export default function EventCardRenderer({ title, description, locationName, ad
 
                             <a
                                 href="#rsvp-section"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    document.getElementById('rsvp-section')?.scrollIntoView({ behavior: 'smooth' });
-                                }}
                                 className="inline-flex items-center gap-2 bg-slate-900 border border-slate-900 text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 w-full justify-center max-w-[250px]"
                             >
                                 CONFIRMAR ASISTENCIA
