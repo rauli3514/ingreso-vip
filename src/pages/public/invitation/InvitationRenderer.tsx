@@ -112,7 +112,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     // Parallax Logic
     const { scrollY } = useScroll();
-    const yRange = useTransform(scrollY, [0, 800], [0, 300]); // Movimiento parallax
+    const yRange = useTransform(scrollY, [0, 800], [0, 100]); // Movimiento parallax sutil para evitar cortes
 
 
     const guestNameParam = searchParams.get('guest');
@@ -340,7 +340,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
             {/* CONTENEDOR PRINCIPAL (Responsive: Mobile First -> Desktop Wide) */}
             <div
                 id="invitation-container"
-                className="min-h-screen font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-4xl mx-auto shadow-2xl transition-colors duration-500"
+                className="min-h-screen font-sans overflow-x-hidden selection:bg-indigo-100 relative bg-white w-full transition-colors duration-500"
                 style={{
                     backgroundColor: viewState === 'content' ? 'white' : themeColors.bg,
                     // Zoom override para editor mobile únicamente
@@ -464,12 +464,12 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                     // 4. VISTA CONTENIDO PROPIAMENTE DICHO
                     <div className="relative z-20 bg-stone-50 text-slate-800">
                         {/* HEADER HERO */}
-                        <header className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
+                        <header className="relative min-h-screen flex items-center justify-center text-center text-white overflow-hidden">
                             <motion.div
                                 className="absolute inset-0 z-0"
                                 style={{ y: yRange }}
                             >
-                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover scale-110" />
+                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover scale-125" />
                                 <div className="absolute inset-0 bg-black/40"></div>
                             </motion.div>
                             <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
