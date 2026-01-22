@@ -334,26 +334,13 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     return (
         <>
-            {/* Fondo Desktop Estático (Blur Effect Premium) */}
-            <div className="fixed inset-0 -z-50 hidden md:block overflow-hidden">
-                {invitation.cover_image_url ? (
-                    <>
-                        <img
-                            src={invitation.cover_image_url}
-                            className="w-full h-full object-cover blur-2xl scale-110 opacity-50"
-                            alt="Background"
-                        />
-                        <div className="absolute inset-0 bg-slate-900/40"></div>
-                    </>
-                ) : (
-                    <div className="w-full h-full bg-slate-900 opacity-90"></div>
-                )}
-            </div>
+            {/* Fondo Desktop Estático */}
+            <div className="fixed inset-0 bg-slate-900 -z-50 hidden md:block" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop)', backgroundSize: 'cover', opacity: 0.1 }}></div>
 
-            {/* CONTENEDOR PRINCIPAL (Mobile Layout Centrado) */}
+            {/* CONTENEDOR PRINCIPAL (Responsive: Mobile First -> Desktop Wide) */}
             <div
                 id="invitation-container"
-                className="min-h-screen font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-[480px] mx-auto shadow-2xl transition-colors duration-500 md:my-8 md:rounded-3xl md:min-h-[calc(100vh-4rem)]" // Bordes redondeados y margen en PC
+                className="min-h-screen font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-4xl mx-auto shadow-2xl transition-colors duration-500"
                 style={{
                     backgroundColor: viewState === 'content' ? 'white' : themeColors.bg,
                     // Zoom override para editor mobile únicamente
@@ -392,9 +379,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 `}
                 </style>
 
-                {/* OVERLAY DECORATIVO (Solo visible en contenido principal) */}
+                {/* OVERLAY DECORATIVO (Solo visible en contenido principal y Mobile) */}
                 {overlayUrl && viewState === 'content' && (
-                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none">
+                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none md:hidden">
                         <img
                             src={overlayUrl}
                             alt="Diseño Decorativo"
