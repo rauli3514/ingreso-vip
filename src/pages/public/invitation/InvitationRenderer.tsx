@@ -715,9 +715,10 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
 
                 {/* 7.4 PLAYLIST COLABORATIVA */}
-                <PlaylistRenderer 
+                <PlaylistRenderer
                     eventId={id!}
                     themeColor={themeColors.primary}
+                    spotifyPlaylistUrl="https://open.spotify.com/playlist/1qsRobsjlQtZTw3NtEX5jW"
                 />
 
 
@@ -728,7 +729,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 />
 
                 {/* CONTADOR DE ASISTENTES (Floating Widget) */}
-                <AttendeeCounter 
+                <AttendeeCounter
                     eventId={id!}
                     themeColor={themeColors.primary}
                 />
