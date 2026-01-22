@@ -96,7 +96,7 @@ export default function GiftsRenderer({
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsOpen(false)}></div>
 
-                    <div className="bg-white w-full max-w-2xl rounded-2xl p-8 relative z-10 animate-in zoom-in-95 duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white w-full max-w-2xl rounded-2xl p-8 pb-32 relative z-10 animate-in zoom-in-95 duration-300 shadow-2xl max-h-[85vh] overflow-y-auto">
                         {/* Icono Flotante Superior */}
                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center shadow-xl">
                             <Gift size={36} className="text-white" strokeWidth={1.5} />
@@ -112,9 +112,9 @@ export default function GiftsRenderer({
                         <div className="mt-8 space-y-6">
                             <h3 className="text-3xl font-serif text-slate-800 mb-6 text-center">{title}</h3>
 
-                            {/* Mensaje personalizado */}
-                            {content && (
-                                <div className="text-slate-600 leading-relaxed text-center bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
+                            {/* Mensaje personalizado (Solo si no es redundante) */}
+                            {content && !((cbu && content.includes(cbu)) || (alias && content.includes(alias))) && (
+                                <div className="text-slate-600 leading-relaxed text-center bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8 text-sm md:text-base">
                                     {content}
                                 </div>
                             )}

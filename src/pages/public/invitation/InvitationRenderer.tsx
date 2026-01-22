@@ -702,6 +702,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         title={(invitation.extra_info_section as any).title}
                         subtitle={(invitation.extra_info_section as any).subtitle}
                         blocks={(invitation.extra_info_section as any).blocks}
+                        componentsConfig={(invitation.components_config as any)}
                         onSuggestSong={() => {
                             const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
                             if (footerBtn) footerBtn.click();

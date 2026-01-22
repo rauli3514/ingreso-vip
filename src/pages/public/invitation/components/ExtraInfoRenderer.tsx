@@ -6,13 +6,19 @@ interface Props {
     subtitle?: string;
     blocks?: any;
     onSuggestSong?: () => void;
-    themeColor: string; // Color de acento/primario del tema
+    themeColor: string;
+    componentsConfig?: any; // Configuración extra para DressCode, etc.
 }
 
-export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, themeColor }: Props) {
+export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, themeColor, componentsConfig }: Props) {
     const musicBlock = blocks?.music || { show: true, title: 'Música' };
     const dressBlock = blocks?.dress_code || { show: true, title: 'Dress Code', content: '' };
     const tipsBlock = blocks?.tips || { show: true, title: 'Tips y Notas', content: '' };
+
+    // Configuración Dress Code dinámica
+    const dressColors = componentsConfig?.dress_code || {};
+    const recommendedColors = dressColors.recommended_colors || ['#C5A572', '#F4E4D7', '#8B7355'];
+    const avoidColors = dressColors.avoid_colors || ['#FFFFFF', '#000000'];
 
     // Color principal del tema
     const mainColor = themeColor || '#C5A976';
@@ -73,8 +79,8 @@ export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, the
                             </p>
                             <DressCodeModal
                                 dressCode={dressBlock.content || "Formal"}
-                                recommendedColors={['#C5A572', '#F4E4D7', '#8B7355']}
-                                avoidColors={['#FFFFFF', '#000000']}
+                                recommendedColors={recommendedColors}
+                                avoidColors={avoidColors}
                             />
                         </div>
                     )}
