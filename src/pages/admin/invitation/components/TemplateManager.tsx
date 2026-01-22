@@ -67,10 +67,21 @@ export default function TemplateManager({ invitation, onChange }: Props) {
                 }
             });
 
-            const link = document.createElement('a');
-            link.download = `referencia-invitacion-${invitation.hero_section?.title || 'boda'}.jpg`;
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
-            link.click();
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    console.error('Canvas to Blob failed');
+                    alert('Error generando el archivo de imagen.');
+                    return;
+                }
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = 'plantilla-referencia.jpg';
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 'image/jpeg', 0.9);
         } catch (error) {
             console.error('Error generando captura:', error);
             alert('Error generando la captura. Verifica que las imágenes sean públicas.');
