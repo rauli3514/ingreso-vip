@@ -62,15 +62,15 @@ export default function EventCardRenderer({ title, description, locationName, ad
             </div>
 
             {/* Cinta (Ribbon) Título */}
-            <div className="relative w-full max-w-[280px] z-0 mb-8 filter drop-shadow-md">
+            <div className="relative w-full max-w-[320px] z-0 mb-8 filter drop-shadow-md">
                 <div
-                    className="text-white py-2 px-8 flex items-center justify-center transition-colors duration-500"
+                    className="text-white py-3 px-6 flex items-center justify-center transition-colors duration-500"
                     style={{
                         backgroundColor: primaryColor,
                         clipPath: 'polygon(0% 0%, 100% 0%, 95% 50%, 100% 100%, 0% 100%, 5% 50%)'
                     }}
                 >
-                    <h3 className="text-xl md:text-2xl font-serif pt-1 leading-tight" style={{ fontFamily: '"Great Vibes", cursive' }}>
+                    <h3 className="text-base md:text-lg font-serif pt-1 leading-tight text-center" style={{ fontFamily: '"Great Vibes", cursive' }}>
                         {title}
                     </h3>
                 </div>
