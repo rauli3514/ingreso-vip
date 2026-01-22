@@ -51,7 +51,7 @@ export default function DressCodeModal({
 
                         {/* Dress Code Principal */}
                         <div className="bg-gradient-to-br from-stone-50 to-slate-50 rounded-xl p-6 mb-4 text-center border border-stone-200">
-                            <h4 className="text-xl md:text-3xl font-bold text-stone-700 mb-2 font-serif break-words leading-tight">
+                            <h4 className="text-lg md:text-3xl font-bold text-stone-800 mb-2 leading-relaxed break-words">
                                 {dressCode}
                             </h4>
                             {note && (

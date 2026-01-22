@@ -683,7 +683,16 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                     <GiftsRenderer
                         title={(invitation.gifts_section as any).title}
                         subtitle={(invitation.gifts_section as any).subtitle}
-                        content={(invitation.gifts_section as any).content || `Banco: ${(invitation.gifts_section as any).bank || 'N/A'}\nTitular: ${(invitation.gifts_section as any).owner || 'N/A'}\nCBU: ${(invitation.gifts_section as any).cbu || 'N/A'}\nAlias: ${(invitation.gifts_section as any).alias || 'N/A'}`}
+                        content={(invitation.gifts_section as any).content}
+                        // Datos de Transferencia
+                        bank={(invitation.gifts_section as any).bank}
+                        owner={(invitation.gifts_section as any).owner}
+                        cbu={(invitation.gifts_section as any).cbu}
+                        alias={(invitation.gifts_section as any).alias}
+                        // MercadoPago
+                        mercadopagoLink={(invitation.gifts_section as any).mercadopago_link}
+                        // Lista de Regalos
+                        registryLinks={(invitation.gifts_section as any).gifts_links}
                     />
                 )}
 
