@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
 import { Loader2, Heart, Pause, Play } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 import CountdownRenderer from './components/CountdownRenderer';
 import EventCardRenderer from './components/EventCardRenderer';
@@ -109,6 +109,11 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         (isEditable || forceViewContent) ? 'content' : 'envelope'
     );
     const [isPlaying, setIsPlaying] = useState(false);
+
+    // Parallax Logic
+    const { scrollY } = useScroll();
+    const yRange = useTransform(scrollY, [0, 800], [0, 300]); // Movimiento parallax
+
 
     const guestNameParam = searchParams.get('guest');
     const [guestData, setGuestData] = useState<{ name: string; passes: number; companions: string[] }>({
@@ -460,10 +465,13 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                     <div className="relative z-20 bg-stone-50 text-slate-800">
                         {/* HEADER HERO */}
                         <header className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
-                            <div className="absolute inset-0">
-                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover" />
+                            <motion.div
+                                className="absolute inset-0 z-0"
+                                style={{ y: yRange }}
+                            >
+                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover scale-110" />
                                 <div className="absolute inset-0 bg-black/40"></div>
-                            </div>
+                            </motion.div>
                             <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
                                 {/* SUBTITULO */}
                                 <div className="mb-0">
