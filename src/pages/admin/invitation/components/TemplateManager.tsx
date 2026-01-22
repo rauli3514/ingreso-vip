@@ -101,14 +101,14 @@ export default function TemplateManager({ invitation, onChange }: Props) {
             const filePath = `designs/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('invitation_assets')
+                .from('invitations')
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
             // Get Public URL
             const { data: { publicUrl } } = supabase.storage
-                .from('invitation_assets')
+                .from('invitations')
                 .getPublicUrl(filePath);
 
             // Update Invitation
