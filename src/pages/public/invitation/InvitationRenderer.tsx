@@ -112,7 +112,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     // Parallax Logic
     const { scrollY } = useScroll();
-    const yRange = useTransform(scrollY, [0, 800], [0, 100]); // Movimiento parallax sutil para evitar cortes
+    const yRange = useTransform(scrollY, [0, 800], [0, 300]); // Movimiento parallax original restaurado
 
 
     const guestNameParam = searchParams.get('guest');

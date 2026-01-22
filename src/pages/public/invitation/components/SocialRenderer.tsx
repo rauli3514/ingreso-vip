@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import { Instagram, Camera } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 interface Props {
     title: string;
@@ -9,20 +11,31 @@ interface Props {
 }
 
 export default function SocialRenderer({ title, subtitle, hashtag, backgroundUrl, buttons }: Props) {
+    const ref = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: ref,
+        offset: ["start end", "end start"]
+    });
+
+    const y = useTransform(scrollYProgress, [0, 1], ["-20%", "10%"]);
+
     // Color de fondo de la página (generalmente slate-50 o stone-50)
     const pageBgColor = "#fafaf9"; // stone-50
 
     return (
-        <section className="relative py-32 flex items-center justify-center text-center text-white overflow-hidden">
+        <section ref={ref} className="relative py-32 flex items-center justify-center text-center text-white overflow-hidden">
             {/* Parallax Background */}
-            <div className="absolute inset-0 z-0">
+            <motion.div
+                className="absolute inset-0 z-0 h-[120%]"
+                style={{ y, top: '-10%' }}
+            >
                 <img
                     src={backgroundUrl || 'https://images.unsplash.com/photo-1511285560982-1351cdeb9821?q=80&w=2602&auto=format&fit=crop'}
                     alt="Social Background"
                     className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/50"></div>
-            </div>
+            </motion.div>
 
             {/* SEPARADOR SUPERIOR (Conexión con sección anterior) */}
             <div className="absolute top-0 left-0 w-full overflow-hidden leading-[0] z-20">
@@ -33,10 +46,6 @@ export default function SocialRenderer({ title, subtitle, hashtag, backgroundUrl
                     preserveAspectRatio="none"
                 >
                     {/* Ola VALLE (Cóncava) rellena de blanco ARRIBA */}
-                    {/* M0,0 -> Empieza arriba izq */}
-                    {/* Q600,100 -> Baja al centro */}
-                    {/* 1200,0 -> Sube a arriba dcha */}
-                    {/* H0 -> Cierra arriba */}
                     <path
                         d="M0,0 Q600,100 1200,0 H0 Z"
                         fill={pageBgColor}
@@ -83,10 +92,6 @@ export default function SocialRenderer({ title, subtitle, hashtag, backgroundUrl
                     preserveAspectRatio="none"
                 >
                     {/* Ola MONTAÑA (Convexa) rellena de blanco ABAJO */}
-                    {/* M0,120 -> Empieza abajo izq */}
-                    {/* Q600,20 -> Sube al centro (sin tocar borde superior absoluto para suavidad) */}
-                    {/* 1200,120 -> Baja abajo dcha */}
-                    {/* H0 -> Cierra abajo */}
                     <path
                         d="M0,120 Q600,20 1200,120 H0 Z"
                         fill={pageBgColor}
