@@ -78,7 +78,7 @@ export default function PlaylistRenderer({
                 .select('*')
                 .eq('event_id', eventId)
                 .order('created_at', { ascending: false })
-                .limit(10); // Solo las últimas 10
+                .limit(50); // Muestra las últimas 50 sugerencias
 
             if (error) throw error;
             setSongs(data || []);
