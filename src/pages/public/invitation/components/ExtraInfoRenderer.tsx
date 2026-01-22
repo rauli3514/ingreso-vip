@@ -45,8 +45,8 @@ export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, the
                             <div className="mb-6 p-4 text-stone-700 group-hover:scale-110 transition-transform duration-300">
                                 <Music size={48} strokeWidth={1} />
                             </div>
-                            <h3 className="text-4xl md:text-5xl font-bold mb-6 font-serif transition-colors" style={{ color: mainColor }}>{musicBlock.title}</h3>
-                            <p className="text-stone-500 font-light mb-8 leading-relaxed flex-1">
+                            <h3 className="text-2xl md:text-3xl font-bold mb-4 font-serif transition-colors" style={{ color: mainColor }}>{musicBlock.title}</h3>
+                            <p className="text-sm md:text-base text-stone-500 font-light mb-6 leading-relaxed flex-1">
                                 ¿Cuál es la canción que no debe faltar en la PlayList de la fiesta?
                             </p>
                             <button
@@ -66,8 +66,8 @@ export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, the
                             <div className="mb-6 p-4 text-stone-700 group-hover:scale-110 transition-transform duration-300">
                                 <Shirt size={48} strokeWidth={1} />
                             </div>
-                            <h3 className="text-4xl md:text-5xl font-bold mb-6 font-serif transition-colors" style={{ color: mainColor }}>{dressBlock.title}</h3>
-                            <div className="text-stone-500 font-light leading-relaxed whitespace-pre-line flex-1">
+                            <h3 className="text-2xl md:text-3xl font-bold mb-4 font-serif transition-colors" style={{ color: mainColor }}>{dressBlock.title}</h3>
+                            <div className="text-sm md:text-base text-stone-500 font-light leading-relaxed whitespace-pre-line flex-1">
                                 {dressBlock.content || 'Una orientación para tu vestuario.'}
                             </div>
                             {/* No mostramos botón aquí ya que la info está visible */}
@@ -80,8 +80,8 @@ export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, the
                             <div className="mb-6 p-4 text-stone-700 group-hover:scale-110 transition-transform duration-300">
                                 <ClipboardList size={48} strokeWidth={1} />
                             </div>
-                            <h3 className="text-4xl md:text-5xl font-bold mb-6 font-serif transition-colors" style={{ color: mainColor }}>{tipsBlock.title}</h3>
-                            <div className="text-stone-500 font-light leading-relaxed whitespace-pre-line flex-1">
+                            <h3 className="text-2xl md:text-3xl font-bold mb-4 font-serif transition-colors" style={{ color: mainColor }}>{tipsBlock.title}</h3>
+                            <div className="text-sm md:text-base text-stone-500 font-light leading-relaxed whitespace-pre-line flex-1">
                                 {tipsBlock.content || 'Información adicional para tener en cuenta.'}
                             </div>
                             {/* No mostramos botón aquí ya que la info está visible */}

@@ -22,38 +22,59 @@ export default function FooterRenderer({ sectionData, eventId, invitationRowId, 
     };
 
     return (
-        <footer id="rsvp-section" className="bg-slate-50 py-20 border-t border-slate-200">
+        <footer id="rsvp-section" className="bg-slate-50 py-24 border-t border-slate-200">
             <div className="container mx-auto px-4 text-center">
 
                 {sectionData.show_branding && (
-                    <h2 className="text-4xl md:text-5xl text-slate-400 mb-12 font-serif opacity-50" style={{ fontFamily: '"Great Vibes", cursive' }}>
+                    <h2 className="text-4xl md:text-5xl text-slate-400 mb-16 font-serif opacity-50" style={{ fontFamily: '"Great Vibes", cursive' }}>
                         {names}
                     </h2>
                 )}
 
-                <div className="flex flex-col items-center gap-6 max-w-sm mx-auto text-slate-600 font-medium tracking-wide text-xs md:text-sm uppercase">
+                {/* Título de la sección */}
+                <h3 className="text-2xl md:text-3xl font-semibold text-slate-800 mb-12">
+                    Tu RSVP
+                </h3>
+
+                {/* Botones mejorados con cards */}
+                <div className="flex flex-col items-center gap-4 max-w-md mx-auto mb-16">
 
                     {links.confirm_ceremony && (
-                        <button onClick={() => handleConfirm('ceremony')} className="hover:text-indigo-600 transition-colors">Confirmar Asistencia a Ceremonia</button>
+                        <button
+                            onClick={() => handleConfirm('ceremony')}
+                            className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
+                        >
+                            ✨ Confirmar Asistencia a Ceremonia
+                        </button>
                     )}
 
                     {links.confirm_party && (
-                        <button onClick={() => handleConfirm('party')} className="hover:text-indigo-600 transition-colors">Confirmar Asistencia a Fiesta</button>
+                        <button
+                            onClick={() => handleConfirm('party')}
+                            className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
+                        >
+                            🎉 Confirmar Asistencia a Fiesta
+                        </button>
                     )}
 
                     {links.suggest_song && (
-                        <button onClick={() => handleConfirm('song')} className="hover:text-indigo-600 transition-colors">Sugerir Canción</button>
+                        <button
+                            onClick={() => handleConfirm('song')}
+                            className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
+                        >
+                            🎵 Sugerir Canción
+                        </button>
                     )}
 
                     {(links.calendar_ceremony || links.calendar_party) && (
-                        <div className="pt-4 flex gap-4 opacity-50">
-                            {links.calendar_ceremony && <span className="cursor-pointer hover:text-slate-900">Agendar Ceremonia</span>}
-                            {links.calendar_party && <span className="cursor-pointer hover:text-slate-900">Agendar Fiesta</span>}
+                        <div className="pt-4 flex flex-col md:flex-row gap-3 w-full">
+                            {links.calendar_ceremony && <span className="cursor-pointer hover:text-slate-900 text-sm text-slate-500">📅 Agendar Ceremonia</span>}
+                            {links.calendar_party && <span className="cursor-pointer hover:text-slate-900 text-sm text-slate-500">📅 Agendar Fiesta</span>}
                         </div>
                     )}
                 </div>
 
-                <div className="mt-20 text-[10px] text-slate-400">
+                <div className="mt-20 text-xs text-slate-400">
                     <p>Diseñado con ❤️ en EventPix</p>
                 </div>
             </div>
