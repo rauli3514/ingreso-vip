@@ -385,7 +385,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         <img
                             src={overlayUrl}
                             alt="Diseño Decorativo"
-                            className="w-full h-full object-fill"
+                            className="w-full h-full object-cover"
                             style={{ minHeight: '100%' }}
                         />
                     </div>
@@ -445,7 +445,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         <motion.div
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            className="relative w-full aspect-[4/5] mb-10 z-10"
+                            className="relative w-full max-w-md mx-auto aspect-[4/5] mb-10 z-10"
                         >
                             <div className="w-full h-full p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl ring-1 ring-white/10 relative">
                                 <div className="w-full h-full rounded-xl overflow-hidden relative">
