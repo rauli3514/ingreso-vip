@@ -14,6 +14,9 @@ import SocialRenderer from './components/SocialRenderer';
 import ExtraInfoRenderer from './components/ExtraInfoRenderer';
 import FooterRenderer from './components/FooterRenderer';
 import TriviaRenderer from './components/TriviaRenderer';
+import DressCodeRenderer from './components/DressCodeRenderer';
+import PlaylistRenderer from './components/PlaylistRenderer';
+import AttendeeCounter from './components/AttendeeCounter';
 
 // Interfaces para Props del Editor
 interface Props {
@@ -711,11 +714,34 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 )}
 
 
+                {/* 7.3 DRESS CODE VISUAL */}
+                <DressCodeRenderer 
+                    title="Dress Code"
+                    subtitle="Vestimenta sugerida para el evento"
+                    dressCode="Formal"
+                    recommendedColors={["#C5A572", "#F4E4D7", "#8B7355"]}
+                    avoidColors={["#FFFFFF", "#000000"]}
+                />
+
+                {/* 7.4 PLAYLIST COLABORATIVA */}
+                <PlaylistRenderer 
+                    eventId={id!}
+                    themeColor={themeColors.primary}
+                />
+
+
                 {/* 7.5 TRIVIA */}
                 <TriviaRenderer
                     eventId={id!}
                     themeColor={themeColors.primary}
                 />
+
+                {/* CONTADOR DE ASISTENTES (Floating Widget) */}
+                <AttendeeCounter 
+                    eventId={id!}
+                    themeColor={themeColors.primary}
+                />
+
 
                 {/* 8. FOOTER */}
                 {(invitation.footer_section as any)?.show !== false && (
