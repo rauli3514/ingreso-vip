@@ -379,8 +379,8 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 `}
                 </style>
 
-                {/* OVERLAY DECORATIVO (Siempre presente, encima de todo layout, pero transparente) */}
-                {overlayUrl && (
+                {/* OVERLAY DECORATIVO (Solo visible en contenido principal) */}
+                {overlayUrl && viewState === 'content' && (
                     <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none">
                         <img
                             src={overlayUrl}
