@@ -35,12 +35,14 @@ export default function PlaylistRenderer({
     });
     const [submitting, setSubmitting] = useState(false);
 
+    const [timestamp] = useState(new Date().getTime());
+
     // Extraer Spotify playlist ID del URL
     const getSpotifyEmbedUrl = () => {
         if (!spotifyPlaylistUrl) return null;
         const match = spotifyPlaylistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
         if (match) {
-            return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0&v=${new Date().getTime()}`;
+            return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0&v=${timestamp}`;
         }
         return null;
     };
