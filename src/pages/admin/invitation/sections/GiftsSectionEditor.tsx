@@ -47,6 +47,10 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
         updateSection({ gifts_links: currentLinks });
     };
 
+    const inputBaseClass = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400";
+    const bgWhiteClass = "bg-white " + inputBaseClass;
+    const bgGrayClass = "bg-slate-50 " + inputBaseClass;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -81,15 +85,15 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
-                            <input type="text" value={sectionData.title || ''} onChange={(e) => updateSection({ title: e.target.value })} placeholder="Regalos" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                            <input type="text" value={sectionData.title || ''} onChange={(e) => updateSection({ title: e.target.value })} placeholder="Regalos" className={bgGrayClass} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Subtítulo</label>
-                            <input type="text" value={sectionData.subtitle || ''} onChange={(e) => updateSection({ subtitle: e.target.value })} placeholder="Frase corta..." className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+                            <input type="text" value={sectionData.subtitle || ''} onChange={(e) => updateSection({ subtitle: e.target.value })} placeholder="Frase corta..." className={bgGrayClass} />
                         </div>
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Mensaje Adicional ("Contenido")</label>
-                            <textarea rows={2} value={sectionData.content || ''} onChange={(e) => updateSection({ content: e.target.value })} placeholder="Mensaje opcional que aparecerá arriba en el modal..." className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm resize-none" />
+                            <textarea rows={2} value={sectionData.content || ''} onChange={(e) => updateSection({ content: e.target.value })} placeholder="Mensaje opcional que aparecerá arriba en el modal..." className={bgGrayClass + " resize-none"} />
                         </div>
                     </div>
 
@@ -104,19 +108,19 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-1">Banco</label>
-                                <input type="text" value={sectionData.bank || ''} onChange={(e) => updateSection({ bank: e.target.value })} placeholder="Ej: Galicia" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                                <input type="text" value={sectionData.bank || ''} onChange={(e) => updateSection({ bank: e.target.value })} placeholder="Ej: Galicia" className={bgWhiteClass} />
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-1">Titular</label>
-                                <input type="text" value={sectionData.owner || ''} onChange={(e) => updateSection({ owner: e.target.value })} placeholder="Nombre Apellido" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                                <input type="text" value={sectionData.owner || ''} onChange={(e) => updateSection({ owner: e.target.value })} placeholder="Nombre Apellido" className={bgWhiteClass} />
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-1">CBU / CVU</label>
-                                <input type="text" value={sectionData.cbu || ''} onChange={(e) => updateSection({ cbu: e.target.value })} placeholder="000000..." className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono" />
+                                <input type="text" value={sectionData.cbu || ''} onChange={(e) => updateSection({ cbu: e.target.value })} placeholder="000000..." className={bgWhiteClass + " font-mono"} />
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-1">Alias</label>
-                                <input type="text" value={sectionData.alias || ''} onChange={(e) => updateSection({ alias: e.target.value })} placeholder="mi.alias.mp" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-blue-900" />
+                                <input type="text" value={sectionData.alias || ''} onChange={(e) => updateSection({ alias: e.target.value })} placeholder="mi.alias.mp" className={bgWhiteClass + " font-bold !text-blue-900"} />
                             </div>
                         </div>
                     </div>
@@ -129,7 +133,7 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
                         </div>
                         <div className="bg-cyan-50/50 p-4 rounded-xl border border-cyan-100">
                             <label className="block text-xs font-medium text-slate-500 mb-1">Link de Pago o Alias</label>
-                            <input type="text" value={sectionData.mercadopago_link || ''} onChange={(e) => updateSection({ mercadopago_link: e.target.value })} placeholder="https://mpago.la/..." className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                            <input type="text" value={sectionData.mercadopago_link || ''} onChange={(e) => updateSection({ mercadopago_link: e.target.value })} placeholder="https://mpago.la/..." className={bgWhiteClass} />
                             <p className="text-[10px] text-slate-500 mt-1">Pega aquí tu link de pago generado en MercadoPago.</p>
                         </div>
                     </div>
@@ -155,14 +159,14 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
                                             value={link.store}
                                             onChange={(e) => updateRegistryLink(index, 'store', e.target.value)}
                                             placeholder="Nombre Tienda (ej: Frávega)"
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
+                                            className={bgWhiteClass}
                                         />
                                         <input
                                             type="text"
                                             value={link.url}
                                             onChange={(e) => updateRegistryLink(index, 'url', e.target.value)}
                                             placeholder="https://..."
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
+                                            className={bgWhiteClass}
                                         />
                                     </div>
                                     <button onClick={() => removeRegistryLink(index)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
