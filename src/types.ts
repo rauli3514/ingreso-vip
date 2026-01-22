@@ -98,6 +98,25 @@ export interface InvitationData {
 
     // Tipografía
     font_family?: string;
+
+    // Configuración de componentes extra
+    components_config?: {
+        dress_code?: {
+            show_modal: boolean;
+            recommended_colors: string[];
+            avoid_colors: string[];
+        };
+        playlist?: {
+            show: boolean;
+            spotify_url: string;
+        };
+        attendee_counter?: {
+            show: boolean;
+        };
+        trivia?: {
+            show: boolean;
+        };
+    };
     custom_font_url?: string;
     font_size?: number;
     font_weight?: string;

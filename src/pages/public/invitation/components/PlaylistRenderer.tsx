@@ -135,28 +135,29 @@ export default function PlaylistRenderer({
                     <div className="grid md:grid-cols-2 gap-6">
                         {/* Columna Izquierda: Spotify Player + Sugerir */}
                         <div className="space-y-4">
-                            {/* Spotify Embed Player */}
+                            {/* Spotify Embed Player - COMPACT MODE */}
                             {embedUrl && (
-                                <div className="bg-white rounded-xl shadow-md overflow-hidden border border-green-200">
+                                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-green-200">
                                     <iframe
                                         src={embedUrl}
                                         width="100%"
-                                        height="352"
+                                        height="152"
                                         frameBorder="0"
                                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                         loading="lazy"
                                         className="w-full"
+                                        style={{ minHeight: '152px' }}
                                     ></iframe>
                                 </div>
                             )}
 
-                            {/* Botón Sugerir */}
+                            {/* Botón Sugerir Compacto */}
                             <button
                                 onClick={() => setShowForm(!showForm)}
-                                className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md transition-all"
+                                className="w-full bg-transparent border-2 border-green-600 text-green-700 px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 text-sm hover:bg-green-50 transition-all"
                             >
-                                <Plus size={20} />
-                                Sugerir Canción
+                                <Plus size={18} />
+                                {showForm ? 'Cerrar formulario' : 'Sugerir canción'}
                             </button>
 
                             {/* Form Compacto */}
@@ -226,7 +227,7 @@ export default function PlaylistRenderer({
                                     <p className="text-slate-400 text-xs">¡Sé el primero!</p>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-slate-100 max-h-[352px] overflow-y-auto">
+                                <div className="divide-y divide-slate-100 max-h-[250px] overflow-y-auto">
                                     {songs.map((song) => (
                                         <div
                                             key={song.id}

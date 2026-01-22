@@ -17,6 +17,7 @@ import GuestsManager from './components/GuestsManager';
 import AdvancedEditor from './components/AdvancedEditor';
 import TriviaEditor from './components/TriviaEditor';
 import TriviaResponses from './components/TriviaResponses';
+import ComponentsConfigEditor from './components/ComponentsConfigEditor';
 
 import DashboardLayout from '../../../layouts/DashboardLayout';
 
@@ -205,6 +206,16 @@ export default function InvitationEditor() {
                         </button>
 
                         <button
+                            onClick={() => setActiveTab('config')}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'config'
+                                ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`}
+                        >
+                            ⚙️ Extras & Config
+                        </button>
+
+                        <button
                             onClick={() => setActiveTab('trivia-preguntas')}
                             className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'trivia-preguntas'
                                 ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-100'
@@ -288,8 +299,16 @@ export default function InvitationEditor() {
                                 <TriviaResponses eventId={id} />
                             )}
 
+                            {/* CONFIGURACIÓN EXTRAS */}
+                            {activeTab === 'config' && (
+                                <ComponentsConfigEditor
+                                    invitation={invitation}
+                                    onChange={(field, value) => updateInvitation({ [field]: value })}
+                                />
+                            )}
+
                             {/* Default */}
-                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking'].includes(activeTab) && (
+                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config'].includes(activeTab) && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
                                     <p>Selecciona una sección para comenzar.</p>
                                 </div>
