@@ -46,11 +46,11 @@ export default function SocialRenderer({ title, subtitle, hashtag, backgroundUrl
 
 
             <div className="relative z-10 container mx-auto px-4 max-w-3xl">
-                <h2 className="text-3xl md:text-5xl font-serif mb-4 text-shadow-lg" style={{ fontFamily: '"Great Vibes", cursive' }}>{title}</h2>
+                <h2 className="text-2xl md:text-5xl font-serif mb-4 text-shadow-lg leading-snug" style={{ fontFamily: '"Great Vibes", cursive' }}>{title}</h2>
                 <p className="text-white/90 font-light mb-8 text-shadow-sm">{subtitle}</p>
 
                 <div className="mb-10">
-                    <span className="text-4xl md:text-5xl font-bold tracking-tight text-shadow-lg opacity-90">{hashtag}</span>
+                    <span className="text-2xl md:text-5xl font-bold tracking-tight text-shadow-lg opacity-90 break-all">{hashtag}</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
