@@ -70,8 +70,11 @@ export default function InvitationEditor() {
         setSaving(true);
         setErrorMsg(null); // Limpiar error previo
         try {
-            // Limpiamos el objeto
-            const { created_at, id: invId, ...updates } = invitation as any;
+            // Limpiamos el objeto de posibles claves numéricas erróneas y campos de sistema
+            const cleanInvitation = Object.fromEntries(
+                Object.entries(invitation as any).filter(([key]) => isNaN(Number(key)))
+            );
+            const { created_at, id: invId, ...updates } = cleanInvitation as any;
 
             const { error } = await supabase
                 .from('event_invitations')
