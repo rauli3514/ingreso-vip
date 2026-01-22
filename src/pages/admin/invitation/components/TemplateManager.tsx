@@ -68,8 +68,8 @@ export default function TemplateManager({ invitation, onChange }: Props) {
             });
 
             const link = document.createElement('a');
-            link.download = `referencia-invitacion-${invitation.hero_section?.title || 'boda'}.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.download = `referencia-invitacion-${invitation.hero_section?.title || 'boda'}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
             link.click();
         } catch (error) {
             console.error('Error generando captura:', error);
