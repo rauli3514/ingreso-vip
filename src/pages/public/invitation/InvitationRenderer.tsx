@@ -337,15 +337,15 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
             {/* Fondo Desktop Estático */}
             <div className="fixed inset-0 bg-slate-900 -z-50 hidden md:block" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop)', backgroundSize: 'cover', opacity: 0.1 }}></div>
 
-            {/* CONTENEDOR PRINCIPAL UNIFICADO (Mobile First) */}
+            {/* CONTENEDOR PRINCIPAL (Responsive: Mobile First -> Desktop Wide) */}
             <div
                 id="invitation-container"
-                className="min-h-screen font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-[480px] mx-auto shadow-2xl transition-colors duration-500"
+                className="min-h-screen font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-4xl mx-auto shadow-2xl transition-colors duration-500"
                 style={{
                     backgroundColor: viewState === 'content' ? 'white' : themeColors.bg,
-                    // Zoom override para editor
-                    zoom: isEditable ? 0.8 : 1,
-                    color: '#334155' // Slate 700 default
+                    // Zoom override para editor mobile únicamente
+                    zoom: isEditable && window.innerWidth < 768 ? 0.8 : 1,
+                    color: '#334155'
                 } as React.CSSProperties}
             >
                 {/* Estilos Dinámicos */}
@@ -379,9 +379,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 `}
                 </style>
 
-                {/* OVERLAY DECORATIVO (Solo visible en contenido principal) */}
+                {/* OVERLAY DECORATIVO (Solo visible en contenido principal y SOLO EN MOBILE) */}
                 {overlayUrl && viewState === 'content' && (
-                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none">
+                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none md:hidden">
                         <img
                             src={overlayUrl}
                             alt="Diseño Decorativo"
