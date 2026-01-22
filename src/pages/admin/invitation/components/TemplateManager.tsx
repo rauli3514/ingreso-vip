@@ -4,6 +4,9 @@ import { supabase } from '../../../../lib/supabase';
 import { Upload, Ruler, Image as ImageIcon, Loader2, Trash2, Smartphone, Check } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
+// Importamos el Renderer para poder renderizarlo oculto y medirlo
+import InvitationRenderer from '../../../public/invitation/InvitationRenderer';
+
 interface Props {
     invitation: InvitationData;
     onChange: (updates: Partial<InvitationData>) => void;
@@ -18,29 +21,25 @@ export default function TemplateManager({ invitation, onChange }: Props) {
 
     const analyzeDimensions = async () => {
         setAnalyzing(true);
-        // Esperamos un momento para que se renderice todo
-        await new Promise(r => setTimeout(r, 500));
+        // Esperamos un momento para que se renderice todo (imágenes, fuentes)
+        await new Promise(r => setTimeout(r, 1500));
 
-        const container = document.getElementById('invitation-container');
+        const container = document.querySelector('#invitation-analysis-root #invitation-container') as HTMLElement;
+
         if (container) {
-            // Medidas reales del contenedor mobile-first
-
-
-
-            // Si estamos en desktop, el container puede ser más ancho, forzamos el cálculo basado en el estilo
-            // Pero como InvitationRenderer ahora tiene max-w-[480px], usamos su scrollHeight real.
             setDimensions({
-                width: container.offsetWidth, // Usamos el real renderizado
+                width: container.offsetWidth,
                 height: container.scrollHeight
             });
         } else {
-            alert('No se encontró el contenedor de la invitación. Asegúrate de estar viendo la previsualización.');
+            console.error('Container not found within analysis root');
+            alert('No se pudo analizar la invitación. Intenta recargar la página.');
         }
         setAnalyzing(false);
     };
 
     const downloadReference = async () => {
-        const container = document.getElementById('invitation-container');
+        const container = document.querySelector('#invitation-analysis-root #invitation-container') as HTMLElement;
         if (!container) return;
 
         // Ocultar temporalmente el overlay existente para la captura limpia
@@ -48,12 +47,24 @@ export default function TemplateManager({ invitation, onChange }: Props) {
         if (existingOverlay) existingOverlay.style.display = 'none';
 
         try {
+            // Necesitamos esperar que carguen imágenes
+            await new Promise(r => setTimeout(r, 1000));
+
             const canvas = await html2canvas(container, {
                 useCORS: true,
                 scale: 2, // Retina quality
                 backgroundColor: '#ffffff',
                 height: container.scrollHeight,
-                windowWidth: container.scrollWidth
+                windowWidth: container.scrollWidth,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // Asegurar que el clon sea visible
+                    const clonedContainer = clonedDoc.querySelector('#invitation-analysis-root #invitation-container') as HTMLElement;
+                    if (clonedContainer) {
+                        clonedContainer.style.display = 'block';
+                        clonedContainer.style.visibility = 'visible';
+                    }
+                }
             });
 
             const link = document.createElement('a');
@@ -62,7 +73,7 @@ export default function TemplateManager({ invitation, onChange }: Props) {
             link.click();
         } catch (error) {
             console.error('Error generando captura:', error);
-            alert('Error generando la captura. Intenta hacerlo manualmente haciendo scroll y capture.');
+            alert('Error generando la captura. Verifica que las imágenes sean públicas.');
         } finally {
             if (existingOverlay) existingOverlay.style.display = 'block';
         }
@@ -79,7 +90,7 @@ export default function TemplateManager({ invitation, onChange }: Props) {
             const filePath = `designs/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('invitation_assets') // Usamos un bucket genérico, asumimos que existe o 'invitations'
+                .from('invitation_assets')
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
@@ -117,7 +128,18 @@ export default function TemplateManager({ invitation, onChange }: Props) {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 relative">
+
+            {/* --- CONTENEDOR DE ANÁLISIS OCULTO (fuera de viewport pero renderizado) --- */}
+            {/* Usamos fixed para que no afecte el flujo del layout del admin, y z-index negativo para ocultarlo visualmente */}
+            <div id="invitation-analysis-root" style={{ position: 'fixed', left: '-9999px', top: 0, width: '430px', maxWidth: '480px', visibility: 'visible', zIndex: -9999, overflow: 'hidden' }}>
+                <InvitationRenderer
+                    previewData={invitation}
+                    isEditable={false} // Modo no editable para limpieza
+                    forceViewContent={true} // Forzar vista de contenido completo
+                />
+            </div>
+
             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6">
                 <div className="flex items-start gap-4">
                     <div className="bg-white p-3 rounded-full shadow-sm text-indigo-600">
@@ -151,7 +173,7 @@ export default function TemplateManager({ invitation, onChange }: Props) {
                         className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors text-sm font-medium"
                     >
                         {analyzing ? <Loader2 className="animate-spin" size={16} /> : <Ruler size={16} />}
-                        Analizar Tamaño
+                        {analyzing ? 'Analizando...' : 'Analizar Tamaño'}
                     </button>
 
                     <button

@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { InvitationData } from '../../../types';
 import { Loader2, Heart, Pause, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
-
 
 import CountdownRenderer from './components/CountdownRenderer';
 import EventCardRenderer from './components/EventCardRenderer';
@@ -23,6 +22,7 @@ interface Props {
     isEditable?: boolean;
     onElementClick?: (id: string) => void;
     onElementUpdate?: (id: string, updates: any) => void;
+    forceViewContent?: boolean;
 }
 
 // Wrapper para elementos editables
@@ -98,21 +98,18 @@ function getYouTubeID(url: string) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-
-
-export default function InvitationRenderer({ previewData, isEditable = false, onElementClick, onElementUpdate }: Props) {
+export default function InvitationRenderer({ previewData, isEditable = false, onElementClick, onElementUpdate, forceViewContent = false }: Props) {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [musicReady, setMusicReady] = useState(false);
     const [youtubePlayer, setYoutubePlayer] = useState<any>(null);
-    // Inicializar state con previewData si existe, para edición instantánea
     const [invitation, setInvitation] = useState<InvitationData | null>(previewData || null);
-    // Si estamos editando, saltamos directo al contenido
-    const [viewState, setViewState] = useState<'envelope' | 'opening' | 'music_choice' | 'main_card' | 'content'>(isEditable ? 'content' : 'envelope');
+    const [viewState, setViewState] = useState<'envelope' | 'opening' | 'music_choice' | 'main_card' | 'content'>(
+        (isEditable || forceViewContent) ? 'content' : 'envelope'
+    );
     const [isPlaying, setIsPlaying] = useState(false);
 
-    // Datos del invitado obtenidos de la URL y BD
     const guestNameParam = searchParams.get('guest');
     const [guestData, setGuestData] = useState<{ name: string; passes: number; companions: string[] }>({
         name: guestNameParam || '',
@@ -120,19 +117,17 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         companions: []
     });
 
-    // Efecto para actualizar cuando previewData cambia (desde el editor)
     useEffect(() => {
         if (previewData) {
             setInvitation(previewData);
             setLoading(false);
-            if (isEditable) setViewState('content');
+            if (isEditable || forceViewContent) setViewState('content');
         }
-    }, [previewData, isEditable]);
+    }, [previewData, isEditable, forceViewContent]);
 
-    // Fetch Only if NOT Editing
     useEffect(() => {
         const fetchInvitation = async () => {
-            if (!id || previewData) return; // Skip fetch if previewData is provided
+            if (!id || previewData) return;
             try {
                 const { data, error } = await supabase
                     .from('event_invitations')
@@ -152,15 +147,14 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     }, [id, previewData]);
 
     useEffect(() => {
-        if (!loading && invitation && viewState === 'envelope' && !isEditable) {
+        if (!loading && invitation && viewState === 'envelope' && !isEditable && !forceViewContent) {
             const timer = setTimeout(() => {
                 setViewState('music_choice');
             }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [loading, invitation, viewState, isEditable]);
+    }, [loading, invitation, viewState, isEditable, forceViewContent]);
 
-    // Fetch Guest Data Logic
     useEffect(() => {
         const fetchGuestData = async () => {
             if (!guestNameParam || !id || isEditable) return;
@@ -191,12 +185,10 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         fetchGuestData();
     }, [guestNameParam, id, isEditable]);
 
-    // YouTube IFrame API Setup
     useEffect(() => {
         const musicUrl = (invitation?.hero_section as any)?.music?.url;
         if (!musicUrl || isEditable) return;
 
-        // Load YouTube IFrame API
         const tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
         const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -213,16 +205,12 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         };
     }, [invitation, isEditable]);
 
-    // Create YouTube Player when ready
     useEffect(() => {
         if (!musicReady || youtubePlayer || !invitation) return;
-
         const musicUrl = (invitation.hero_section as any)?.music?.url;
         if (!musicUrl) return;
-
         const videoId = getYouTubeID(musicUrl);
         if (!videoId) return;
-
         const startTime = (invitation.hero_section as any)?.music?.start || 0;
 
         // @ts-ignore
@@ -242,35 +230,23 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 playlist: videoId,
             },
             events: {
-                onReady: (event: any) => {
-                    console.log('YouTube player ready');
-                    setYoutubePlayer(event.target);
-                },
-                onStateChange: (event: any) => {
-                    console.log('YouTube player state:', event.data);
-                }
+                onReady: (event: any) => { setYoutubePlayer(event.target); },
+                onStateChange: (event: any) => { console.log('YouTube player state:', event.data); }
             }
         });
     }, [musicReady, youtubePlayer, invitation]);
 
     const handleEnter = (withMusic: boolean) => {
         setIsPlaying(withMusic);
-
-        // Iniciar reproducción si el usuario eligió música
         if (withMusic && youtubePlayer) {
             setTimeout(() => {
                 try {
                     youtubePlayer.unMute();
                     youtubePlayer.setVolume(100);
                     youtubePlayer.playVideo();
-                    console.log('Auto-playing music after user choice');
-                } catch (error) {
-                    console.error('Error auto-playing music:', error);
-                }
+                } catch (error) { console.error('Error auto-playing music:', error); }
             }, 500);
         }
-
-        // Si hay tarjeta principal, mostramos ese paso intermedio
         if ((invitation as any)?.main_card_url) {
             setViewState('main_card');
         } else {
@@ -278,27 +254,32 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         }
     };
 
+    const handleMusicToggle = () => {
+        if (!youtubePlayer) return;
+        const newPlayingState = !isPlaying;
+        setIsPlaying(newPlayingState);
+        try {
+            if (newPlayingState) {
+                youtubePlayer.unMute();
+                youtubePlayer.setVolume(100);
+                youtubePlayer.playVideo();
+            } else {
+                youtubePlayer.pauseVideo();
+            }
+        } catch (error) { console.error('Error controlling YouTube player:', error); }
+    };
+
     const addToCalendar = () => {
         if (!invitation?.ceremony_section?.start_time) return;
-
         const startDate = new Date(invitation.ceremony_section.start_time);
         const endDate = new Date(startDate.getTime() + (4 * 60 * 60 * 1000));
-
-        // Formato para Google Calendar: YYYYMMDDTHHMMSSZ
-        const formatGoogleDate = (date: Date) => {
-            return date.toISOString().replace(/-|:|\.\d+/g, '');
-        };
-
+        const formatGoogleDate = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
         const title = encodeURIComponent(`Boda de ${invitation.hero_section?.title || 'Invitación'}`);
         const details = encodeURIComponent(`${invitation.hero_section?.subtitle || '¡Nos casamos!'}\n\nInvitación: ${window.location.href}`);
         const location = encodeURIComponent(invitation.ceremony_section?.address || '');
         const startTime = formatGoogleDate(startDate);
         const endTime = formatGoogleDate(endDate);
-
-        // URL de Google Calendar (compatible con móviles y desktop)
         const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}&location=${location}`;
-
-        // Abrir en nueva ventana
         window.open(googleCalendarUrl, '_blank');
     };
 
@@ -317,199 +298,52 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     const themeColors = THEME_COLORS[currentTheme] || THEME_COLORS['rustic'];
     const advanced = (invitation.advanced_settings || {}) as NonNullable<InvitationData['advanced_settings']>;
     const canShowDecorations = advanced?.decorations && advanced.decorations.length > 0;
-
-    // --- VISTAS INTRO (Solo si NO es editable) ---
-
-    // --- GLOBAL MUSIC PLAYER Helper ---
-    const handleMusicToggle = () => {
-        if (!youtubePlayer) {
-            console.warn('YouTube player not ready yet');
-            return;
-        }
-
-        const newPlayingState = !isPlaying;
-        setIsPlaying(newPlayingState);
-
-        try {
-            if (newPlayingState) {
-                youtubePlayer.unMute();
-                youtubePlayer.setVolume(100);
-                youtubePlayer.playVideo();
-                console.log('Playing music');
-            } else {
-                youtubePlayer.pauseVideo();
-                console.log('Pausing music');
-            }
-        } catch (error) {
-            console.error('Error controlling YouTube player:', error);
-        }
-    };
-
-    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
-        <>
-            <div
-                id="youtube-player"
-                className="fixed bottom-0 left-0 z-0"
-                style={{ width: '1px', height: '1px', overflow: 'hidden', opacity: 0.01 }}
-            ></div>
-            {/* Botón flotante de control de música */}
-            {viewState === 'content' && !isEditable && (
-                <button
-                    onClick={handleMusicToggle}
-                    className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
-                    style={{ backgroundColor: themeColors.primary }}
-                    aria-label={isPlaying ? 'Pausar música' : 'Reproducir música'}
-                >
-                    {isPlaying ? (
-                        <Pause className="w-6 h-6 text-white" fill="white" />
-                    ) : (
-                        <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
-                    )}
-                </button>
-            )}
-        </>
-    ) : null;
-
-    if (viewState === 'envelope' && !isEditable) {
-        return (
-            <>
-                <div className="min-h-screen flex items-center justify-center overflow-hidden relative transition-colors duration-500" style={{ backgroundColor: themeColors.bg }}>
-                    <Heart fill={themeColors.primary} className="w-24 h-24 animate-pulse relative z-10" style={{ color: themeColors.primary }} />
-                </div>
-                {GlobalMusicPlayer}
-            </>
-        );
-    }
-
-    if (viewState === 'music_choice' && !isEditable) {
-        return (
-            <>
-                <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700 relative overflow-hidden" style={{ backgroundColor: themeColors.bg }}>
-                    <div className="relative z-10 max-w-3xl w-full space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                        {guestData.name && (
-                            <div className="mb-4 animate-in zoom-in duration-700">
-                                <span
-                                    className="inline-block px-8 py-3 rounded-full text-lg md:text-xl tracking-widest uppercase border-2 shadow-sm font-bold bg-white/50 backdrop-blur-sm"
-                                    style={{ borderColor: themeColors.primary, color: themeColors.primary }}
-                                >
-                                    ¡Hola, {guestData.name}!
-                                </span>
-                            </div>
-                        )}
-                        <div className="space-y-4">
-                            <h1 className="text-3xl md:text-5xl font-light leading-tight" style={{ color: themeColors.accent }}>
-                                Bienvenidos a la invitación de
-                            </h1>
-                            <h2 className="text-4xl md:text-6xl font-serif leading-tight py-4" style={{ color: themeColors.primary }}>
-                                {invitation.hero_section?.title || 'Los Novios'}
-                            </h2>
-                        </div>
-                        <p className="text-lg md:text-xl font-light tracking-wide" style={{ color: themeColors.accent, opacity: 0.8 }}>
-                            La música de fondo es parte de la experiencia
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-5 w-full max-w-2xl mx-auto pt-6">
-                            <button onClick={() => handleEnter(true)} className="flex-1 py-5 px-10 rounded-full font-bold uppercase tracking-widest text-base transition-all transform hover:scale-105 shadow-lg text-white border-2" style={{ backgroundColor: themeColors.primary, borderColor: themeColors.primary }}>
-                                INGRESAR CON MÚSICA
-                            </button>
-                            <button onClick={() => handleEnter(false)} className="flex-1 py-5 px-10 rounded-full font-bold uppercase tracking-widest text-base transition-all transform hover:scale-105 shadow-lg border-2" style={{ borderColor: themeColors.primary, color: themeColors.primary, backgroundColor: 'transparent' }}>
-                                INGRESAR SIN MÚSICA
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                {GlobalMusicPlayer}
-            </>
-        );
-    }
-
-    // --- VISTA TARJETA PRINCIPAL (NUEVO) ---
-    if (viewState === 'main_card' && !isEditable) {
-        const mainCardUrl = (invitation as any).main_card_url;
-        return (
-            <>
-                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden bg-slate-900">
-                    {/* Fondo Borroso */}
-                    {invitation.cover_image_url && (
-                        <div className="absolute inset-0 z-0">
-                            <img src={invitation.cover_image_url} className="w-full h-full object-cover blur-xl opacity-40 scale-110" />
-                            <div className="absolute inset-0 bg-black/40"></div>
-                        </div>
-                    )}
-
-                    {/* Contenido */}
-                    <div className="relative z-20 flex flex-col items-center w-full max-w-md animate-in fade-in zoom-in duration-1000">
-                        <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ duration: 0.8, type: "spring" }}
-                            className="relative w-full aspect-[4/5] md:aspect-[3/4] mb-10"
-                        >
-                            {/* Glass Frame Effect (Liquid Glass) */}
-                            <div className="w-full h-full p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] ring-1 ring-white/10 relative">
-                                {/* Inner Image Container */}
-                                <div className="w-full h-full rounded-xl overflow-hidden relative shadow-sm">
-                                    <img src={mainCardUrl} className="w-full h-full object-cover" />
-                                    {/* Overlay Gradient for Depth */}
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-black/10 pointer-events-none mix-blend-overlay"></div>
-                                </div>
-
-                                {/* Decorative Corner Shine */}
-                                <div className="absolute -top-10 -left-10 w-20 h-20 bg-white/20 blur-xl rounded-full pointer-events-none"></div>
-                                <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-white/10 blur-xl rounded-full pointer-events-none"></div>
-                            </div>
-                        </motion.div>
-
-                        <button
-                            onClick={() => setViewState('content')}
-                            className="group relative px-10 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/40 rounded-full text-white font-light tracking-[0.2em] uppercase transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_35px_rgba(255,255,255,0.3)] hover:scale-105 flex items-center gap-4 overflow-hidden"
-                        >
-                            <span className="relative z-10 text-sm font-medium text-shadow-sm">Ver más información</span>
-                            <div className="relative z-10 w-6 h-6 rounded-full border border-white/50 flex items-center justify-center group-hover:translate-y-1 transition-transform duration-300">
-                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-                            </div>
-                            {/* Button Shine Gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                        </button>
-                    </div>
-                </div>
-                {GlobalMusicPlayer}
-            </>
-        );
-    }
-
-    // --- VISTA CONTENIDO PRINCIPAL ---
-
     const fontFamily = invitation.font_family || 'Great Vibes';
     const customFontUrl = invitation.custom_font_url;
-
     const overlayUrl = (invitation as any).design?.overlay_url;
+
+    // Componente Player Global (Persistente)
+    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
+        <div
+            id="youtube-player"
+            className="fixed bottom-0 left-0 z-0 pointer-events-none opacity-0"
+            style={{ width: '1px', height: '1px' }}
+        ></div>
+    ) : null;
+
+    // Botón Flotante (Persistente en View Content)
+    const FloatingPlayButton = (viewState === 'content' && !isEditable && (invitation.hero_section as any)?.music?.url) ? (
+        <button
+            onClick={handleMusicToggle}
+            className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
+            style={{ backgroundColor: themeColors.primary }}
+            aria-label={isPlaying ? 'Pausar música' : 'Reproducir música'}
+        >
+            {isPlaying ? (
+                <Pause className="w-6 h-6 text-white" fill="white" />
+            ) : (
+                <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
+            )}
+        </button>
+    ) : null;
 
     return (
         <>
-            {/* Fondo general de la página (fuera de la invitación) */}
+            {/* Fondo Desktop Estático */}
             <div className="fixed inset-0 bg-slate-900 -z-50 hidden md:block" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop)', backgroundSize: 'cover', opacity: 0.1 }}></div>
 
+            {/* CONTENEDOR PRINCIPAL UNIFICADO (Mobile First) */}
             <div
                 id="invitation-container"
-                className="min-h-screen bg-stone-50 text-slate-800 font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-[480px] mx-auto shadow-2xl"
+                className="min-h-screen font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-[480px] mx-auto shadow-2xl transition-colors duration-500"
                 style={{
-                    // Zoom override for mobile editor view
-                    zoom: isEditable ? 0.8 : 1
+                    backgroundColor: viewState === 'content' ? 'white' : themeColors.bg,
+                    // Zoom override para editor
+                    zoom: isEditable ? 0.8 : 1,
+                    color: '#334155' // Slate 700 default
                 } as React.CSSProperties}
             >
-                {/* --- CAPA DE OVERLAY DECORATIVO (PNG) --- */}
-                {overlayUrl && (
-                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none">
-                        <img
-                            src={overlayUrl}
-                            alt="Diseño Decorativo"
-                            className="w-full h-full object-fill"
-                            style={{
-                                minHeight: '100%',
-                            }}
-                        />
-                    </div>
-                )}
+                {/* Estilos Dinámicos */}
                 <style>
                     {fontFamily === 'custom' && customFontUrl ? `
                     @font-face { font-family: 'CustomFont'; src: url("${customFontUrl}") format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
@@ -540,60 +374,127 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 `}
                 </style>
 
-                {/* --- WRAPPER DE CONTENIDO (ENCIMA DEL OVERLAY) --- */}
-                <div className="relative z-20">
+                {/* OVERLAY DECORATIVO (Siempre presente, encima de todo layout, pero transparente) */}
+                {overlayUrl && (
+                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none">
+                        <img
+                            src={overlayUrl}
+                            alt="Diseño Decorativo"
+                            className="w-full h-full object-fill"
+                            style={{ minHeight: '100%' }}
+                        />
+                    </div>
+                )}
 
-                    {/* HEADER HERO */}
-                    <header className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
-                        <div className="absolute inset-0">
-                            <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40"></div>
+                {/* --- RENDERIZADO CONDICIONAL DE VISTAS --- */}
+
+                {/* 1. VISTA SOBRE (INTRO) */}
+                {viewState === 'envelope' && !isEditable && !forceViewContent ? (
+                    <div className="h-full min-h-screen flex items-center justify-center relative z-20">
+                        <Heart fill={themeColors.primary} className="w-24 h-24 animate-pulse" style={{ color: themeColors.primary }} />
+                    </div>
+                ) : viewState === 'music_choice' && !isEditable && !forceViewContent ? (
+                    // 2. VISTA ELECCIÓN MÚSICA
+                    <div className="h-full min-h-screen flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700 relative z-20">
+                        <div className="relative z-10 max-w-sm w-full space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                            {guestData.name && (
+                                <div className="mb-4 animate-in zoom-in duration-700">
+                                    <span
+                                        className="inline-block px-8 py-3 rounded-full text-lg tracking-widest uppercase border-2 shadow-sm font-bold bg-white/50 backdrop-blur-sm"
+                                        style={{ borderColor: themeColors.primary, color: themeColors.primary }}
+                                    >
+                                        ¡Hola, {guestData.name}!
+                                    </span>
+                                </div>
+                            )}
+                            <div className="space-y-4">
+                                <h1 className="text-3xl font-light leading-tight" style={{ color: themeColors.accent }}>
+                                    Bienvenidos a la invitación de
+                                </h1>
+                                <h2 className="text-4xl font-serif leading-tight py-4" style={{ color: themeColors.primary }}>
+                                    {invitation.hero_section?.title || 'Los Novios'}
+                                </h2>
+                            </div>
+                            <p className="text-lg font-light tracking-wide" style={{ color: themeColors.accent, opacity: 0.8 }}>
+                                La música de fondo es parte de la experiencia
+                            </p>
+                            <div className="flex flex-col gap-4 w-full pt-6">
+                                <button onClick={() => handleEnter(true)} className="w-full py-4 rounded-full font-bold uppercase tracking-widest text-sm transition-all shadow-lg text-white border-2" style={{ backgroundColor: themeColors.primary, borderColor: themeColors.primary }}>
+                                    INGRESAR CON MÚSICA
+                                </button>
+                                <button onClick={() => handleEnter(false)} className="w-full py-4 rounded-full font-bold uppercase tracking-widest text-sm transition-all shadow-lg border-2" style={{ borderColor: themeColors.primary, color: themeColors.primary, backgroundColor: 'transparent' }}>
+                                    INGRESAR SIN MÚSICA
+                                </button>
+                            </div>
                         </div>
-                        <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
-                            {/* SUBTITULO EDITABLE */}
-                            <div className="mb-0">
-                                {isEditable ? (
-                                    <EditableWrapper id="subtitle" isSelected={false} onClick={() => onElementClick?.('subtitle')}>
-                                        <p className="text-lg md:text-2xl font-light tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
-                                            {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
-                                        </p>
-                                    </EditableWrapper>
-                                ) : (
-                                    <p className="text-lg md:text-2xl font-light mb-0 tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
-                                        {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
-                                    </p>
-                                )}
+                    </div>
+                ) : viewState === 'main_card' && !isEditable && !forceViewContent ? (
+                    // 3. VISTA MAIN CARD (OPCIONAL)
+                    <div className="h-full min-h-screen flex flex-col items-center justify-center p-4 relative bg-slate-900 z-20">
+                        {invitation.cover_image_url && (
+                            <div className="absolute inset-0 z-0">
+                                <img src={invitation.cover_image_url} className="w-full h-full object-cover blur-xl opacity-40 scale-110" />
+                                <div className="absolute inset-0 bg-black/40"></div>
                             </div>
-
-                            {/* TITULO EDITABLE */}
-                            <div className="w-full">
-                                {isEditable ? (
-                                    <EditableWrapper id="title" isSelected={false} onClick={() => onElementClick?.('title')}>
-                                        <h1 className="text-[15vw] md:text-[8vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
-                                            {invitation.hero_section?.title || 'Nombre & Nombre'}
-                                        </h1>
-                                    </EditableWrapper>
-                                ) : (
-                                    <h1 className="text-[15vw] md:text-[12vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
-                                        {invitation.hero_section?.title || 'Nombre & Nombre'}
-                                    </h1>
-                                )}
+                        )}
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="relative w-full aspect-[4/5] mb-10 z-10"
+                        >
+                            <div className="w-full h-full p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl ring-1 ring-white/10 relative">
+                                <div className="w-full h-full rounded-xl overflow-hidden relative">
+                                    <img src={(invitation as any).main_card_url} className="w-full h-full object-cover" />
+                                </div>
                             </div>
-
-                            {invitation.hero_section?.show_date && (
-                                <div className="mt-6">
-                                    {isEditable ? (
-                                        <EditableWrapper id="date" isSelected={false} onClick={() => onElementClick?.('date')}>
-                                            <button className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 cursor-pointer">
-                                                <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block">
-                                                    {(invitation.ceremony_section?.start_time)
-                                                        ? new Date(invitation.ceremony_section?.start_time).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
-                                                        : 'FECHA POR DEFINIR'}
-                                                </span>
-                                                <span className="text-[10px] md:text-xs tracking-widest uppercase mt-2 block opacity-80 font-medium text-shadow-soft">AGENDAR FECHA</span>
-                                            </button>
+                        </motion.div>
+                        <button
+                            onClick={() => setViewState('content')}
+                            className="relative z-10 px-10 py-4 bg-white/10 backdrop-blur-xl border border-white/40 rounded-full text-white font-light tracking-[0.2em] uppercase shadow-lg"
+                        >
+                            Ver más información
+                        </button>
+                    </div>
+                ) : (
+                    // 4. VISTA CONTENIDO PROPIAMENTE DICHO
+                    <div className="relative z-20 bg-stone-50 text-slate-800">
+                        {/* HEADER HERO */}
+                        <header className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
+                            <div className="absolute inset-0">
+                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40"></div>
+                            </div>
+                            <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
+                                {/* SUBTITULO */}
+                                <div className="mb-0">
+                                    {isEditable && !forceViewContent ? (
+                                        <EditableWrapper id="subtitle" isSelected={false} onClick={() => onElementClick?.('subtitle')}>
+                                            <p className="text-lg md:text-2xl font-light tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
+                                                {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
+                                            </p>
                                         </EditableWrapper>
                                     ) : (
+                                        <p className="text-lg md:text-2xl font-light mb-0 tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
+                                            {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
+                                        </p>
+                                    )}
+                                </div>
+                                {/* TITULO */}
+                                <div className="w-full">
+                                    {isEditable && !forceViewContent ? (
+                                        <EditableWrapper id="title" isSelected={false} onClick={() => onElementClick?.('title')}>
+                                            <h1 className="text-[15vw] md:text-[8vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
+                                                {invitation.hero_section?.title || 'Nombre & Nombre'}
+                                            </h1>
+                                        </EditableWrapper>
+                                    ) : (
+                                        <h1 className="text-[15vw] md:text-[12vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
+                                            {invitation.hero_section?.title || 'Nombre & Nombre'}
+                                        </h1>
+                                    )}
+                                </div>
+                                {invitation.hero_section?.show_date && (
+                                    <div className="mt-6">
                                         <button onClick={addToCalendar} className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer animate-pulse-soft">
                                             <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block group-hover:scale-105 transition-transform">
                                                 {(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date)
@@ -602,184 +503,151 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                             </span>
                                             <span className="text-[10px] md:text-xs tracking-widest uppercase mt-2 block opacity-80 font-medium text-shadow-soft">AGENDAR FECHA</span>
                                         </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <SectionDivider theme={invitation.theme_id || 'elegant'} />
-                    </header>
-
-                    {/* 2. CUENTA REGRESIVA */}
-                    {(invitation.countdown_section as any)?.show && (invitation.countdown_section as any)?.target_date && (
-                        <CountdownRenderer
-                            targetDate={(invitation.countdown_section as any).target_date}
-                            title={(invitation.countdown_section as any).title}
-                            subtitle={(invitation.countdown_section as any).subtitle}
-                            theme={invitation.theme_id}
-                        />
-                    )}
-
-                    {/* --- SECCIÓN DE PASES / INVITADOS (NUEVA) --- */}
-                    {guestData.name && (
-                        <section className="py-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ backgroundColor: themeColors.bg + '50' }}>
-                            <div className="container mx-auto px-4">
-                                <div className="flex flex-col items-center gap-6">
-                                    {/* Círculo con número de pases */}
-                                    <div
-                                        className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl mb-2 border-4"
-                                        style={{ backgroundColor: themeColors.primary, color: 'white', borderColor: themeColors.secondary }}
-                                    >
-                                        {guestData.passes}
                                     </div>
-
-                                    <h2 className="text-3xl font-sans font-light tracking-[0.2em] uppercase" style={{ color: themeColors.primary }}>
-                                        INVITADOS
-                                    </h2>
-
-                                    {guestData.passes > 1 && (
-                                        <p className="text-sm uppercase tracking-widest -mt-4 opacity-70" style={{ color: themeColors.accent }}>
-                                            ({guestData.passes - 1} acompañante{guestData.passes > 2 ? 's' : ''})
-                                        </p>
-                                    )}
-
-                                    <div className="flex flex-col gap-3 items-center w-full max-w-md mt-2">
-                                        <div className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg md:text-xl text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] font-medium capitalize">
-                                            {guestData.name}
-                                        </div>
-                                        {guestData.companions && guestData.companions.map((comp, idx) => (
-                                            <div key={idx} className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg md:text-xl text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] capitalize">
-                                                {comp}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <p className="text-sm italic opacity-60 mt-4 max-w-md mx-auto">
-                                        Será un día inolvidable y queremos vivirlo con vos.
-                                    </p>
-                                </div>
+                                )}
                             </div>
-                        </section>
-                    )}
+                            <SectionDivider theme={invitation.theme_id || 'elegant'} />
+                        </header>
 
-                    {/* 3. EVENTOS */}
-                    <div className="container mx-auto px-4 py-12 max-w-5xl">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {(invitation.ceremony_section as any)?.show && (
-                                <EventCardRenderer
-                                    title={(invitation.ceremony_section as any).title || 'Ceremonia'}
-                                    locationName={(invitation.ceremony_section as any).location_name}
-                                    address={(invitation.ceremony_section as any).address}
-                                    startTime={(invitation.ceremony_section as any).start_time}
-                                    mapUrl={(invitation.ceremony_section as any).map_url}
-                                    icon="church"
-                                    themeColor={themeColors.primary}
-                                />
-                            )}
-                            {(invitation.party_section as any)?.show && (
-                                <EventCardRenderer
-                                    title={(invitation.party_section as any).title || 'Fiesta'}
-                                    locationName={(invitation.party_section as any).location_name}
-                                    address={(invitation.party_section as any).address}
-                                    startTime={(invitation.party_section as any).start_time}
-                                    mapUrl={(invitation.party_section as any).map_url}
-                                    icon="party"
-                                    themeColor={themeColors.primary}
-                                />
-                            )}
+                        {/* 2. CUENTA REGRESIVA */}
+                        {(invitation.countdown_section as any)?.show && (invitation.countdown_section as any)?.target_date && (
+                            <CountdownRenderer
+                                targetDate={(invitation.countdown_section as any).target_date}
+                                title={(invitation.countdown_section as any).title}
+                                subtitle={(invitation.countdown_section as any).subtitle}
+                                theme={invitation.theme_id}
+                            />
+                        )}
+
+                        {/* --- SECCIÓN DE PASES --- */}
+                        {guestData.name && (
+                            <section className="py-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ backgroundColor: themeColors.bg + '50' }}>
+                                <div className="container mx-auto px-4">
+                                    <div className="flex flex-col items-center gap-6">
+                                        <div className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl mb-2 border-4" style={{ backgroundColor: themeColors.primary, color: 'white', borderColor: themeColors.secondary }}>
+                                            {guestData.passes}
+                                        </div>
+                                        <h2 className="text-3xl font-sans font-light tracking-[0.2em] uppercase" style={{ color: themeColors.primary }}>INVITADOS</h2>
+                                        {guestData.passes > 1 && (
+                                            <p className="text-sm uppercase tracking-widest -mt-4 opacity-70" style={{ color: themeColors.accent }}>
+                                                ({guestData.passes - 1} acompañante{guestData.passes > 2 ? 's' : ''})
+                                            </p>
+                                        )}
+                                        <div className="flex flex-col gap-3 items-center w-full max-w-md mt-2">
+                                            <div className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] font-medium capitalize">{guestData.name}</div>
+                                            {guestData.companions && guestData.companions.map((comp, idx) => (
+                                                <div key={idx} className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] capitalize">{comp}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 3. EVENTOS */}
+                        <div className="container mx-auto px-4 py-12 max-w-5xl">
+                            <div className="grid grid-cols-1 gap-8">
+                                {(invitation.ceremony_section as any)?.show && (
+                                    <EventCardRenderer
+                                        title={(invitation.ceremony_section as any).title || 'Ceremonia'}
+                                        locationName={(invitation.ceremony_section as any).location_name}
+                                        address={(invitation.ceremony_section as any).address}
+                                        startTime={(invitation.ceremony_section as any).start_time}
+                                        mapUrl={(invitation.ceremony_section as any).map_url}
+                                        icon="church"
+                                        themeColor={themeColors.primary}
+                                    />
+                                )}
+                                {(invitation.party_section as any)?.show && (
+                                    <EventCardRenderer
+                                        title={(invitation.party_section as any).title || 'Fiesta'}
+                                        locationName={(invitation.party_section as any).location_name}
+                                        address={(invitation.party_section as any).address}
+                                        startTime={(invitation.party_section as any).start_time}
+                                        mapUrl={(invitation.party_section as any).map_url}
+                                        icon="party"
+                                        themeColor={themeColors.primary}
+                                    />
+                                )}
+                            </div>
                         </div>
+
+                        {/* 4. GALERÍA */}
+                        {(invitation.gallery_section as any)?.show && (
+                            <GalleryRenderer
+                                title={(invitation.gallery_section as any).title}
+                                subtitle={(invitation.gallery_section as any).subtitle}
+                                images={(invitation.gallery_section as any).images}
+                            />
+                        )}
+
+                        {/* 5. REGALOS */}
+                        {(invitation.gifts_section as any)?.show && (
+                            <GiftsRenderer
+                                title={(invitation.gifts_section as any).title}
+                                subtitle={(invitation.gifts_section as any).subtitle}
+                                content={(invitation.gifts_section as any).content}
+                                bank={(invitation.gifts_section as any).bank}
+                                owner={(invitation.gifts_section as any).owner}
+                                cbu={(invitation.gifts_section as any).cbu}
+                                alias={(invitation.gifts_section as any).alias}
+                                mercadopagoLink={(invitation.gifts_section as any).mercadopago_link}
+                                registryLinks={(invitation.gifts_section as any).gifts_links}
+                            />
+                        )}
+
+                        {/* 6. INFO EXTRA */}
+                        {(invitation.extra_info_section as any)?.show && (
+                            <ExtraInfoRenderer
+                                title={(invitation.extra_info_section as any).title}
+                                subtitle={(invitation.extra_info_section as any).subtitle}
+                                blocks={(invitation.extra_info_section as any).blocks}
+                                componentsConfig={(invitation.components_config as any)}
+                                onSuggestSong={() => {
+                                    const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
+                                    if (footerBtn) footerBtn.click();
+                                }}
+                                themeColor={themeColors.primary}
+                            />
+                        )}
+
+                        {/* 7. REDES SOCIALES */}
+                        {(invitation.social_section as any)?.show && (
+                            <SocialRenderer
+                                title={(invitation.social_section as any).title}
+                                subtitle={(invitation.social_section as any).subtitle}
+                                hashtag={(invitation.social_section as any).hashtag}
+                                backgroundUrl={(invitation.social_section as any).background_url}
+                                buttons={(invitation.social_section as any).buttons}
+                            />
+                        )}
+
+                        {/* 7.4 PLAYLIST */}
+                        <PlaylistRenderer eventId={id!} themeColor={themeColors.primary} spotifyPlaylistUrl="https://open.spotify.com/playlist/1qsRobsjlQtZTw3NtEX5jW" />
+
+                        {/* 7.5 TRIVIA */}
+                        <TriviaRenderer eventId={id!} themeColor={themeColors.primary} />
+
+                        {/* CONTADOR ASISTENTES */}
+                        <AttendeeCounter eventId={id!} themeColor={themeColors.primary} />
+
+                        {/* 8. FOOTER */}
+                        {(invitation.footer_section as any)?.show !== false && (
+                            <FooterRenderer
+                                sectionData={invitation.footer_section || {}}
+                                eventId={id!}
+                                invitationRowId={invitation.id}
+                                names={invitation.hero_section?.title || ''}
+                            />
+                        )}
                     </div>
+                )}
 
-                    {/* 4. GALERÍA */}
-                    {(invitation.gallery_section as any)?.show && (
-                        <GalleryRenderer
-                            title={(invitation.gallery_section as any).title}
-                            subtitle={(invitation.gallery_section as any).subtitle}
-                            images={(invitation.gallery_section as any).images}
-                        />
-                    )}
+                {/* --- ELEMENTOS PERSISTENTES (Globales al Root) --- */}
 
-                    {/* 5. REGALOS */}
-                    {(invitation.gifts_section as any)?.show && (
-                        <GiftsRenderer
-                            title={(invitation.gifts_section as any).title}
-                            subtitle={(invitation.gifts_section as any).subtitle}
-                            content={(invitation.gifts_section as any).content}
-                            // Datos de Transferencia
-                            bank={(invitation.gifts_section as any).bank}
-                            owner={(invitation.gifts_section as any).owner}
-                            cbu={(invitation.gifts_section as any).cbu}
-                            alias={(invitation.gifts_section as any).alias}
-                            // MercadoPago
-                            mercadopagoLink={(invitation.gifts_section as any).mercadopago_link}
-                            // Lista de Regalos
-                            registryLinks={(invitation.gifts_section as any).gifts_links}
-                        />
-                    )}
-
-                    {/* 6. INFO EXTRA */}
-                    {(invitation.extra_info_section as any)?.show && (
-                        <ExtraInfoRenderer
-                            title={(invitation.extra_info_section as any).title}
-                            subtitle={(invitation.extra_info_section as any).subtitle}
-                            blocks={(invitation.extra_info_section as any).blocks}
-                            componentsConfig={(invitation.components_config as any)}
-                            onSuggestSong={() => {
-                                const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
-                                if (footerBtn) footerBtn.click();
-                            }}
-                            themeColor={themeColors.primary}
-                        />
-                    )}
-
-                    {/* 7. REDES SOCIALES */}
-                    {(invitation.social_section as any)?.show && (
-                        <SocialRenderer
-                            title={(invitation.social_section as any).title}
-                            subtitle={(invitation.social_section as any).subtitle}
-                            hashtag={(invitation.social_section as any).hashtag}
-                            backgroundUrl={(invitation.social_section as any).background_url}
-                            buttons={(invitation.social_section as any).buttons}
-                        />
-                    )}
-
-
-
-                    {/* 7.4 PLAYLIST COLABORATIVA */}
-                    <PlaylistRenderer
-                        eventId={id!}
-                        themeColor={themeColors.primary}
-                        spotifyPlaylistUrl="https://open.spotify.com/playlist/1qsRobsjlQtZTw3NtEX5jW"
-                    />
-
-
-                    {/* 7.5 TRIVIA */}
-                    <TriviaRenderer
-                        eventId={id!}
-                        themeColor={themeColors.primary}
-                    />
-
-                    {/* CONTADOR DE ASISTENTES (Floating Widget) */}
-                    <AttendeeCounter
-                        eventId={id!}
-                        themeColor={themeColors.primary}
-                    />
-
-
-                    {/* 8. FOOTER */}
-                    {(invitation.footer_section as any)?.show !== false && (
-                        <FooterRenderer
-                            sectionData={invitation.footer_section || {}}
-                            eventId={id!}
-                            invitationRowId={invitation.id}
-                            names={invitation.hero_section?.title || ''}
-                        />
-                    )}
-                </div>
-
-                {/* --- CAPA DE DECORACIONES (Drag & Drop) - Z-INDEX ALTO --- */}
+                {/* Drag and Drop Decorations (Legacy) */}
                 {canShowDecorations && (
                     <div className="absolute inset-0 z-30 overflow-visible pointer-events-none">
-                        {/* El contenedor cubre todo, pero deja pasar clicks. Los hijos capturan clicks si son editables. */}
                         <div className="relative w-full h-full">
                             {advanced.decorations!.map((deco: any, i: number) => (
                                 <motion.div
@@ -794,49 +662,25 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                             onElementUpdate(deco.id || `deco-${i}`, { offset_x: newX, offset_y: newY });
                                         }
                                     }}
-                                    onClick={(e) => {
-                                        if (isEditable) {
-                                            e.stopPropagation();
-                                            onElementClick?.(deco.id || `deco-${i}`);
-                                        }
-                                    }}
-                                    animate={{
-                                        x: deco.offset_x || 0,
-                                        y: deco.offset_y || 0,
-                                        scale: deco.scale || 1,
-                                        rotate: deco.rotation || 0
-                                    }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                     style={{
                                         position: 'absolute',
-                                        // Usamos coordenadas base centradas para mayor predictibilidad al arrastrar
-                                        left: deco.position === 'top-left' || deco.position === 'bottom-left' ? '10%' : deco.position === 'center' ? '50%' : 'auto',
-                                        right: deco.position === 'top-right' || deco.position === 'bottom-right' ? '10%' : 'auto',
-                                        top: deco.position === 'top-left' || deco.position === 'top-right' ? '10%' : deco.position === 'center' ? '40%' : 'auto',
-                                        bottom: deco.position === 'bottom-left' || deco.position === 'bottom-right' ? '10%' : 'auto',
+                                        left: deco.position === 'center' ? '50%' : '10%',
+                                        top: deco.position === 'center' ? '40%' : '10%',
                                         marginLeft: deco.position === 'center' ? '-150px' : 0,
-                                        marginTop: deco.position === 'center' ? '-150px' : 0,
-                                        width: '300px', // Base más ancha
-                                        zIndex: deco.z_index || 30, // Default alto
-                                        filter: deco.filters || 'none',
-                                        opacity: deco.opacity ?? 1,
-                                        cursor: isEditable ? 'grab' : 'default',
-                                        pointerEvents: isEditable ? 'auto' : 'none',
+                                        width: '300px',
+                                        zIndex: deco.z_index || 30
                                     }}
-                                    className={`${isEditable ? 'active:cursor-grabbing hover:ring-2 hover:ring-indigo-400/50 rounded-lg outline-none' : ''}`}
                                 >
-                                    <img
-                                        src={deco.url}
-                                        alt="decoration"
-                                        className="w-full h-full object-contain pointer-events-none select-none"
-                                    />
+                                    <img src={deco.url} className="w-full h-auto" style={{ filter: deco.filters }} />
                                 </motion.div>
                             ))}
                         </div>
                     </div>
                 )}
+
+                {GlobalMusicPlayer}
+                {FloatingPlayButton}
             </div>
-            {GlobalMusicPlayer}
         </>
     );
 }
