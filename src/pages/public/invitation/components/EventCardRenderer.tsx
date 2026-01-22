@@ -70,7 +70,7 @@ export default function EventCardRenderer({ title, description, locationName, ad
                         clipPath: 'polygon(0% 0%, 100% 0%, 95% 50%, 100% 100%, 0% 100%, 5% 50%)'
                     }}
                 >
-                    <h3 className="text-base md:text-lg font-serif pt-1 leading-tight text-center" style={{ fontFamily: '"Great Vibes", cursive' }}>
+                    <h3 className="text-base md:text-lg font-serif pt-1 leading-relaxed text-center" style={{ fontFamily: '"Great Vibes", cursive' }}>
                         {title}
                     </h3>
                 </div>
