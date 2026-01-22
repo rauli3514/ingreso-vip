@@ -1,4 +1,5 @@
 import { Music, Shirt, ClipboardList } from 'lucide-react';
+import DressCodeModal from './DressCodeModal';
 
 interface Props {
     title?: string;
@@ -67,10 +68,14 @@ export default function ExtraInfoRenderer({ subtitle, blocks, onSuggestSong, the
                                 <Shirt size={48} strokeWidth={1} />
                             </div>
                             <h3 className="text-2xl md:text-3xl font-bold mb-4 font-serif transition-colors" style={{ color: mainColor }}>{dressBlock.title}</h3>
-                            <div className="text-sm md:text-base text-stone-500 font-light leading-relaxed whitespace-pre-line flex-1">
-                                {dressBlock.content || 'Una orientación para tu vestuario.'}
-                            </div>
-                            {/* No mostramos botón aquí ya que la info está visible */}
+                            <p className="text-sm md:text-base text-stone-500 font-light mb-6 leading-relaxed flex-1">
+                                Una orientación para tu vestuario.
+                            </p>
+                            <DressCodeModal
+                                dressCode={dressBlock.content || "Formal"}
+                                recommendedColors={['#C5A572', '#F4E4D7', '#8B7355']}
+                                avoidColors={['#FFFFFF', '#000000']}
+                            />
                         </div>
                     )}
 

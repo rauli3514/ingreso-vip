@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
-import { Users, TrendingUp, Sparkles } from 'lucide-react';
+import { Users, Sparkles } from 'lucide-react';
 
 interface Props {
     eventId: string;
@@ -15,7 +15,6 @@ export default function AttendeeCounter({ eventId, themeColor = '#4F46E5' }: Pro
     useEffect(() => {
         fetchCount();
 
-        // Suscripción en tiempo real
         const channel = supabase
             .channel('attendee-count')
             .on(
@@ -60,57 +59,36 @@ export default function AttendeeCounter({ eventId, themeColor = '#4F46E5' }: Pro
         setTimeout(() => setAnimation(false), 600);
     };
 
-    if (loading) {
-        return null;
+    if (loading || count === 0) {
+        return null; // No mostrar si está cargando o no hay confirmados
     }
 
     return (
-        <div className="fixed bottom-8 right-8 z-50">
+        <div className="fixed bottom-4 right-4 z-40">
             <div
-                className={`bg-white rounded-2xl shadow-2xl border-2 p-6 min-w-[200px] transition-all duration-500 ${animation ? 'scale-110 shadow-[0_0_30px_rgba(79,70,229,0.4)]' : 'scale-100'
+                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-lg border px-3 py-2 transition-all duration-500 hover:scale-105 cursor-default ${animation ? 'scale-105' : 'scale-100'
                     }`}
-                style={{ borderColor: themeColor }}
+                style={{ borderColor: `${themeColor}40` }}
             >
-                {/* Sparkle Effect */}
-                {animation && (
-                    <div className="absolute -top-2 -right-2">
-                        <Sparkles className="text-yellow-500 animate-spin" size={24} />
-                    </div>
-                )}
+                <div className="flex items-center gap-2">
+                    <Users size={14} style={{ color: themeColor }} className="opacity-70" />
 
-                {/* Icon Header */}
-                <div className="flex items-center justify-center gap-2 mb-3">
-                    <Users size={24} style={{ color: themeColor }} />
-                    {count > 0 && (
-                        <TrendingUp size={16} className="text-green-500" />
-                    )}
-                </div>
-
-                {/* Count */}
-                <div className="text-center">
                     <div
-                        className={`text-5xl font-bold mb-1 transition-all duration-300 ${animation ? 'scale-125' : 'scale-100'
+                        className={`text-base font-bold transition-all duration-300 ${animation ? 'scale-110' : 'scale-100'
                             }`}
                         style={{ color: themeColor }}
                     >
                         {count}
                     </div>
-                    <p className="text-sm text-slate-600 font-medium">
-                        {count === 1 ? 'persona confirmó' : 'personas confirmaron'}
-                    </p>
-                </div>
 
-                {/* Motivational Message */}
-                {count > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
-                        <p className="text-xs text-center text-slate-500">
-                            {count >= 50 && '¡Increíble! 🎉'}
-                            {count >= 20 && count < 50 && '¡Qué emoción! 💫'}
-                            {count >= 10 && count < 20 && '¡Sumando! ⭐'}
-                            {count < 10 && '¡Sé el próximo! 💝'}
-                        </p>
-                    </div>
-                )}
+                    <p className="text-xs text-slate-600 font-medium">
+                        confirmaron
+                    </p>
+
+                    {animation && (
+                        <Sparkles size={12} className="text-yellow-500" />
+                    )}
+                </div>
             </div>
         </div>
     );
