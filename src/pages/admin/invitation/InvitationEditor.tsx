@@ -18,6 +18,7 @@ import AdvancedEditor from './components/AdvancedEditor';
 import TriviaEditor from './components/TriviaEditor';
 import TriviaResponses from './components/TriviaResponses';
 import ComponentsConfigEditor from './components/ComponentsConfigEditor';
+import TemplateManager from './components/TemplateManager';
 
 import DashboardLayout from '../../../layouts/DashboardLayout';
 
@@ -219,6 +220,16 @@ export default function InvitationEditor() {
                         </button>
 
                         <button
+                            onClick={() => setActiveTab('mobile-design')}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'mobile-design'
+                                ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`}
+                        >
+                            📱 Diseño Overlay
+                        </button>
+
+                        <button
                             onClick={() => setActiveTab('trivia-preguntas')}
                             className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'trivia-preguntas'
                                 ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-100'
@@ -292,6 +303,14 @@ export default function InvitationEditor() {
                                 <GuestsManager eventId={id} />
                             )}
 
+                            {/* DISEÑO MOBILE OVERLAY */}
+                            {activeTab === 'mobile-design' && (
+                                <TemplateManager
+                                    invitation={invitation as InvitationData}
+                                    onChange={updateInvitation}
+                                />
+                            )}
+
                             {/* TRIVIA - PREGUNTAS */}
                             {activeTab === 'trivia-preguntas' && id && (
                                 <TriviaEditor eventId={id} />
@@ -311,7 +330,7 @@ export default function InvitationEditor() {
                             )}
 
                             {/* Default */}
-                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config'].includes(activeTab) && (
+                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config', 'mobile-design'].includes(activeTab) && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
                                     <p>Selecciona una sección para comenzar.</p>
                                 </div>

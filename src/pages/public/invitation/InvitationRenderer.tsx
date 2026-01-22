@@ -482,15 +482,34 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     const fontFamily = invitation.font_family || 'Great Vibes';
     const customFontUrl = invitation.custom_font_url;
 
+    const overlayUrl = (invitation as any).design?.overlay_url;
+
     return (
         <>
+            {/* Fondo general de la página (fuera de la invitación) */}
+            <div className="fixed inset-0 bg-slate-900 -z-50 hidden md:block" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop)', backgroundSize: 'cover', opacity: 0.1 }}></div>
+
             <div
-                className="min-h-screen bg-stone-50 text-slate-800 font-sans overflow-x-hidden selection:bg-indigo-100 relative bg-white"
+                id="invitation-container"
+                className="min-h-screen bg-stone-50 text-slate-800 font-sans overflow-hidden selection:bg-indigo-100 relative bg-white w-full md:max-w-[480px] mx-auto shadow-2xl"
                 style={{
                     // Zoom override for mobile editor view
                     zoom: isEditable ? 0.8 : 1
                 } as React.CSSProperties}
             >
+                {/* --- CAPA DE OVERLAY DECORATIVO (PNG) --- */}
+                {overlayUrl && (
+                    <div className="absolute inset-0 w-full h-full z-10 pointer-events-none select-none">
+                        <img
+                            src={overlayUrl}
+                            alt="Diseño Decorativo"
+                            className="w-full h-full object-fill"
+                            style={{
+                                minHeight: '100%',
+                            }}
+                        />
+                    </div>
+                )}
                 <style>
                     {fontFamily === 'custom' && customFontUrl ? `
                     @font-face { font-family: 'CustomFont'; src: url("${customFontUrl}") format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
@@ -521,239 +540,241 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 `}
                 </style>
 
+                {/* --- WRAPPER DE CONTENIDO (ENCIMA DEL OVERLAY) --- */}
+                <div className="relative z-20">
 
-
-                {/* HEADER HERO */}
-                <header className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
-                    <div className="absolute inset-0">
-                        <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40"></div>
-                    </div>
-                    <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
-                        {/* SUBTITULO EDITABLE */}
-                        <div className="mb-0">
-                            {isEditable ? (
-                                <EditableWrapper id="subtitle" isSelected={false} onClick={() => onElementClick?.('subtitle')}>
-                                    <p className="text-lg md:text-2xl font-light tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
+                    {/* HEADER HERO */}
+                    <header className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
+                        <div className="absolute inset-0">
+                            <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40"></div>
+                        </div>
+                        <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
+                            {/* SUBTITULO EDITABLE */}
+                            <div className="mb-0">
+                                {isEditable ? (
+                                    <EditableWrapper id="subtitle" isSelected={false} onClick={() => onElementClick?.('subtitle')}>
+                                        <p className="text-lg md:text-2xl font-light tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
+                                            {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
+                                        </p>
+                                    </EditableWrapper>
+                                ) : (
+                                    <p className="text-lg md:text-2xl font-light mb-0 tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
                                         {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
                                     </p>
-                                </EditableWrapper>
-                            ) : (
-                                <p className="text-lg md:text-2xl font-light mb-0 tracking-[0.4em] uppercase text-shadow-soft font-sans opacity-90">
-                                    {invitation.hero_section?.subtitle || '¡NOS CASAMOS!'}
-                                </p>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {/* TITULO EDITABLE */}
-                        <div className="w-full">
-                            {isEditable ? (
-                                <EditableWrapper id="title" isSelected={false} onClick={() => onElementClick?.('title')}>
-                                    <h1 className="text-[15vw] md:text-[8vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
+                            {/* TITULO EDITABLE */}
+                            <div className="w-full">
+                                {isEditable ? (
+                                    <EditableWrapper id="title" isSelected={false} onClick={() => onElementClick?.('title')}>
+                                        <h1 className="text-[15vw] md:text-[8vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
+                                            {invitation.hero_section?.title || 'Nombre & Nombre'}
+                                        </h1>
+                                    </EditableWrapper>
+                                ) : (
+                                    <h1 className="text-[15vw] md:text-[12vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
                                         {invitation.hero_section?.title || 'Nombre & Nombre'}
                                     </h1>
-                                </EditableWrapper>
-                            ) : (
-                                <h1 className="text-[15vw] md:text-[12vw] font-serif leading-[0.9] text-shadow-soft py-2 w-full break-words">
-                                    {invitation.hero_section?.title || 'Nombre & Nombre'}
-                                </h1>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {invitation.hero_section?.show_date && (
-                            <div className="mt-6">
-                                {isEditable ? (
-                                    <EditableWrapper id="date" isSelected={false} onClick={() => onElementClick?.('date')}>
-                                        <button className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 cursor-pointer">
-                                            <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block">
-                                                {(invitation.ceremony_section?.start_time)
-                                                    ? new Date(invitation.ceremony_section?.start_time).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
+                            {invitation.hero_section?.show_date && (
+                                <div className="mt-6">
+                                    {isEditable ? (
+                                        <EditableWrapper id="date" isSelected={false} onClick={() => onElementClick?.('date')}>
+                                            <button className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 cursor-pointer">
+                                                <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block">
+                                                    {(invitation.ceremony_section?.start_time)
+                                                        ? new Date(invitation.ceremony_section?.start_time).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
+                                                        : 'FECHA POR DEFINIR'}
+                                                </span>
+                                                <span className="text-[10px] md:text-xs tracking-widest uppercase mt-2 block opacity-80 font-medium text-shadow-soft">AGENDAR FECHA</span>
+                                            </button>
+                                        </EditableWrapper>
+                                    ) : (
+                                        <button onClick={addToCalendar} className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer animate-pulse-soft">
+                                            <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block group-hover:scale-105 transition-transform">
+                                                {(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date)
+                                                    ? new Date(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
                                                     : 'FECHA POR DEFINIR'}
                                             </span>
                                             <span className="text-[10px] md:text-xs tracking-widest uppercase mt-2 block opacity-80 font-medium text-shadow-soft">AGENDAR FECHA</span>
                                         </button>
-                                    </EditableWrapper>
-                                ) : (
-                                    <button onClick={addToCalendar} className="group inline-block border-t border-b border-white/60 py-3 px-8 backdrop-blur-sm shadow-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer animate-pulse-soft">
-                                        <span className="text-xl md:text-3xl tracking-[0.2em] uppercase font-light text-shadow-soft block group-hover:scale-105 transition-transform">
-                                            {(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date)
-                                                ? new Date(invitation.ceremony_section?.start_time || (invitation.countdown_section as any)?.target_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
-                                                : 'FECHA POR DEFINIR'}
-                                        </span>
-                                        <span className="text-[10px] md:text-xs tracking-widest uppercase mt-2 block opacity-80 font-medium text-shadow-soft">AGENDAR FECHA</span>
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <SectionDivider theme={invitation.theme_id || 'elegant'} />
-                </header>
-
-                {/* 2. CUENTA REGRESIVA */}
-                {(invitation.countdown_section as any)?.show && (invitation.countdown_section as any)?.target_date && (
-                    <CountdownRenderer
-                        targetDate={(invitation.countdown_section as any).target_date}
-                        title={(invitation.countdown_section as any).title}
-                        subtitle={(invitation.countdown_section as any).subtitle}
-                        theme={invitation.theme_id}
-                    />
-                )}
-
-                {/* --- SECCIÓN DE PASES / INVITADOS (NUEVA) --- */}
-                {guestData.name && (
-                    <section className="py-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ backgroundColor: themeColors.bg + '50' }}>
-                        <div className="container mx-auto px-4">
-                            <div className="flex flex-col items-center gap-6">
-                                {/* Círculo con número de pases */}
-                                <div
-                                    className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl mb-2 border-4"
-                                    style={{ backgroundColor: themeColors.primary, color: 'white', borderColor: themeColors.secondary }}
-                                >
-                                    {guestData.passes}
+                                    )}
                                 </div>
-
-                                <h2 className="text-3xl font-sans font-light tracking-[0.2em] uppercase" style={{ color: themeColors.primary }}>
-                                    INVITADOS
-                                </h2>
-
-                                {guestData.passes > 1 && (
-                                    <p className="text-sm uppercase tracking-widest -mt-4 opacity-70" style={{ color: themeColors.accent }}>
-                                        ({guestData.passes - 1} acompañante{guestData.passes > 2 ? 's' : ''})
-                                    </p>
-                                )}
-
-                                <div className="flex flex-col gap-3 items-center w-full max-w-md mt-2">
-                                    <div className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg md:text-xl text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] font-medium capitalize">
-                                        {guestData.name}
-                                    </div>
-                                    {guestData.companions && guestData.companions.map((comp, idx) => (
-                                        <div key={idx} className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg md:text-xl text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] capitalize">
-                                            {comp}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <p className="text-sm italic opacity-60 mt-4 max-w-md mx-auto">
-                                    Será un día inolvidable y queremos vivirlo con vos.
-                                </p>
-                            </div>
+                            )}
                         </div>
-                    </section>
-                )}
+                        <SectionDivider theme={invitation.theme_id || 'elegant'} />
+                    </header>
 
-                {/* 3. EVENTOS */}
-                <div className="container mx-auto px-4 py-12 max-w-5xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {(invitation.ceremony_section as any)?.show && (
-                            <EventCardRenderer
-                                title={(invitation.ceremony_section as any).title || 'Ceremonia'}
-                                locationName={(invitation.ceremony_section as any).location_name}
-                                address={(invitation.ceremony_section as any).address}
-                                startTime={(invitation.ceremony_section as any).start_time}
-                                mapUrl={(invitation.ceremony_section as any).map_url}
-                                icon="church"
-                                themeColor={themeColors.primary}
-                            />
-                        )}
-                        {(invitation.party_section as any)?.show && (
-                            <EventCardRenderer
-                                title={(invitation.party_section as any).title || 'Fiesta'}
-                                locationName={(invitation.party_section as any).location_name}
-                                address={(invitation.party_section as any).address}
-                                startTime={(invitation.party_section as any).start_time}
-                                mapUrl={(invitation.party_section as any).map_url}
-                                icon="party"
-                                themeColor={themeColors.primary}
-                            />
-                        )}
+                    {/* 2. CUENTA REGRESIVA */}
+                    {(invitation.countdown_section as any)?.show && (invitation.countdown_section as any)?.target_date && (
+                        <CountdownRenderer
+                            targetDate={(invitation.countdown_section as any).target_date}
+                            title={(invitation.countdown_section as any).title}
+                            subtitle={(invitation.countdown_section as any).subtitle}
+                            theme={invitation.theme_id}
+                        />
+                    )}
+
+                    {/* --- SECCIÓN DE PASES / INVITADOS (NUEVA) --- */}
+                    {guestData.name && (
+                        <section className="py-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ backgroundColor: themeColors.bg + '50' }}>
+                            <div className="container mx-auto px-4">
+                                <div className="flex flex-col items-center gap-6">
+                                    {/* Círculo con número de pases */}
+                                    <div
+                                        className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl mb-2 border-4"
+                                        style={{ backgroundColor: themeColors.primary, color: 'white', borderColor: themeColors.secondary }}
+                                    >
+                                        {guestData.passes}
+                                    </div>
+
+                                    <h2 className="text-3xl font-sans font-light tracking-[0.2em] uppercase" style={{ color: themeColors.primary }}>
+                                        INVITADOS
+                                    </h2>
+
+                                    {guestData.passes > 1 && (
+                                        <p className="text-sm uppercase tracking-widest -mt-4 opacity-70" style={{ color: themeColors.accent }}>
+                                            ({guestData.passes - 1} acompañante{guestData.passes > 2 ? 's' : ''})
+                                        </p>
+                                    )}
+
+                                    <div className="flex flex-col gap-3 items-center w-full max-w-md mt-2">
+                                        <div className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg md:text-xl text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] font-medium capitalize">
+                                            {guestData.name}
+                                        </div>
+                                        {guestData.companions && guestData.companions.map((comp, idx) => (
+                                            <div key={idx} className="bg-stone-100/90 px-8 py-3 rounded-lg text-lg md:text-xl text-slate-700 shadow-sm backdrop-blur-sm min-w-[220px] capitalize">
+                                                {comp}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <p className="text-sm italic opacity-60 mt-4 max-w-md mx-auto">
+                                        Será un día inolvidable y queremos vivirlo con vos.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* 3. EVENTOS */}
+                    <div className="container mx-auto px-4 py-12 max-w-5xl">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {(invitation.ceremony_section as any)?.show && (
+                                <EventCardRenderer
+                                    title={(invitation.ceremony_section as any).title || 'Ceremonia'}
+                                    locationName={(invitation.ceremony_section as any).location_name}
+                                    address={(invitation.ceremony_section as any).address}
+                                    startTime={(invitation.ceremony_section as any).start_time}
+                                    mapUrl={(invitation.ceremony_section as any).map_url}
+                                    icon="church"
+                                    themeColor={themeColors.primary}
+                                />
+                            )}
+                            {(invitation.party_section as any)?.show && (
+                                <EventCardRenderer
+                                    title={(invitation.party_section as any).title || 'Fiesta'}
+                                    locationName={(invitation.party_section as any).location_name}
+                                    address={(invitation.party_section as any).address}
+                                    startTime={(invitation.party_section as any).start_time}
+                                    mapUrl={(invitation.party_section as any).map_url}
+                                    icon="party"
+                                    themeColor={themeColors.primary}
+                                />
+                            )}
+                        </div>
                     </div>
-                </div>
 
-                {/* 4. GALERÍA */}
-                {(invitation.gallery_section as any)?.show && (
-                    <GalleryRenderer
-                        title={(invitation.gallery_section as any).title}
-                        subtitle={(invitation.gallery_section as any).subtitle}
-                        images={(invitation.gallery_section as any).images}
+                    {/* 4. GALERÍA */}
+                    {(invitation.gallery_section as any)?.show && (
+                        <GalleryRenderer
+                            title={(invitation.gallery_section as any).title}
+                            subtitle={(invitation.gallery_section as any).subtitle}
+                            images={(invitation.gallery_section as any).images}
+                        />
+                    )}
+
+                    {/* 5. REGALOS */}
+                    {(invitation.gifts_section as any)?.show && (
+                        <GiftsRenderer
+                            title={(invitation.gifts_section as any).title}
+                            subtitle={(invitation.gifts_section as any).subtitle}
+                            content={(invitation.gifts_section as any).content}
+                            // Datos de Transferencia
+                            bank={(invitation.gifts_section as any).bank}
+                            owner={(invitation.gifts_section as any).owner}
+                            cbu={(invitation.gifts_section as any).cbu}
+                            alias={(invitation.gifts_section as any).alias}
+                            // MercadoPago
+                            mercadopagoLink={(invitation.gifts_section as any).mercadopago_link}
+                            // Lista de Regalos
+                            registryLinks={(invitation.gifts_section as any).gifts_links}
+                        />
+                    )}
+
+                    {/* 6. INFO EXTRA */}
+                    {(invitation.extra_info_section as any)?.show && (
+                        <ExtraInfoRenderer
+                            title={(invitation.extra_info_section as any).title}
+                            subtitle={(invitation.extra_info_section as any).subtitle}
+                            blocks={(invitation.extra_info_section as any).blocks}
+                            componentsConfig={(invitation.components_config as any)}
+                            onSuggestSong={() => {
+                                const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
+                                if (footerBtn) footerBtn.click();
+                            }}
+                            themeColor={themeColors.primary}
+                        />
+                    )}
+
+                    {/* 7. REDES SOCIALES */}
+                    {(invitation.social_section as any)?.show && (
+                        <SocialRenderer
+                            title={(invitation.social_section as any).title}
+                            subtitle={(invitation.social_section as any).subtitle}
+                            hashtag={(invitation.social_section as any).hashtag}
+                            backgroundUrl={(invitation.social_section as any).background_url}
+                            buttons={(invitation.social_section as any).buttons}
+                        />
+                    )}
+
+
+
+                    {/* 7.4 PLAYLIST COLABORATIVA */}
+                    <PlaylistRenderer
+                        eventId={id!}
+                        themeColor={themeColors.primary}
+                        spotifyPlaylistUrl="https://open.spotify.com/playlist/1qsRobsjlQtZTw3NtEX5jW"
                     />
-                )}
 
-                {/* 5. REGALOS */}
-                {(invitation.gifts_section as any)?.show && (
-                    <GiftsRenderer
-                        title={(invitation.gifts_section as any).title}
-                        subtitle={(invitation.gifts_section as any).subtitle}
-                        content={(invitation.gifts_section as any).content}
-                        // Datos de Transferencia
-                        bank={(invitation.gifts_section as any).bank}
-                        owner={(invitation.gifts_section as any).owner}
-                        cbu={(invitation.gifts_section as any).cbu}
-                        alias={(invitation.gifts_section as any).alias}
-                        // MercadoPago
-                        mercadopagoLink={(invitation.gifts_section as any).mercadopago_link}
-                        // Lista de Regalos
-                        registryLinks={(invitation.gifts_section as any).gifts_links}
-                    />
-                )}
 
-                {/* 6. INFO EXTRA */}
-                {(invitation.extra_info_section as any)?.show && (
-                    <ExtraInfoRenderer
-                        title={(invitation.extra_info_section as any).title}
-                        subtitle={(invitation.extra_info_section as any).subtitle}
-                        blocks={(invitation.extra_info_section as any).blocks}
-                        componentsConfig={(invitation.components_config as any)}
-                        onSuggestSong={() => {
-                            const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
-                            if (footerBtn) footerBtn.click();
-                        }}
+                    {/* 7.5 TRIVIA */}
+                    <TriviaRenderer
+                        eventId={id!}
                         themeColor={themeColors.primary}
                     />
-                )}
 
-                {/* 7. REDES SOCIALES */}
-                {(invitation.social_section as any)?.show && (
-                    <SocialRenderer
-                        title={(invitation.social_section as any).title}
-                        subtitle={(invitation.social_section as any).subtitle}
-                        hashtag={(invitation.social_section as any).hashtag}
-                        backgroundUrl={(invitation.social_section as any).background_url}
-                        buttons={(invitation.social_section as any).buttons}
-                    />
-                )}
-
-
-
-                {/* 7.4 PLAYLIST COLABORATIVA */}
-                <PlaylistRenderer
-                    eventId={id!}
-                    themeColor={themeColors.primary}
-                    spotifyPlaylistUrl="https://open.spotify.com/playlist/1qsRobsjlQtZTw3NtEX5jW"
-                />
-
-
-                {/* 7.5 TRIVIA */}
-                <TriviaRenderer
-                    eventId={id!}
-                    themeColor={themeColors.primary}
-                />
-
-                {/* CONTADOR DE ASISTENTES (Floating Widget) */}
-                <AttendeeCounter
-                    eventId={id!}
-                    themeColor={themeColors.primary}
-                />
-
-
-                {/* 8. FOOTER */}
-                {(invitation.footer_section as any)?.show !== false && (
-                    <FooterRenderer
-                        sectionData={invitation.footer_section || {}}
+                    {/* CONTADOR DE ASISTENTES (Floating Widget) */}
+                    <AttendeeCounter
                         eventId={id!}
-                        invitationRowId={invitation.id}
-                        names={invitation.hero_section?.title || ''}
+                        themeColor={themeColors.primary}
                     />
-                )}
+
+
+                    {/* 8. FOOTER */}
+                    {(invitation.footer_section as any)?.show !== false && (
+                        <FooterRenderer
+                            sectionData={invitation.footer_section || {}}
+                            eventId={id!}
+                            invitationRowId={invitation.id}
+                            names={invitation.hero_section?.title || ''}
+                        />
+                    )}
+                </div>
 
                 {/* --- CAPA DE DECORACIONES (Drag & Drop) - Z-INDEX ALTO --- */}
                 {canShowDecorations && (
