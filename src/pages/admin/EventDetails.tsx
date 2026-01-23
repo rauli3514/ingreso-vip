@@ -73,7 +73,7 @@ export default function EventDetails() {
         }
     };
 
-    const handleImportComplete = (newGuests?: Guest[]) => {
+    const handleImportComplete = () => {
         fetchGuests();
         fetchEventDetails();
     };
@@ -126,7 +126,7 @@ export default function EventDetails() {
     const handleAssignTable = async (guestId: string, newTableName: string | null) => {
         // Optimistic update
         const originalGuests = [...guests];
-        setGuests(prev => prev.map(g => g.id === guestId ? { ...g, table_info: newTableName } : g));
+        setGuests(prev => prev.map(g => g.id === guestId ? { ...g, table_info: newTableName || undefined } : g));
 
         try {
             const { error } = await supabase
