@@ -191,7 +191,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     }, [guestNameParam, id, isEditable]);
 
     useEffect(() => {
-        const musicUrl = (invitation?.hero_section as any)?.music?.url;
+        const musicUrl = invitation?.hero_section?.music?.url;
         if (!musicUrl || isEditable) return;
 
         const tag = document.createElement('script');
@@ -212,11 +212,11 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
     useEffect(() => {
         if (!musicReady || youtubePlayer || !invitation) return;
-        const musicUrl = (invitation.hero_section as any)?.music?.url;
+        const musicUrl = invitation.hero_section?.music?.url;
         if (!musicUrl) return;
         const videoId = getYouTubeID(musicUrl);
         if (!videoId) return;
-        const startTime = (invitation.hero_section as any)?.music?.start || 0;
+        const startTime = invitation.hero_section?.music?.start || 0;
 
         // @ts-ignore
         const player = new window.YT.Player('youtube-player', {
@@ -252,7 +252,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                 } catch (error) { console.error('Error auto-playing music:', error); }
             }, 500);
         }
-        if ((invitation as any)?.main_card_url) {
+        if (invitation?.main_card_url) {
             setViewState('main_card');
         } else {
             setViewState('content');
@@ -305,10 +305,10 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     const canShowDecorations = advanced?.decorations && advanced.decorations.length > 0;
     const fontFamily = invitation.font_family || 'Great Vibes';
     const customFontUrl = invitation.custom_font_url;
-    const overlayUrl = (invitation as any).design?.overlay_url;
+    const overlayUrl = invitation.design?.overlay_url;
 
     // Componente Player Global (Persistente)
-    const GlobalMusicPlayer = (invitation.hero_section as any)?.music?.url ? (
+    const GlobalMusicPlayer = invitation.hero_section?.music?.url ? (
         <div
             id="youtube-player"
             className="fixed bottom-0 left-0 z-0 pointer-events-none opacity-0"
@@ -317,7 +317,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     ) : null;
 
     // Botón Flotante (Persistente en View Content)
-    const FloatingPlayButton = (viewState === 'content' && !isEditable && (invitation.hero_section as any)?.music?.url) ? (
+    const FloatingPlayButton = (viewState === 'content' && !isEditable && invitation.hero_section?.music?.url) ? (
         <button
             onClick={handleMusicToggle}
             className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
@@ -449,7 +449,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         >
                             <div className="w-full h-full p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl ring-1 ring-white/10 relative">
                                 <div className="w-full h-full rounded-xl overflow-hidden relative">
-                                    <img src={(invitation as any).main_card_url} className="w-full h-full object-cover" />
+                                    <img src={invitation.main_card_url} className="w-full h-full object-cover" />
                                 </div>
                             </div>
                         </motion.div>
@@ -518,11 +518,11 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         </header>
 
                         {/* 2. CUENTA REGRESIVA */}
-                        {(invitation.countdown_section as any)?.show && (invitation.countdown_section as any)?.target_date && (
+                        {invitation.countdown_section?.show && invitation.countdown_section?.target_date && (
                             <CountdownRenderer
-                                targetDate={(invitation.countdown_section as any).target_date}
-                                title={(invitation.countdown_section as any).title}
-                                subtitle={(invitation.countdown_section as any).subtitle}
+                                targetDate={invitation.countdown_section.target_date}
+                                title={invitation.countdown_section.title}
+                                subtitle={invitation.countdown_section.subtitle}
                                 theme={invitation.theme_id}
                             />
                         )}
@@ -555,24 +555,24 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         {/* 3. EVENTOS */}
                         <div className="container mx-auto px-4 py-12 max-w-5xl">
                             <div className="grid grid-cols-1 gap-8">
-                                {(invitation.ceremony_section as any)?.show && (
+                                {invitation.ceremony_section?.show && (
                                     <EventCardRenderer
-                                        title={(invitation.ceremony_section as any).title || 'Ceremonia'}
-                                        locationName={(invitation.ceremony_section as any).location_name}
-                                        address={(invitation.ceremony_section as any).address}
-                                        startTime={(invitation.ceremony_section as any).start_time}
-                                        mapUrl={(invitation.ceremony_section as any).map_url}
+                                        title={invitation.ceremony_section.title || 'Ceremonia'}
+                                        locationName={invitation.ceremony_section.location_name || ''}
+                                        address={invitation.ceremony_section.address}
+                                        startTime={invitation.ceremony_section.start_time}
+                                        mapUrl={invitation.ceremony_section.map_url || ''}
                                         icon="church"
                                         themeColor={themeColors.primary}
                                     />
                                 )}
-                                {(invitation.party_section as any)?.show && (
+                                {invitation.party_section?.show && (
                                     <EventCardRenderer
-                                        title={(invitation.party_section as any).title || 'Fiesta'}
-                                        locationName={(invitation.party_section as any).location_name}
-                                        address={(invitation.party_section as any).address}
-                                        startTime={(invitation.party_section as any).start_time}
-                                        mapUrl={(invitation.party_section as any).map_url}
+                                        title={invitation.party_section.title || 'Fiesta'}
+                                        locationName={invitation.party_section.location_name || ''}
+                                        address={invitation.party_section.address}
+                                        startTime={invitation.party_section.start_time}
+                                        mapUrl={invitation.party_section.map_url || ''}
                                         icon="party"
                                         themeColor={themeColors.primary}
                                     />
@@ -581,36 +581,36 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         </div>
 
                         {/* 4. GALERÍA */}
-                        {(invitation.gallery_section as any)?.show && (
+                        {invitation.gallery_section?.show && (
                             <GalleryRenderer
-                                title={(invitation.gallery_section as any).title}
-                                subtitle={(invitation.gallery_section as any).subtitle}
-                                images={(invitation.gallery_section as any).images}
+                                title={invitation.gallery_section.title}
+                                subtitle={invitation.gallery_section.subtitle}
+                                images={invitation.gallery_section.images}
                             />
                         )}
 
                         {/* 5. REGALOS */}
-                        {(invitation.gifts_section as any)?.show && (
+                        {invitation.gifts_section?.show && (
                             <GiftsRenderer
-                                title={(invitation.gifts_section as any).title}
-                                subtitle={(invitation.gifts_section as any).subtitle}
-                                content={(invitation.gifts_section as any).content}
-                                bank={(invitation.gifts_section as any).bank}
-                                owner={(invitation.gifts_section as any).owner}
-                                cbu={(invitation.gifts_section as any).cbu}
-                                alias={(invitation.gifts_section as any).alias}
-                                mercadopagoLink={(invitation.gifts_section as any).mercadopago_link}
-                                registryLinks={(invitation.gifts_section as any).gifts_links}
+                                title={invitation.gifts_section.title}
+                                subtitle={invitation.gifts_section.subtitle}
+                                content={invitation.gifts_section.content}
+                                bank={invitation.gifts_section.bank}
+                                owner={invitation.gifts_section.owner}
+                                cbu={invitation.gifts_section.cbu}
+                                alias={invitation.gifts_section.alias}
+                                mercadopagoLink={invitation.gifts_section.mercadopago_link}
+                                registryLinks={invitation.gifts_section.gifts_links}
                             />
                         )}
 
                         {/* 6. INFO EXTRA */}
-                        {(invitation.extra_info_section as any)?.show && (
+                        {invitation.extra_info_section?.show && (
                             <ExtraInfoRenderer
-                                title={(invitation.extra_info_section as any).title}
-                                subtitle={(invitation.extra_info_section as any).subtitle}
-                                blocks={(invitation.extra_info_section as any).blocks}
-                                componentsConfig={(invitation.components_config as any)}
+                                title={invitation.extra_info_section.title}
+                                subtitle={invitation.extra_info_section.subtitle}
+                                blocks={invitation.extra_info_section.blocks}
+                                componentsConfig={invitation.components_config}
                                 onSuggestSong={() => {
                                     const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
                                     if (footerBtn) footerBtn.click();
@@ -620,13 +620,13 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         )}
 
                         {/* 7. REDES SOCIALES */}
-                        {(invitation.social_section as any)?.show && (
+                        {invitation.social_section?.show && (
                             <SocialRenderer
-                                title={(invitation.social_section as any).title}
-                                subtitle={(invitation.social_section as any).subtitle}
-                                hashtag={(invitation.social_section as any).hashtag}
-                                backgroundUrl={(invitation.social_section as any).background_url}
-                                buttons={(invitation.social_section as any).buttons}
+                                title={invitation.social_section.title}
+                                subtitle={invitation.social_section.subtitle}
+                                hashtag={invitation.social_section.hashtag}
+                                backgroundUrl={invitation.social_section.background_url}
+                                buttons={invitation.social_section.buttons}
                             />
                         )}
 
@@ -640,7 +640,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         <AttendeeCounter eventId={id!} themeColor={themeColors.primary} />
 
                         {/* 8. FOOTER */}
-                        {(invitation.footer_section as any)?.show !== false && (
+                        {invitation.footer_section?.show !== false && (
                             <FooterRenderer
                                 sectionData={invitation.footer_section || {}}
                                 eventId={id!}

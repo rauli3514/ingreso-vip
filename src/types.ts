@@ -82,6 +82,10 @@ export interface InvitationData {
         subtitle: string;
         blocks: any;
     };
+    main_card_url?: string; // URL de la "Main Card" opcional
+    design?: {
+        overlay_url?: string | null;
+    };
     social_section?: {
         show: boolean;
         title: string;
