@@ -105,13 +105,16 @@ export default function EventSectionEditor({ sectionKey, title, invitation, onCh
                                     let updates: any = { map_url: val };
 
                                     // Try to extract coordinates from URL
-                                    // Patterns: 
-                                    // @-34.6037,-58.3816
-                                    // q=-34.6037,-58.3816
-                                    // !3d-34.6037!4d-58.3816
-                                    const latLngMatch = val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                                        val.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                                        val.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                                    // Priorities:
+                                    // 1. Specific Pin Location (!3d...!4d) - Most accurate
+                                    // 2. Query Coordinates (q=...)
+                                    // 3. Viewport Center (@...) - Least accurate (can be blocks away)
+
+                                    const pinMatch = val.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                                    const queryMatch = val.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                    const viewportMatch = val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+                                    const latLngMatch = pinMatch || queryMatch || viewportMatch;
 
                                     if (latLngMatch) {
                                         updates.lat = latLngMatch[1];
