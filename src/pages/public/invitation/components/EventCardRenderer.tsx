@@ -11,8 +11,8 @@ interface Props {
     mapUrl?: string;
     icon?: 'church' | 'party';
     themeColor: string; // Recibimos el color primario del tema
-    lat?: number;
-    lng?: number;
+    lat?: number | string;
+    lng?: number | string;
 }
 
 export default function EventCardRenderer({ title, description, locationName, address, startTime, mapUrl, icon, themeColor, lat, lng }: Props) {

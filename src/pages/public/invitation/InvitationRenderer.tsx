@@ -591,9 +591,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                         mapUrl={invitation.ceremony_section.map_url || ''}
                                         icon="church"
                                         themeColor={themeColors.primary}
-                                        // New Props
-                                        lat={eventData?.venue_lat}
-                                        lng={eventData?.venue_lng}
+                                        // Priority: Section specific -> Event venue default
+                                        lat={invitation.ceremony_section.lat || eventData?.venue_lat}
+                                        lng={invitation.ceremony_section.lng || eventData?.venue_lng}
                                     />
                                 )}
                                 {invitation.party_section?.show && (
@@ -605,9 +605,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                         mapUrl={invitation.party_section.map_url || ''}
                                         icon="party"
                                         themeColor={themeColors.primary}
-                                        // New Props
-                                        lat={eventData?.venue_lat}
-                                        lng={eventData?.venue_lng}
+                                        // Priority: Section specific -> Event venue default
+                                        lat={invitation.party_section.lat || eventData?.venue_lat}
+                                        lng={invitation.party_section.lng || eventData?.venue_lng}
                                     />
                                 )}
                             </div>
