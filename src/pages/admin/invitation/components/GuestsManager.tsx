@@ -194,6 +194,14 @@ export default function GuestsManager({ eventId }: Props) {
         window.open(whatsappUrl, '_blank');
     };
 
+    // Filter state
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredGuests = guests.filter(g =>
+        g.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        g.last_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
 
@@ -305,21 +313,31 @@ export default function GuestsManager({ eventId }: Props) {
 
             {/* LISTA DE INVITADOS */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
                     <h4 className="font-bold text-slate-700">Lista de Invitados ({guests.length})</h4>
-                    <span className="text-xs text-slate-500 font-mono hidden md:inline-block truncate max-w-[200px]">{baseUrl}</span>
+
+                    {/* Buscador */}
+                    <input
+                        type="text"
+                        placeholder="Buscar invitado..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-64"
+                    />
                 </div>
 
                 {loading ? (
                     <div className="p-8 text-center text-slate-500">Cargando invitados...</div>
-                ) : guests.length === 0 ? (
+                ) : filteredGuests.length === 0 ? (
                     <div className="p-12 text-center">
                         <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-400">No tienes invitados registrados.</p>
+                        <p className="text-slate-400">
+                            {searchTerm ? 'No se encontraron coincidencias.' : 'No tienes invitados registrados.'}
+                        </p>
                     </div>
                 ) : (
                     <div className="divide-y divide-slate-100">
-                        {guests.map((guest) => (
+                        {filteredGuests.map((guest) => (
                             <div key={guest.id} className={`p-4 transition-colors ${editingGuestId === guest.id ? 'bg-indigo-50/50 border-l-4 border-indigo-500' : 'hover:bg-slate-50'}`}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
