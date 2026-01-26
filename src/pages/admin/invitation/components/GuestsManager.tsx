@@ -21,6 +21,8 @@ export default function GuestsManager({ eventId }: Props) {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
 
+    const [showForm, setShowForm] = useState(false);
+
     // Form inputs
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -85,6 +87,7 @@ export default function GuestsManager({ eventId }: Props) {
         setPasses(1);
         setCompanions([]);
         setEditingGuestId(null);
+        setShowForm(false);
     };
 
     const handleSaveGuest = async () => {
@@ -159,10 +162,13 @@ export default function GuestsManager({ eventId }: Props) {
         setLastName(guest.last_name || '');
         setPasses(guest.passes);
         setCompanions(guest.companions || []);
+        setShowForm(true);
 
         // Scroll al formulario
-        const formElement = document.getElementById('guest-form');
-        if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => {
+            const formElement = document.getElementById('guest-form');
+            if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     };
 
     const handleRemoveGuest = async (id: string) => {
@@ -210,12 +216,22 @@ export default function GuestsManager({ eventId }: Props) {
                 .update({ invitation_sent: !currentStatus })
                 .eq('id', guestId);
 
-            if (error) throw error;
-        } catch (err) {
+            if (error) {
+                // Check if error is related to missing column (optional robust check)
+                console.error("Supabase Error Update:", error);
+                throw error;
+            }
+        } catch (err: any) {
             console.error('Error updating invitation sent status:', err);
             // Revert
             setGuests(guests.map(g => g.id === guestId ? { ...g, invitation_sent: currentStatus } : g));
-            alert('Error al actualizar estado de envío');
+
+            // Show more helpful error if possible
+            if (err.message?.includes("column") || err.code === "42703") {
+                alert('Error: La base de datos necesita actualización (columna faltante). Por favor contacta soporte.');
+            } else {
+                alert('Error al actualizar estado de envío. Verifica tu conexión.');
+            }
         }
     };
 
@@ -234,110 +250,125 @@ export default function GuestsManager({ eventId }: Props) {
         <div className="space-y-6 animate-in fade-in duration-500">
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100">
-                <h3 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-                    <UserPlus className="text-indigo-600" />
-                    Gestión de Invitados
-                </h3>
-                <p className="text-slate-600 text-sm">
-                    Agrega o edita tus invitados y asigna sus pases y acompañantes.
-                </p>
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <UserPlus className="text-indigo-600" />
+                        Gestión de Invitados
+                    </h3>
+                    <p className="text-slate-600 text-sm">
+                        Agrega o edita tus invitados y asigna sus pases y acompañantes.
+                    </p>
+                </div>
+
+                {!showForm && (
+                    <button
+                        onClick={() => {
+                            resetForm();
+                            setShowForm(true);
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg shadow-sm font-bold flex items-center gap-2 transition-colors"
+                    >
+                        <UserPlus size={18} />
+                        Nuevo Invitado
+                    </button>
+                )}
             </div>
 
-            {/* FORMULARIO DE CREACIÓN / EDICIÓN */}
-            <div id="guest-form" className={`bg-white p-6 rounded-xl border shadow-sm space-y-4 transition-colors ${editingGuestId ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'}`}>
-                <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-slate-700">
-                        {editingGuestId ? 'Editar Invitado' : 'Nuevo Invitado'}
-                    </h4>
-                    {editingGuestId && (
-                        <button onClick={resetForm} className="text-xs text-slate-500 hover:text-red-500 flex items-center gap-1">
-                            <Ban size={14} /> Cancelar Edición
+            {/* FORMULARIO DE CREACIÓN / EDICIÓN (Condicional) */}
+            {showForm && (
+                <div id="guest-form" className={`bg-white p-6 rounded-xl border shadow-sm space-y-4 transition-colors animate-in slide-in-from-top-4 duration-300 ${editingGuestId ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'}`}>
+                    <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-slate-700 text-lg">
+                            {editingGuestId ? 'Editar Invitado' : 'Nuevo Invitado'}
+                        </h4>
+                        <button onClick={() => setShowForm(false)} className="text-xs text-slate-500 hover:text-red-500 flex items-center gap-1 bg-slate-100 px-3 py-1.5 rounded-full">
+                            <Ban size={14} /> Cancelar / Cerrar
                         </button>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre</label>
-                        <input
-                            type="text"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Ej: Juan"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                        />
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Apellido</label>
-                        <input
-                            type="text"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Ej: Pérez"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
-                        />
-                    </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cantidad de Pases</label>
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => setPasses(Math.max(1, passes - 1))} className="p-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-900 font-bold w-10">-</button>
-                            <span className="font-bold w-8 text-center text-slate-900 text-lg">{passes}</span>
-                            <button onClick={() => setPasses(passes + 1)} className="p-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-900 font-bold w-10">+</button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre</label>
+                            <input
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="Ej: Juan"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Apellido</label>
+                            <input
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Ej: Pérez"
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                            />
                         </div>
                     </div>
 
-                    <div>
-                        {/* Acompañantes solo si passes > 1 */}
-                        {passes > 1 && (
-                            <div className="animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                                    Nombres de Acompañantes ({companions.length}/{passes - 1})
-                                </label>
-                                <div className="flex gap-2 mb-2">
-                                    <input
-                                        type="text"
-                                        value={currentCompanion}
-                                        onChange={(e) => setCurrentCompanion(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleAddCompanion()}
-                                        placeholder="Nombre acompañante"
-                                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900"
-                                        disabled={companions.length >= passes - 1}
-                                    />
-                                    <button
-                                        onClick={handleAddCompanion}
-                                        disabled={companions.length >= passes - 1 || !currentCompanion.trim()}
-                                        className="bg-indigo-100 text-indigo-700 p-2 rounded-lg hover:bg-indigo-200 disabled:opacity-50"
-                                    >
-                                        <Plus size={18} />
-                                    </button>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {companions.map((comp, i) => (
-                                        <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded flex items-center gap-1 border border-slate-200">
-                                            {comp}
-                                            <button onClick={() => removeCompanion(i)} className="text-slate-400 hover:text-red-500"><X size={12} /></button>
-                                        </span>
-                                    ))}
-                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cantidad de Pases</label>
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setPasses(Math.max(1, passes - 1))} className="p-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-900 font-bold w-10">-</button>
+                                <span className="font-bold w-8 text-center text-slate-900 text-lg">{passes}</span>
+                                <button onClick={() => setPasses(passes + 1)} className="p-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-900 font-bold w-10">+</button>
                             </div>
-                        )}
+                        </div>
+
+                        <div>
+                            {/* Acompañantes solo si passes > 1 */}
+                            {passes > 1 && (
+                                <div className="animate-in fade-in slide-in-from-top-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                                        Nombres de Acompañantes ({companions.length}/{passes - 1})
+                                    </label>
+                                    <div className="flex gap-2 mb-2">
+                                        <input
+                                            type="text"
+                                            value={currentCompanion}
+                                            onChange={(e) => setCurrentCompanion(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleAddCompanion()}
+                                            placeholder="Nombre acompañante"
+                                            className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900"
+                                            disabled={companions.length >= passes - 1}
+                                        />
+                                        <button
+                                            onClick={handleAddCompanion}
+                                            disabled={companions.length >= passes - 1 || !currentCompanion.trim()}
+                                            className="bg-indigo-100 text-indigo-700 p-2 rounded-lg hover:bg-indigo-200 disabled:opacity-50"
+                                        >
+                                            <Plus size={18} />
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {companions.map((comp, i) => (
+                                            <span key={i} className="text-xs bg-slate-100 px-2 py-1 rounded flex items-center gap-1 border border-slate-200">
+                                                {comp}
+                                                <button onClick={() => removeCompanion(i)} className="text-slate-400 hover:text-red-500"><X size={12} /></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            onClick={handleSaveGuest}
+                            disabled={!firstName.trim()}
+                            className={`w-full py-3 text-white rounded-lg font-bold shadow-lg transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${editingGuestId ? 'bg-indigo-700 hover:bg-indigo-800 shadow-indigo-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}
+                        >
+                            {editingGuestId ? <><Pencil size={18} /> Actualizar Invitado</> : <><UserPlus size={18} /> Crear Invitación</>}
+                        </button>
                     </div>
                 </div>
-
-                <div className="pt-2">
-                    <button
-                        onClick={handleSaveGuest}
-                        disabled={!firstName.trim()}
-                        className={`w-full py-3 text-white rounded-lg font-bold shadow-lg transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${editingGuestId ? 'bg-indigo-700 hover:bg-indigo-800 shadow-indigo-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}
-                    >
-                        {editingGuestId ? <><Pencil size={18} /> Actualizar Invitado</> : <><UserPlus size={18} /> Crear Invitación</>}
-                    </button>
-                </div>
-            </div>
+            )}
 
             {/* LISTA DE INVITADOS */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
