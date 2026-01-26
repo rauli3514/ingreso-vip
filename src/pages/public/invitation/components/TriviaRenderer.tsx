@@ -189,7 +189,16 @@ export default function TriviaRenderer({ eventId, themeColor: _themeColor }: Pro
                             </h3>
 
                             <div className="space-y-4">
-                                {currentQuestion.options.map((option, index) => {
+                                {currentQuestion.options.filter(opt => opt && opt.trim() !== '').map((option, index) => {
+                                    // Note: We need to map the ORIGINAL index if we want to track correct_answer by index.
+                                    // But usually options are strictly 4. If we filter, indices shift.
+                                    // A better approach is to render conditional on content but keep index, OR if we strictly require filling in order.
+                                    // Given the Admin editor initializes 4 empty strings, let's just Hide the button if content is empty, 
+                                    // but we must be careful about 'correct_answer' index matching.
+
+                                    // If we just hide the empty ones:
+                                    if (!option || !option.trim()) return null;
+
                                     const isSelected = selectedAnswer === index;
                                     const isCorrect = index === currentQuestion.correct_answer;
                                     const showFeedback = selectedAnswer !== null;
@@ -197,7 +206,7 @@ export default function TriviaRenderer({ eventId, themeColor: _themeColor }: Pro
                                     let buttonClass = "w-full p-4 rounded-xl border-2 transition-all font-medium text-left flex items-center justify-between hover:scale-105";
 
                                     if (!showFeedback) {
-                                        buttonClass += " border-slate-200 hover:border-indigo-400 hover:bg-indigo-50";
+                                        buttonClass += " border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700";
                                     } else if (isSelected && isCorrect) {
                                         buttonClass += " border-green-500 bg-green-50 text-green-800";
                                     } else if (isSelected && !isCorrect) {

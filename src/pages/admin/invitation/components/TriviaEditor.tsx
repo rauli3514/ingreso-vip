@@ -161,7 +161,7 @@ export default function TriviaEditor({ eventId }: Props) {
                                         value={question.question}
                                         onChange={(e) => updateQuestion(qIndex, 'question', e.target.value)}
                                         placeholder="¿Dónde se conocieron?"
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none text-slate-900 bg-white"
                                     />
                                 </div>
 
@@ -178,14 +178,14 @@ export default function TriviaEditor({ eventId }: Props) {
                                                     name={`correct-${qIndex}`}
                                                     checked={question.correct_answer === optIndex}
                                                     onChange={() => updateQuestion(qIndex, 'correct_answer', optIndex)}
-                                                    className="w-5 h-5 text-green-600"
+                                                    className="w-5 h-5 text-green-600 bg-white"
                                                 />
                                                 <input
                                                     type="text"
                                                     value={option}
                                                     onChange={(e) => updateOption(qIndex, optIndex, e.target.value)}
                                                     placeholder={`Opción ${optIndex + 1}`}
-                                                    className="flex-1 px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                                                    className="flex-1 px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none text-slate-900 bg-white"
                                                 />
                                             </div>
                                         ))}
