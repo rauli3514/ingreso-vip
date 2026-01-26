@@ -59,9 +59,9 @@ export default function EventCardRenderer({ title, description, locationName, ad
         if (!lat || !lng) return undefined;
 
         const nickname = encodeURIComponent(locationName);
-        const formattedAddress = encodeURIComponent(address);
 
-        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}&dropoff[formatted_address]=${formattedAddress}`;
+
+        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}`;
     };
 
     const getCabifyLink = () => {
