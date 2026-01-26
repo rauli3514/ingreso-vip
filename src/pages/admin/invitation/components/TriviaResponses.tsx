@@ -9,25 +9,36 @@ interface Props {
 
 export default function TriviaResponses({ eventId }: Props) {
     const [responses, setResponses] = useState<TriviaResponse[]>([]);
+    const [questions, setQuestions] = useState<{ id: string; correct_answer: number; options: string[] }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchResponses();
+        fetchData();
     }, [eventId]);
 
-    const fetchResponses = async () => {
+    const fetchData = async () => {
         try {
-            const { data, error } = await supabase
-                .from('trivia_responses')
-                .select('*')
-                .eq('event_id', eventId)
-                .order('score', { ascending: false })
-                .order('completed_at', { ascending: true }); // En caso de empate, el primero gana
+            const [responsesResult, questionsResult] = await Promise.all([
+                supabase
+                    .from('trivia_responses')
+                    .select('*')
+                    .eq('event_id', eventId)
+                    .order('score', { ascending: false })
+                    .order('completed_at', { ascending: true }),
+                supabase
+                    .from('trivia_questions')
+                    .select('id, correct_answer, options')
+                    .eq('event_id', eventId)
+                    .order('order_index', { ascending: true })
+            ]);
 
-            if (error) throw error;
-            setResponses(data || []);
+            if (responsesResult.error) throw responsesResult.error;
+            if (questionsResult.error) throw questionsResult.error;
+
+            setResponses(responsesResult.data || []);
+            setQuestions(questionsResult.data || []);
         } catch (error) {
-            console.error('Error fetching trivia responses:', error);
+            console.error('Error fetching trivia data:', error);
         } finally {
             setLoading(false);
         }
@@ -110,26 +121,41 @@ export default function TriviaResponses({ eventId }: Props) {
                                         <p className="font-semibold text-sm text-slate-800 truncate">
                                             {response.guest_name}
                                         </p>
-                                        <p className="text-[10px] text-slate-400">
-                                            {new Date(response.completed_at).toLocaleDateString('es-AR')}
-                                        </p>
+                                        <div className="text-right">
+                                            <span className="text-sm font-bold text-slate-700">{response.score}</span>
+                                            <span className="text-[10px] text-slate-400 ml-1">pts</span>
+                                        </div>
                                     </div>
 
-                                    {/* Visualización de Respuestas (si estuvieran disponibles los detalles) 
-                                        Nota: Actualmente solo tenemos numbers. Idealmente necesitaríamos comparar con las respuestas correctas.
-                                        Como no tenemos las 'preguntas' aquí, solo mostramos score.
-                                        Si queremos mostrar detalle verde/rojo, necesitaríamos traer las preguntas también.
-                                    */}
-                                    <div className="flex items-center gap-1">
-                                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
-                                            {/* Barra de progreso visual simple basada en score */}
-                                            {/* Como no sabemos el total de preguntas aquí sin hacer otro fetch, asumimos score es absoluto */}
-                                            <div
-                                                className="h-full bg-green-500"
-                                                style={{ width: `${(response.score / (maxScore || 1)) * 100}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs font-bold text-slate-700 min-w-[20px] text-right">{response.score} pts</span>
+                                    {/* Detalle de Respuestas */}
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {(Array.isArray(response.answers) ? response.answers as number[] : []).map((answerIndex, qIndex) => {
+                                            const question = questions[qIndex];
+                                            if (!question) return null;
+
+                                            const isCorrect = answerIndex === question.correct_answer;
+                                            const optionText = question.options[answerIndex] || '?';
+
+                                            // Shorten text if needed
+                                            const shortText = optionText.length > 20 ? optionText.substring(0, 20) + '...' : optionText;
+
+                                            return (
+                                                <div
+                                                    key={qIndex}
+                                                    className={`
+                                                        px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-1 max-w-[150px]
+                                                        ${isCorrect
+                                                            ? 'bg-green-50 border-green-200 text-green-700'
+                                                            : 'bg-red-50 border-red-200 text-red-700'
+                                                        }
+                                                    `}
+                                                    title={`P${qIndex + 1}: ${optionText}`}
+                                                >
+                                                    <span className="opacity-50 mr-0.5">{qIndex + 1}.</span>
+                                                    <span className={`truncate ${!isCorrect && 'line-through opacity-75'}`}>{shortText}</span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
