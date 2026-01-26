@@ -57,11 +57,14 @@ export default function EventCardRenderer({ title, description, locationName, ad
     const getUberLink = () => {
         // Universal Uber link
         if (!lat || !lng) return undefined;
-        // Using Universal Links format
-        // client_id is optional for deep links usually, but let's try standard deep link
-        // https://m.uber.com/ul/?action=setPickup&client_id=<CLIENT_ID>&pickup=my_location&dropoff[latitude]=<LAT>&dropoff[longitude]=<LONG>&dropoff[nickname]=<NAME>
+        // Updated to use a simpler universal link that often behaves better for just "Going Here"
+        // If pickup is set to my_location, sometimes it fails if permission doesn't grant immediately.
+        // Let's remove specific action to let the app decide, or just set dropoff.
         const nickname = encodeURIComponent(locationName);
-        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}`;
+        const formattedAddress = encodeURIComponent(address);
+
+        // Format: https://m.uber.com/ul/?action=setPickup&client_id=<CLIENT_ID>&pickup=my_location&dropoff[latitude]=<LAT>&dropoff[longitude]=<LONG>&dropoff[nickname]=<NAME>&dropoff[formatted_address]=<ADDRESS>
+        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}&dropoff[formatted_address]=${formattedAddress}`;
     };
 
     const getCabifyLink = () => {
