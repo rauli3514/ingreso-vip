@@ -641,7 +641,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 subtitle={invitation.gifts_section.subtitle}
                                 content={invitation.gifts_section.content}
 
-                                // Priority: Event Config -> Invitation Section Config
+                                // Priority: Event Config (Global) -> Invitation Section Config (Local override if needed, but usually Global is preferred)
+                                // If user wants to override bank per invitation, we should swap this or add a toggle.
+                                // For now, let's allow invitation specific if event is empty.
                                 bank={eventData?.gift_config?.bank || invitation.gifts_section.bank}
                                 owner={eventData?.gift_config?.titular || invitation.gifts_section.owner}
                                 cbu={eventData?.gift_config?.cbu || invitation.gifts_section.cbu}
@@ -650,8 +652,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 mercadopagoLink={invitation.gifts_section.mercadopago_link}
                                 registryLinks={invitation.gifts_section.gifts_links}
 
-                                // New Visual Cards
-                                cards={eventData?.gift_config?.cards}
+                                // Fix: Prioritize Invitation Manual Cards if they exist (User edited in "Regalos" section)
+                                // Fallback to Event Data cards only if invitation cards are undefined.
+                                cards={invitation.gifts_section.cards || eventData?.gift_config?.cards}
                             />
                         )}
 
@@ -687,6 +690,8 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                             themeColor={themeColors.primary}
                             // Pass guest name if we have it
                             guestName={guestData.name}
+                            // Fix: Pass the configured Spotify URL
+                            spotifyPlaylistUrl={invitation.components_config?.playlist?.spotify_url}
                         />
 
                         {/* 7.5 TRIVIA */}
