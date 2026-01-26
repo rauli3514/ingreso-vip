@@ -100,11 +100,35 @@ export default function EventSectionEditor({ sectionKey, title, invitation, onCh
                             <input
                                 type="text"
                                 value={sectionData.map_url || ''}
-                                onChange={(e) => updateSection({ map_url: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    let updates: any = { map_url: val };
+
+                                    // Try to extract coordinates from URL
+                                    // Patterns: 
+                                    // @-34.6037,-58.3816
+                                    // q=-34.6037,-58.3816
+                                    // !3d-34.6037!4d-58.3816
+                                    const latLngMatch = val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                                        val.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                                        val.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+
+                                    if (latLngMatch) {
+                                        updates.lat = latLngMatch[1];
+                                        updates.lng = latLngMatch[2];
+                                    }
+
+                                    updateSection(updates);
+                                }}
                                 placeholder="Pegar enlace de Google Maps aquí"
                                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                             />
-                            <p className="text-xs text-slate-400 mt-1">Se usará para el botón "Ver Ubicación".</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Se usará para el botón "Ver Ubicación".
+                                <span className="text-indigo-500 ml-1">
+                                    (Si pegas el link largo de la barra de direcciones, intentaremos extraer las coordenadas automáticamente).
+                                </span>
+                            </p>
                         </div>
 
                         <div>
