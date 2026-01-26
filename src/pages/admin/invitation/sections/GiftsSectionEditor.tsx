@@ -138,7 +138,7 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
                         </div>
                     </div>
 
-                    {/* 3. Lista de Regalos */}
+                    {/* 3. Lista de Regalos (Links) */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -177,6 +177,129 @@ export default function GiftsSectionEditor({ invitation, onChange }: Props) {
                             {(sectionData.gifts_links || []).length === 0 && (
                                 <div className="text-center py-4 text-slate-400 text-sm italic border border-dashed border-slate-300 rounded-lg">
                                     No hay links agregados.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 my-6"></div>
+
+                    {/* 4. Tarjetas Visuales (NUEVO) */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 bg-rose-500 rounded flex items-center justify-center text-[10px] text-white font-bold">★</div>
+                                <h4 className="font-bold text-slate-800">Tarjetas de Regalo Visuales</h4>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const currentCards = sectionData.cards || [];
+                                    updateSection({ cards: [...currentCards, { title: 'Luna de Miel', amount: 0, icon: 'plane', description: '', link_url: '' }] });
+                                }}
+                                className="text-xs bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-bold hover:bg-rose-200 transition-colors flex items-center gap-1"
+                            >
+                                <Plus size={14} /> Agregar
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {(sectionData.cards || []).map((card: any, index: number) => (
+                                <div key={index} className="bg-rose-50 p-4 rounded-xl border border-rose-100 space-y-3">
+                                    <div className="flex items-start justify-between">
+                                        <div className="font-medium text-rose-800 text-sm">Tarjeta #{index + 1}</div>
+                                        <button
+                                            onClick={() => {
+                                                const currentCards = (sectionData.cards || []).filter((_: any, i: number) => i !== index);
+                                                updateSection({ cards: currentCards });
+                                            }}
+                                            className="text-red-400 hover:text-red-600"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-slate-500 block mb-1">Título</label>
+                                            <input
+                                                type="text"
+                                                value={card.title}
+                                                onChange={(e) => {
+                                                    const newCards = [...(sectionData.cards || [])];
+                                                    newCards[index] = { ...newCards[index], title: e.target.value };
+                                                    updateSection({ cards: newCards });
+                                                }}
+                                                className={bgWhiteClass}
+                                                placeholder="Ej: Cena Romántica"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500 block mb-1">Icono</label>
+                                            <select
+                                                value={card.icon}
+                                                onChange={(e) => {
+                                                    const newCards = [...(sectionData.cards || [])];
+                                                    newCards[index] = { ...newCards[index], icon: e.target.value };
+                                                    updateSection({ cards: newCards });
+                                                }}
+                                                className={bgWhiteClass}
+                                            >
+                                                <option value="gift">Regalo</option>
+                                                <option value="plane">Avión / Viaje</option>
+                                                <option value="dinner">Cena / Comida</option>
+                                                <option value="drink">Brindis / Bebida</option>
+                                                <option value="honeymoon">Corazón / Luna de Miel</option>
+                                                <option value="house">Casa / Hogar</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500 block mb-1">Monto Sugerido (Opcional)</label>
+                                            <input
+                                                type="number"
+                                                value={card.amount || ''}
+                                                onChange={(e) => {
+                                                    const newCards = [...(sectionData.cards || [])];
+                                                    newCards[index] = { ...newCards[index], amount: Number(e.target.value) };
+                                                    updateSection({ cards: newCards });
+                                                }}
+                                                className={bgWhiteClass}
+                                                placeholder="Ej: 5000"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500 block mb-1">Link de Pago (Opcional)</label>
+                                            <input
+                                                type="text"
+                                                value={card.link_url || ''}
+                                                onChange={(e) => {
+                                                    const newCards = [...(sectionData.cards || [])];
+                                                    newCards[index] = { ...newCards[index], link_url: e.target.value };
+                                                    updateSection({ cards: newCards });
+                                                }}
+                                                className={bgWhiteClass}
+                                                placeholder="https://mpago.la/..."
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-xs text-slate-500 block mb-1">Descripción Corta</label>
+                                            <input
+                                                type="text"
+                                                value={card.description || ''}
+                                                onChange={(e) => {
+                                                    const newCards = [...(sectionData.cards || [])];
+                                                    newCards[index] = { ...newCards[index], description: e.target.value };
+                                                    updateSection({ cards: newCards });
+                                                }}
+                                                className={bgWhiteClass}
+                                                placeholder="Ej: Para disfrutar nuestra primera cena..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {(sectionData.cards || []).length === 0 && (
+                                <div className="text-center py-4 text-slate-400 text-sm italic border border-dashed border-slate-300 rounded-lg">
+                                    No hay tarjetas visuales creadas.
                                 </div>
                             )}
                         </div>
