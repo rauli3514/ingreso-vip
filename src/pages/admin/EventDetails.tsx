@@ -142,6 +142,25 @@ export default function EventDetails() {
         }
     };
 
+    const handleToggleInvitationSent = async (guestId: string, currentStatus: boolean) => {
+        // Optimistic update
+        setGuests(prev => prev.map(g => g.id === guestId ? { ...g, invitation_sent: !currentStatus } : g));
+
+        try {
+            const { error } = await supabase
+                .from('guests')
+                .update({ invitation_sent: !currentStatus })
+                .eq('id', guestId);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error updating invitation sent status:', err);
+            // Revert
+            setGuests(prev => prev.map(g => g.id === guestId ? { ...g, invitation_sent: currentStatus } : g));
+            alert('Error al actualizar estado de envío');
+        }
+    };
+
     const onUpdateEvent = (updates: Partial<Event>) => {
         setEvent(prev => prev ? { ...prev, ...updates } : null);
     };
@@ -288,6 +307,7 @@ export default function EventDetails() {
                         setIsCreateModalOpen(true);
                     }}
                     onImport={() => setIsImportModalOpen(true)}
+                    onToggleSent={handleToggleInvitationSent}
                 />
             )}
 

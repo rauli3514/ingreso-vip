@@ -9,9 +9,10 @@ interface GuestsTabProps {
     onDelete: (guestId: string) => void;
     onEdit: (guest: Guest) => void;
     onImport: () => void;
+    onToggleSent: (guestId: string, sent: boolean) => void;
 }
 
-export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onEdit, onImport }: GuestsTabProps) {
+export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onEdit, onImport, onToggleSent }: GuestsTabProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterTable, setFilterTable] = useState<string>('all');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -25,6 +26,8 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
 
             if (filterTable === 'all') return matchesSearch;
             if (filterTable === 'unassigned') return matchesSearch && !g.table_info;
+            if (filterTable === 'sent') return matchesSearch && g.invitation_sent;
+            if (filterTable === 'not_sent') return matchesSearch && !g.invitation_sent;
             return matchesSearch && g.table_info === filterTable;
         });
     }, [guests, searchQuery, filterTable]);
@@ -76,6 +79,20 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
                                         {filterTable === 'all' && <CheckCircle2 size={14} />}
                                     </button>
                                     <button
+                                        onClick={() => { setFilterTable('sent'); setShowFilterMenu(false); }}
+                                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-lg transition-all flex justify-between items-center ${filterTable === 'sent' ? 'bg-amber-50 text-amber-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        Enviados
+                                        {filterTable === 'sent' && <CheckCircle2 size={14} />}
+                                    </button>
+                                    <button
+                                        onClick={() => { setFilterTable('not_sent'); setShowFilterMenu(false); }}
+                                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-lg transition-all flex justify-between items-center ${filterTable === 'not_sent' ? 'bg-amber-50 text-amber-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        No Enviados
+                                        {filterTable === 'not_sent' && <CheckCircle2 size={14} />}
+                                    </button>
+                                    <button
                                         onClick={() => { setFilterTable('unassigned'); setShowFilterMenu(false); }}
                                         className={`w-full text-left px-3 py-2 text-xs font-medium rounded-lg transition-all flex justify-between items-center ${filterTable === 'unassigned' ? 'bg-amber-50 text-amber-700' : 'text-slate-600 hover:bg-slate-50'}`}
                                     >
@@ -123,6 +140,7 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
                         <thead className="bg-slate-50 text-xs text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-4">Invitado</th>
+                                <th className="px-6 py-4 text-center">Enviada</th>
                                 <th className="px-6 py-4">Mesa / Ubicación</th>
                                 <th className="px-6 py-4 text-center">Estado</th>
                                 <th className="px-6 py-4 text-right">Acciones</th>
@@ -141,6 +159,14 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
                                                     {guest.has_puff && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">Puff</span>}
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!guest.invitation_sent}
+                                                onChange={() => onToggleSent(guest.id, !!guest.invitation_sent)}
+                                                className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 cursor-pointer"
+                                            />
                                         </td>
                                         <td className="px-6 py-4 text-slate-500">
                                             {guest.table_info ? (

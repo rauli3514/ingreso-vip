@@ -86,6 +86,7 @@ export interface Guest {
     has_puff?: boolean; // Tiene puff asignado
     passes?: number;
     companions?: string[]; // Array de strings (nombres)
+    invitation_sent?: boolean; // Invitación enviada
 }
 
 export interface InvitationSection {
