@@ -199,6 +199,34 @@ export default function DesignTab({ event, onUpdateEvent }: DesignTabProps) {
                         </select>
                         <p className="text-xs text-slate-500 mt-2">La fuente se aplicará en el QR y la pantalla del usuario</p>
                     </div>
+
+                    {/* Dress Code Gallery */}
+                    <div className="space-y-4">
+                        <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Galería de Dress Code (URLs)</label>
+                        <textarea
+                            defaultValue={event.dress_code_images?.join('\n') || ''}
+                            placeholder="https://ejemplo.com/outfit1.jpg&#10;https://ejemplo.com/outfit2.jpg"
+                            rows={4}
+                            onBlur={async (e) => {
+                                const urls = e.target.value.split('\n').map(u => u.trim()).filter(Boolean);
+                                try {
+                                    const { error } = await supabase
+                                        .from('events')
+                                        .update({ dress_code_images: urls })
+                                        .eq('id', event.id);
+
+                                    if (error) throw error;
+                                    onUpdateEvent({ dress_code_images: urls });
+                                    // alert('✅ Galería de Dress Code actualizada');
+                                } catch (error) {
+                                    console.error('Error updating dress code images:', error);
+                                    alert('Error al actualizar galería');
+                                }
+                            }}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 resize-none"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">Ingresa una URL por línea.</p>
+                    </div>
                 </div>
             </div>
         </div>

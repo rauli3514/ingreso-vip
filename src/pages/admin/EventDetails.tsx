@@ -6,7 +6,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import {
     ArrowLeft, Calendar, Users, MapPin,
     Upload, Plus, Clock, CheckCircle2,
-    Palette, Video, Download, Settings, QrCode
+    Palette, Video, Download, Settings, QrCode, Music
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,6 +20,7 @@ import DesignTab from './components/event_details/DesignTab';
 import ReceptionistTab from './components/event_details/ReceptionistTab';
 import DownloadsTab from './components/event_details/DownloadsTab';
 import SettingsTab from './components/event_details/SettingsTab';
+import PlaylistTab from './components/event_details/PlaylistTab';
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>();
@@ -27,7 +28,7 @@ export default function EventDetails() {
     const [event, setEvent] = useState<Event | null>(null);
     const [guests, setGuests] = useState<Guest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'guests' | 'tables' | 'settings' | 'design' | 'receptionist' | 'downloads'>('guests');
+    const [activeTab, setActiveTab] = useState<'guests' | 'tables' | 'settings' | 'design' | 'receptionist' | 'downloads' | 'playlist'>('guests');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -51,7 +52,6 @@ export default function EventDetails() {
             setEvent(data);
         } catch (error: any) {
             console.error('Error loading event:', error);
-            // alert(`❌ Error cargando evento: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -255,6 +255,7 @@ export default function EventDetails() {
                         { id: 'tables', label: 'Organizador', icon: MapPin },
                         { id: 'design', label: 'Diseño', icon: Palette },
                         { id: 'receptionist', label: 'Recepcionista', icon: Video },
+                        { id: 'playlist', label: 'Música', icon: Music },
                         { id: 'downloads', label: 'Descargas', icon: Download },
                         { id: 'settings', label: 'Configuración', icon: Settings },
                     ].map((tab) => (
@@ -311,6 +312,12 @@ export default function EventDetails() {
                     guests={guests}
                     onUpdateEvent={onUpdateEvent}
                     onUpdateGuests={onUpdateGuests}
+                />
+            )}
+
+            {activeTab === 'playlist' && (
+                <PlaylistTab
+                    event={event}
                 />
             )}
 

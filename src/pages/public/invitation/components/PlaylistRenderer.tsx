@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
-import { Music, Plus, Heart } from 'lucide-react';
-
-interface Song {
-    id: string;
-    song_name: string;
-    artist: string;
-    suggested_by: string;
-    created_at: string;
-}
+import { Music, Plus, Heart, ThumbsUp } from 'lucide-react';
+import { PlaylistRequest } from '../../../../types';
 
 interface Props {
     eventId: string;
@@ -16,6 +9,7 @@ interface Props {
     subtitle?: string;
     spotifyPlaylistUrl?: string;
     themeColor?: string;
+    guestName?: string;
 }
 
 export default function PlaylistRenderer({
@@ -23,23 +17,30 @@ export default function PlaylistRenderer({
     title = "Playlist Colaborativa",
     subtitle = "Ayúdanos a crear la mejor playlist",
     spotifyPlaylistUrl,
-    themeColor = '#1DB954'
+    themeColor = '#1DB954',
+    guestName
 }: Props) {
-    const [songs, setSongs] = useState<Song[]>([]);
+    const [songs, setSongs] = useState<PlaylistRequest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
+    const [formVisible, setFormVisible] = useState(false);
     const [formData, setFormData] = useState({
         songName: '',
-        artist: '',
-        suggestedBy: ''
+        artistName: '',
+        guestName: guestName || ''
     });
     const [submitting, setSubmitting] = useState(false);
+
+    // Update form guest name if prop changes
+    useEffect(() => {
+        if (guestName) setFormData(prev => ({ ...prev, guestName }));
+    }, [guestName]);
 
     const [timestamp] = useState(new Date().getTime());
 
     // Extraer Spotify playlist ID del URL
     const getSpotifyEmbedUrl = () => {
         if (!spotifyPlaylistUrl) return null;
+        // Support various spotify URL formats
         const match = spotifyPlaylistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
         if (match) {
             return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0&v=${timestamp}`;
@@ -53,13 +54,13 @@ export default function PlaylistRenderer({
         fetchSongs();
 
         const channel = supabase
-            .channel('playlist-songs')
+            .channel('playlist-requests')
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
-                    table: 'playlist_songs',
+                    table: 'playlist_requests',
                     filter: `event_id=eq.${eventId}`
                 },
                 () => {
@@ -76,11 +77,11 @@ export default function PlaylistRenderer({
     const fetchSongs = async () => {
         try {
             const { data, error } = await supabase
-                .from('playlist_songs')
+                .from('playlist_requests')
                 .select('*')
                 .eq('event_id', eventId)
-                .order('created_at', { ascending: false })
-                .limit(50); // Muestra las últimas 50 sugerencias
+                .order('vote_count', { ascending: false })
+                .limit(50);
 
             if (error) throw error;
             setSongs(data || []);
@@ -93,159 +94,188 @@ export default function PlaylistRenderer({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.songName || !formData.artist || !formData.suggestedBy) return;
+        if (!formData.songName || !formData.artistName) return;
 
         setSubmitting(true);
         try {
             const { error } = await supabase
-                .from('playlist_songs')
+                .from('playlist_requests')
                 .insert({
                     event_id: eventId,
                     song_name: formData.songName,
-                    artist: formData.artist,
-                    suggested_by: formData.suggestedBy
+                    artist_name: formData.artistName,
+                    guest_name: formData.guestName || 'Anónimo',
+                    vote_count: 1,
+                    status: 'pending'
                 });
 
             if (error) throw error;
 
-            setFormData({ songName: '', artist: '', suggestedBy: '' });
-            setShowForm(false);
-            alert('✓ ¡Canción agregada!');
+            setFormData(prev => ({ ...prev, songName: '', artistName: '' }));
+            setFormVisible(false);
+            fetchSongs(); // Instant update
         } catch (error) {
             console.error('Error adding song:', error);
-            alert('Error al agregar la canción');
+            alert('Error al agregar canción. Intenta nuevamente.');
         } finally {
             setSubmitting(false);
         }
     };
 
+    const handleVote = async (songId: string, currentVotes: number) => {
+        // Optimistic update
+        setSongs(prev => prev.map(s => s.id === songId ? { ...s, vote_count: s.vote_count + 1 } : s));
+
+        try {
+            const { error } = await supabase
+                .from('playlist_requests')
+                .update({ vote_count: currentVotes + 1 })
+                .eq('id', songId);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error voting:', error);
+        }
+    };
+
     return (
-        <section className="py-16 bg-gradient-to-br from-green-50 to-teal-50">
-            <div className="container mx-auto px-4">
-                {/* Header Compacto */}
-                <div className="text-center mb-8">
-                    <Music size={40} className="mx-auto mb-3" style={{ color: themeColor }} strokeWidth={1.5} />
-                    <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
-                        {title}
-                    </h2>
-                    <p className="text-sm text-slate-600 max-w-xl mx-auto">
-                        {subtitle}
-                    </p>
+        <section id="playlist" className="py-20 bg-white">
+            <div className="container mx-auto px-4 max-w-4xl">
+                <div className="text-center mb-12">
+                    <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 text-white shadow-lg animate-bounce" style={{ backgroundColor: themeColor }}>
+                        <Music size={32} />
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-serif text-slate-900 mb-4">{title}</h2>
+                    <p className="text-slate-600 font-light text-lg max-w-2xl mx-auto">{subtitle}</p>
                 </div>
 
-                <div className="max-w-5xl mx-auto">
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {/* Columna Izquierda: Spotify Player + Sugerir */}
-                        <div className="space-y-4">
-                            {/* Spotify Embed Player - COMPACT MODE */}
-                            {embedUrl && (
-                                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-green-200">
-                                    <iframe
-                                        src={embedUrl}
-                                        width="100%"
-                                        height="152"
-                                        frameBorder="0"
-                                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                        loading="lazy"
-                                        className="w-full"
-                                        style={{ minHeight: '152px' }}
-                                    ></iframe>
-                                </div>
-                            )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    {/* Spotify Embed */}
+                    <div className="w-full bg-slate-900 rounded-xl overflow-hidden shadow-2xl ring-1 ring-slate-900/5 aspect-[4/5] md:aspect-auto md:h-[600px]">
+                        {embedUrl ? (
+                            <iframe
+                                src={embedUrl}
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                loading="lazy"
+                                className="w-full h-full"
+                            ></iframe>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 p-8 text-center">
+                                <Music size={48} className="mb-4 opacity-50" />
+                                <p>Spotify Playlist no configurada</p>
+                            </div>
+                        )}
+                    </div>
 
-                            {/* Botón Sugerir Compacto */}
-                            <button
-                                onClick={() => setShowForm(!showForm)}
-                                className="w-full bg-transparent border-2 border-green-600 text-green-700 px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 text-sm hover:bg-green-50 transition-all"
-                            >
-                                <Plus size={18} />
-                                {showForm ? 'Cerrar formulario' : 'Sugerir canción'}
-                            </button>
-
-                            {/* Form Compacto */}
-                            {showForm && (
-                                <div className="bg-white rounded-xl shadow-md p-6 border border-green-200">
-                                    <form onSubmit={handleSubmit} className="space-y-3">
-                                        <input
-                                            type="text"
-                                            value={formData.songName}
-                                            onChange={(e) => setFormData({ ...formData, songName: e.target.value })}
-                                            placeholder="Nombre de la canción"
-                                            className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-green-500 focus:outline-none text-sm"
-                                            required
-                                        />
-                                        <input
-                                            type="text"
-                                            value={formData.artist}
-                                            onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
-                                            placeholder="Artista"
-                                            className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-green-500 focus:outline-none text-sm"
-                                            required
-                                        />
-                                        <input
-                                            type="text"
-                                            value={formData.suggestedBy}
-                                            onChange={(e) => setFormData({ ...formData, suggestedBy: e.target.value })}
-                                            placeholder="Tu nombre"
-                                            className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-green-500 focus:outline-none text-sm"
-                                            required
-                                        />
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="submit"
-                                                disabled={submitting}
-                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
-                                            >
-                                                {submitting ? 'Agregando...' : 'Agregar'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowForm(false)}
-                                                className="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-lg font-medium text-sm transition-colors"
-                                            >
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Columna Derecha: Lista de Canciones */}
-                        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-green-200">
-                            <div className="bg-gradient-to-r from-green-500 to-teal-500 px-4 py-3">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <Heart size={20} />
-                                    Sugerencias ({songs.length})
-                                </h3>
+                    {/* Suggestions List & Form */}
+                    <div className="space-y-6">
+                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 shadow-sm">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-slate-800 text-xl">Sugerencias</h3>
+                                <button
+                                    onClick={() => setFormVisible(!formVisible)}
+                                    className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider py-2 px-4 rounded-full text-white transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                    style={{ backgroundColor: themeColor }}
+                                >
+                                    <Plus size={16} />
+                                    {formVisible ? 'Cerrar' : 'Sugerir Canción'}
+                                </button>
                             </div>
 
-                            {loading ? (
-                                <div className="p-8 text-center text-slate-500 text-sm">Cargando...</div>
-                            ) : songs.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <Music size={32} className="mx-auto mb-3 text-slate-300" />
-                                    <p className="text-slate-500 text-sm">No hay canciones aún</p>
-                                    <p className="text-slate-400 text-xs">¡Sé el primero!</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-slate-100 max-h-[250px] overflow-y-auto">
-                                    {songs.map((song) => (
-                                        <div
-                                            key={song.id}
-                                            className="px-4 py-3 hover:bg-green-50 transition-colors"
+                            {formVisible && (
+                                <form onSubmit={handleSubmit} className="mb-8 animate-in slide-in-from-top-2 duration-300 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="space-y-3">
+                                        <input
+                                            type="text"
+                                            placeholder="Nombre de la canción"
+                                            className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all text-sm"
+                                            style={{ '--tw-ring-color': themeColor } as any}
+                                            value={formData.songName}
+                                            onChange={(e) => setFormData({ ...formData, songName: e.target.value })}
+                                            required
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Artista"
+                                            className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all text-sm"
+                                            style={{ '--tw-ring-color': themeColor } as any}
+                                            value={formData.artistName}
+                                            onChange={(e) => setFormData({ ...formData, artistName: e.target.value })}
+                                            required
+                                        />
+                                        {!guestName && (
+                                            <input
+                                                type="text"
+                                                placeholder="Tu nombre (opcional)"
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all text-sm"
+                                                style={{ '--tw-ring-color': themeColor } as any}
+                                                value={formData.guestName}
+                                                onChange={(e) => setFormData({ ...formData, guestName: e.target.value })}
+                                            />
+                                        )}
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="w-full py-2.5 rounded-lg text-white font-bold text-sm uppercase tracking-wide transition-all hover:brightness-110 disabled:opacity-50"
+                                            style={{ backgroundColor: themeColor }}
                                         >
-                                            <p className="font-semibold text-slate-800 text-sm">{song.song_name}</p>
-                                            <p className="text-xs text-slate-600">{song.artist}</p>
-                                            <p className="text-xs text-green-700 mt-1">por {song.suggested_by}</p>
-                                        </div>
-                                    ))}
-                                </div>
+                                            {submitting ? 'Enviando...' : 'Enviar Sugerencia'}
+                                        </button>
+                                    </div>
+                                </form>
                             )}
+
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                {loading ? (
+                                    <p className="text-center text-slate-400 py-4">Cargando sugerencias...</p>
+                                ) : songs.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400">
+                                        <Heart size={32} className="mx-auto mb-2 opacity-30" />
+                                        <p className="text-sm">Sé el primero en pedir un tema</p>
+                                    </div>
+                                ) : (
+                                    songs.map((song) => (
+                                        <div key={song.id} className="bg-white p-3 rounded-lg border border-slate-100 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+                                            <div>
+                                                <p className="font-bold text-slate-800 text-sm">{song.song_name}</p>
+                                                <p className="text-xs text-slate-500">{song.artist_name}</p>
+                                                {(song as any).guest_name && (
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">Por: {(song as any).guest_name}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => handleVote(song.id, song.vote_count)}
+                                                    className="flex items-center gap-1.5 text-slate-400 hover:text-rose-500 transition-colors group"
+                                                >
+                                                    <ThumbsUp size={14} className="group-hover:scale-110 transition-transform" />
+                                                    <span className="text-xs font-bold">{song.vote_count}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background-color: #cbd5e1;
+                    border-radius: 20px;
+                }
+            `}</style>
         </section>
     );
 }

@@ -122,6 +122,8 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         companions: []
     });
 
+    const [eventData, setEventData] = useState<any>(null); // Store full event data
+
     useEffect(() => {
         if (previewData) {
             setInvitation(previewData);
@@ -150,6 +152,31 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
         };
         fetchInvitation();
     }, [id, previewData]);
+
+    useEffect(() => {
+        const fetchEventData = async () => {
+            if (!id) return;
+            try {
+                console.log("Fetching event data for ID:", id);
+                const { data, error } = await supabase
+                    .from('events')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                console.log("Supabase Response:", { data, error });
+
+                if (error) throw error;
+                setEventData(data);
+            } catch (err) {
+                console.error("Error fetching event data", err);
+            }
+        };
+        fetchEventData();
+    }, [id]);
+
+
+
 
     useEffect(() => {
         if (!loading && invitation && viewState === 'envelope' && !isEditable && !forceViewContent) {
@@ -564,6 +591,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                         mapUrl={invitation.ceremony_section.map_url || ''}
                                         icon="church"
                                         themeColor={themeColors.primary}
+                                        // New Props
+                                        lat={eventData?.venue_lat}
+                                        lng={eventData?.venue_lng}
                                     />
                                 )}
                                 {invitation.party_section?.show && (
@@ -575,6 +605,9 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                         mapUrl={invitation.party_section.map_url || ''}
                                         icon="party"
                                         themeColor={themeColors.primary}
+                                        // New Props
+                                        lat={eventData?.venue_lat}
+                                        lng={eventData?.venue_lng}
                                     />
                                 )}
                             </div>
@@ -589,18 +622,36 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                             />
                         )}
 
+                        {/* NEW: DRESS CODE GALLERY if available */}
+                        {eventData?.dress_code_images && eventData.dress_code_images.length > 0 && (
+                            <div className="py-12 bg-white/50 text-center">
+                                <h3 className="text-2xl font-serif text-gray-700 mb-6">Inspiración de Vestimenta</h3>
+                                <div className="container mx-auto px-4 flex gap-4 overflow-x-auto pb-4 snap-x justify-start md:justify-center">
+                                    {eventData.dress_code_images.map((url: string, idx: number) => (
+                                        <img key={idx} src={url} className="h-64 md:h-80 w-auto rounded-lg shadow-md snap-center shrink-0 object-cover" />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* 5. REGALOS */}
                         {invitation.gifts_section?.show && (
                             <GiftsRenderer
                                 title={invitation.gifts_section.title}
                                 subtitle={invitation.gifts_section.subtitle}
                                 content={invitation.gifts_section.content}
-                                bank={invitation.gifts_section.bank}
-                                owner={invitation.gifts_section.owner}
-                                cbu={invitation.gifts_section.cbu}
-                                alias={invitation.gifts_section.alias}
+
+                                // Priority: Event Config -> Invitation Section Config
+                                bank={eventData?.gift_config?.bank || invitation.gifts_section.bank}
+                                owner={eventData?.gift_config?.titular || invitation.gifts_section.owner}
+                                cbu={eventData?.gift_config?.cbu || invitation.gifts_section.cbu}
+                                alias={eventData?.gift_config?.alias || invitation.gifts_section.alias}
+
                                 mercadopagoLink={invitation.gifts_section.mercadopago_link}
                                 registryLinks={invitation.gifts_section.gifts_links}
+
+                                // New Visual Cards
+                                cards={eventData?.gift_config?.cards}
                             />
                         )}
 
@@ -631,7 +682,12 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         )}
 
                         {/* 7.4 PLAYLIST */}
-                        <PlaylistRenderer eventId={id!} themeColor={themeColors.primary} spotifyPlaylistUrl="https://open.spotify.com/playlist/1qsRobsjlQtZTw3NtEX5jW" />
+                        <PlaylistRenderer
+                            eventId={id!}
+                            themeColor={themeColors.primary}
+                            // Pass guest name if we have it
+                            guestName={guestData.name}
+                        />
 
                         {/* 7.5 TRIVIA */}
                         <TriviaRenderer eventId={id!} themeColor={themeColors.primary} />
@@ -646,6 +702,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 eventId={id!}
                                 invitationRowId={invitation.id}
                                 names={invitation.hero_section?.title || ''}
+                                eventData={eventData}
                             />
                         )}
                     </div>

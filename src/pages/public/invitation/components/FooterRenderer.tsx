@@ -7,6 +7,7 @@ interface Props {
     eventId: string;
     invitationRowId: string;
     names: string;
+    eventData?: any;
 }
 
 export default function FooterRenderer({ sectionData, eventId, invitationRowId, names }: Props) {

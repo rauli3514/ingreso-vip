@@ -176,6 +176,92 @@ export default function SettingsTab({ event, onUpdateEvent }: SettingsTabProps) 
                     </div>
                 </div>
 
+                {/* New: GPS Location for Uber/Maps */}
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                    <h3 className="text-lg font-bold text-white border-b border-white/5 pb-2 mb-4">Ubicación GPS (Para Uber/Maps)</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Latitud</label>
+                            <input
+                                type="number"
+                                step="any"
+                                name="venue_lat"
+                                value={formData.venue_lat || ''}
+                                onChange={handleChange}
+                                placeholder="-34.6037"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Longitud</label>
+                            <input
+                                type="number"
+                                step="any"
+                                name="venue_lng"
+                                value={formData.venue_lng || ''}
+                                onChange={handleChange}
+                                placeholder="-58.3816"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* New: Gift Information */}
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                    <h3 className="text-lg font-bold text-white border-b border-white/5 pb-2 mb-4">Información de Regalos (CBU/Alias)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Banco</label>
+                            <input
+                                type="text"
+                                value={formData.gift_config?.bank || ''}
+                                onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    gift_config: { ...prev.gift_config, bank: e.target.value }
+                                }))}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Titular</label>
+                            <input
+                                type="text"
+                                value={formData.gift_config?.titular || ''}
+                                onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    gift_config: { ...prev.gift_config, titular: e.target.value }
+                                }))}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">CBU / CVU</label>
+                            <input
+                                type="text"
+                                value={formData.gift_config?.cbu || ''}
+                                onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    gift_config: { ...prev.gift_config, cbu: e.target.value }
+                                }))}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Alias</label>
+                            <input
+                                type="text"
+                                value={formData.gift_config?.alias || ''}
+                                onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    gift_config: { ...prev.gift_config, alias: e.target.value }
+                                }))}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
                     <button type="button" className="btn btn-ghost text-slate-400 hover:text-white" onClick={() => setFormData({ ...event })}>Cancelar</button>
                     <button type="submit" disabled={isSaving} className="btn btn-primary py-2.5 px-6 shadow-lg shadow-yellow-500/20 disabled:opacity-50">

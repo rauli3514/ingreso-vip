@@ -117,7 +117,7 @@ export default function InvitationEditor() {
 
     return (
         <DashboardLayout>
-            <div className="p-6 max-w-6xl mx-auto h-[calc(100vh-80px)] flex flex-col">
+            <div className="p-2 md:p-6 max-w-6xl mx-auto h-[calc(100vh-80px)] flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col mb-6 shrink-0">
                     <div className="flex items-center justify-between">
@@ -126,7 +126,7 @@ export default function InvitationEditor() {
                                 <ArrowLeft size={24} />
                             </button>
                             <div>
-                                <h1 className="text-3xl font-bold text-white tracking-tight">Editor de Invitación</h1>
+                                <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight">Editor de Invitación</h1>
                                 <p className="text-slate-400">Personaliza el diseño y gestiona tu evento.</p>
                             </div>
                         </div>
@@ -155,7 +155,7 @@ export default function InvitationEditor() {
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold uppercase text-xs tracking-wider transition-all border ${showAdvanced ? 'bg-indigo-900 border-indigo-500 text-white shadow-inner' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}
                             >
                                 <Sparkles size={16} className={showAdvanced ? 'text-yellow-400 animate-pulse' : ''} />
-                                {showAdvanced ? 'Modo Experto ON' : 'Modo Experto'}
+                                <span className="hidden md:inline">{showAdvanced ? 'Modo Experto ON' : 'Modo Experto'}</span>
                             </button>
 
                             <button
@@ -164,7 +164,7 @@ export default function InvitationEditor() {
                                 className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 font-medium shadow-lg shadow-indigo-500/20 transition-all hover:scale-105"
                             >
                                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                {saving ? 'Guardando...' : 'Guardar Cambios'}
+                                <span className="hidden md:inline">{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
                             </button>
                         </div>
                     </div>
@@ -178,10 +178,33 @@ export default function InvitationEditor() {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 bg-white rounded-xl shadow-xl overflow-hidden flex border border-slate-700/50">
+                <div className="flex-1 bg-white rounded-xl shadow-xl overflow-hidden flex border border-slate-700/50 flex-col md:flex-row">
 
-                    {/* Sidebar Tabs */}
-                    <div className="w-64 bg-slate-50 border-r border-slate-200 p-4 flex flex-col gap-1 overflow-y-auto">
+                    {/* Mobile Navigation */}
+                    <div className="md:hidden p-4 border-b border-slate-200 bg-slate-50">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Sección Activa</label>
+                        <select
+                            value={activeTab}
+                            onChange={(e) => setActiveTab(e.target.value)}
+                            className="w-full p-2 rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <optgroup label="Secciones">
+                                {['General', 'Cuenta Regresiva', 'Ceremonia', 'Fiesta', 'Galería', 'Regalos', 'Detalles', 'Redes', 'Final', 'Invitados'].map((tab) => (
+                                    <option key={tab} value={tab.toLowerCase()}>{tab}</option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Gestión">
+                                <option value="respuestas">📋 Lista de Invitados</option>
+                                <option value="config">⚙️ Extras & Config</option>
+                                <option value="mobile-design">📱 Diseño Overlay</option>
+                                <option value="trivia-preguntas">🎮 Trivia - Preguntas</option>
+                                <option value="trivia-ranking">🏆 Trivia - Ranking</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    {/* Desktop Sidebar */}
+                    <div className="hidden md:flex w-64 bg-slate-50 border-r border-slate-200 p-4 flex-col gap-1 overflow-y-auto">
                         <p className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Secciones</p>
                         {['General', 'Cuenta Regresiva', 'Ceremonia', 'Fiesta', 'Galería', 'Regalos', 'Detalles', 'Redes', 'Final', 'Invitados'].map((tab) => (
                             <button
@@ -251,7 +274,7 @@ export default function InvitationEditor() {
                     </div>
 
                     {/* Editor Content - Usamos invitation={invitation} para compatibilidad */}
-                    <div className="flex-1 p-8 bg-slate-50/50 overflow-y-auto relative">
+                    <div className="flex-1 p-4 md:p-8 bg-slate-50/50 overflow-y-auto relative">
                         <div className="max-w-4xl mx-auto space-y-8">
 
                             {/* ADVANCED EDITOR PANEL */}

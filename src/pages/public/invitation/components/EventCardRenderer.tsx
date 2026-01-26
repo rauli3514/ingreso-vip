@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react';
+import { MapPin, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -11,9 +11,11 @@ interface Props {
     mapUrl?: string;
     icon?: 'church' | 'party';
     themeColor: string; // Recibimos el color primario del tema
+    lat?: number;
+    lng?: number;
 }
 
-export default function EventCardRenderer({ title, description, locationName, address, startTime, mapUrl, icon, themeColor }: Props) {
+export default function EventCardRenderer({ title, description, locationName, address, startTime, mapUrl, icon, themeColor, lat, lng }: Props) {
     const date = startTime ? new Date(startTime) : null;
 
     // Fallback color si viniera vacío, aunque debería venir del padre
@@ -51,6 +53,30 @@ export default function EventCardRenderer({ title, description, locationName, ad
 
         return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(description || '')}&location=${encodeURIComponent(address)}`;
     };
+
+    const getUberLink = () => {
+        // Universal Uber link
+        if (!lat || !lng) return undefined;
+        // Using Universal Links format
+        // client_id is optional for deep links usually, but let's try standard deep link
+        // https://m.uber.com/ul/?action=setPickup&client_id=<CLIENT_ID>&pickup=my_location&dropoff[latitude]=<LAT>&dropoff[longitude]=<LONG>&dropoff[nickname]=<NAME>
+        const nickname = encodeURIComponent(locationName);
+        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}`;
+    };
+
+    const getCabifyLink = () => {
+        // Cabify doesn't have a public deep link API as open as Uber, 
+        // usually just opening the app or falling back to web.
+        // Web: https://cabify.com/
+        // Actually, explicit destination deep links are harder to guarantee across OS.
+        // Let's stick to Maps if we can't reliably link, but for now let's just use Google Maps Directions as fallback or try a waze link.
+        // Waze: https://waze.com/ul?ll=<LAT>,<LONG>&navigate=yes
+        if (!lat || !lng) return undefined;
+        return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+    };
+
+    const uberUrl = getUberLink();
+    const wazeUrl = getCabifyLink(); // Using Waze as "Cabify/Logistics" alternative for now or explicit Waze button
 
     return (
         <div className="relative flex flex-col items-center text-center px-4 group">
@@ -127,15 +153,35 @@ export default function EventCardRenderer({ title, description, locationName, ad
                                 }}
                             >
                                 <MapPin size={14} />
-                                CÓMO LLEGAR
+                                CÓMO LLEGAR (MAPS)
                             </a>
 
+                            {/* Logistics Buttons */}
+                            {(uberUrl || wazeUrl) && (
+                                <div className="flex gap-2 w-full max-w-[250px] justify-center">
+                                    {uberUrl && (
+                                        <a href={uberUrl} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 bg-black text-white py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center gap-1 shadow-md">
+                                            <Car size={12} /> Uber
+                                        </a>
+                                    )}
+                                    {wazeUrl && (
+                                        <a href={wazeUrl} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 bg-blue-500 text-white py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors flex items-center justify-center gap-1 shadow-md">
+                                            <MapPin size={12} /> Waze
+                                        </a>
+                                    )}
+                                </div>
+                            )}
+
+                            {/*
                             <a
                                 href="#rsvp-section"
                                 className="inline-flex items-center gap-2 bg-slate-900 border border-slate-900 text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 w-full justify-center max-w-[250px]"
                             >
                                 CONFIRMAR ASISTENCIA
                             </a>
+                            */}
                         </div>
                     )}
                 </div>

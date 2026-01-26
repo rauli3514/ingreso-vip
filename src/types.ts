@@ -12,6 +12,25 @@ export interface UserProfile {
 
 export type EventStatus = 'pending' | 'active' | 'disabled' | 'closed';
 
+export interface PlaylistRequest {
+    id: string;
+    event_id: string;
+    guest_id?: string;
+    song_name: string;
+    artist_name?: string;
+    vote_count: number;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+}
+
+export interface GiftCardConfig {
+    title: string;
+    amount?: number; // Optional suggested amount
+    icon: 'gift' | 'plane' | 'dinner' | 'drink' | 'honeymoon' | 'house'; // Limited set for now
+    description?: string;
+    link_url?: string; // Optional direct payment link
+}
+
 export interface Event {
     id: string;
     name: string;
@@ -39,6 +58,19 @@ export interface Event {
     video_url_default?: string;
     video_configuration?: Record<string, string>; // Map table_name -> video_url
     after_party_time?: string; // Hora de trasnoche
+
+    // New Features 2025
+    gift_config?: {
+        cbu?: string;
+        alias?: string;
+        bank?: string;
+        titular?: string;
+        cards?: GiftCardConfig[];
+        show_copy_button?: boolean;
+    };
+    venue_lat?: number;
+    venue_lng?: number;
+    dress_code_images?: string[]; // URLs
 }
 
 export interface Guest {
@@ -74,7 +106,7 @@ export interface InvitationData {
     party_section: InvitationSection & { location_name?: string; location_url?: string; time?: string };
     gallery_section: InvitationSection & { images: string[] };
     dress_code_section: InvitationSection & { code?: string; note?: string };
-    gifts_section: InvitationSection & { cbu?: string; alias?: string; bank?: string };
+    gifts_section: InvitationSection & { cbu?: string; alias?: string; bank?: string; titular?: string };
     // Nuevas secciones
     extra_info_section?: {
         show: boolean;
@@ -175,8 +207,6 @@ export interface InvitationResponse {
     message?: string;
     created_at: string;
 }
-
-
 
 export interface TriviaQuestion {
     id: string;
