@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { TriviaResponse } from '../../../../types';
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 interface Props {
     eventId: string;
@@ -51,93 +51,86 @@ export default function TriviaResponses({ eventId }: Props) {
 
     return (
         <div className="space-y-6">
-            {/* Header con stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-                    <p className="text-xs font-bold uppercase text-yellow-700 mb-1">Total Participantes</p>
-                    <p className="text-4xl font-bold text-yellow-900">{responses.length}</p>
+            {/* Header con stats compactos */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                    <p className="text-[10px] font-bold uppercase text-yellow-700">Total</p>
+                    <p className="text-xl font-bold text-yellow-900 leading-none mt-1">{responses.length}</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                    <p className="text-xs font-bold uppercase text-green-700 mb-1">Mejor Puntaje</p>
-                    <p className="text-4xl font-bold text-green-900">{maxScore}</p>
+                <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                    <p className="text-[10px] font-bold uppercase text-green-700">Mejor</p>
+                    <p className="text-xl font-bold text-green-900 leading-none mt-1">{maxScore}</p>
                 </div>
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-                    <p className="text-xs font-bold uppercase text-blue-700 mb-1">Puntaje Promedio</p>
-                    <p className="text-4xl font-bold text-blue-900">
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <p className="text-[10px] font-bold uppercase text-blue-700">Promedio</p>
+                    <p className="text-xl font-bold text-blue-900 leading-none mt-1">
                         {(responses.reduce((sum, r) => sum + r.score, 0) / responses.length).toFixed(1)}
                     </p>
                 </div>
             </div>
 
             {/* Ranking */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-slate-200">
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Trophy className="text-yellow-600" size={24} />
-                        Ranking de Participantes
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <Trophy className="text-yellow-600" size={16} />
+                        Ranking
                     </h3>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
                     {responses.map((response, index) => {
                         const isFirst = index === 0;
-                        const isSecond = index === 1;
-                        const isThird = index === 2;
 
                         let medalIcon = null;
                         let bgClass = "hover:bg-slate-50";
-                        let textColor = "text-slate-700";
 
                         if (isFirst) {
-                            medalIcon = <Trophy className="text-yellow-500" size={28} />;
-                            bgClass = "bg-gradient-to-r from-yellow-50 to-yellow-100/50 hover:from-yellow-100 hover:to-yellow-100";
-                            textColor = "text-yellow-900";
-                        } else if (isSecond) {
-                            medalIcon = <Medal className="text-gray-400" size={28} />;
-                            bgClass = "bg-gradient-to-r from-gray-50 to-gray-100/50 hover:from-gray-100 hover:to-gray-100";
-                            textColor = "text-gray-700";
-                        } else if (isThird) {
-                            medalIcon = <Award className="text-orange-600" size={28} />;
-                            bgClass = "bg-gradient-to-r from-orange-50 to-orange-100/50 hover:from-orange-100 hover:to-orange-100";
-                            textColor = "text-orange-900";
+                            medalIcon = "🥇";
+                            bgClass = "bg-yellow-50/50";
+                        } else if (index === 1) {
+                            medalIcon = "🥈";
+                        } else if (index === 2) {
+                            medalIcon = "🥉";
                         }
 
                         return (
                             <div
                                 key={response.id}
-                                className={`px-6 py-4 flex items-center gap-4 transition-colors ${bgClass}`}
+                                className={`px-4 py-3 flex items-center gap-3 transition-colors ${bgClass}`}
                             >
-                                {/* Posición/Medalla */}
-                                <div className="w-12 text-center">
-                                    {medalIcon || (
-                                        <span className="text-2xl font-bold text-slate-400">
-                                            #{index + 1}
-                                        </span>
-                                    )}
+                                {/* Posición */}
+                                <div className="w-6 text-center text-sm font-bold text-slate-500">
+                                    {medalIcon || `#${index + 1}`}
                                 </div>
 
-                                {/* Nombre */}
-                                <div className="flex-1">
-                                    <p className={`font-semibold text-lg ${textColor}`}>
-                                        {response.guest_name}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        {new Date(response.completed_at).toLocaleString('es-AR', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}
-                                    </p>
-                                </div>
+                                {/* Nombre + Respuestas */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="font-semibold text-sm text-slate-800 truncate">
+                                            {response.guest_name}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400">
+                                            {new Date(response.completed_at).toLocaleDateString('es-AR')}
+                                        </p>
+                                    </div>
 
-                                {/* Puntaje */}
-                                <div className="text-right">
-                                    <p className={`text-3xl font-bold ${textColor}`}>
-                                        {response.score}
-                                    </p>
-                                    <p className="text-xs text-slate-500">puntos</p>
+                                    {/* Visualización de Respuestas (si estuvieran disponibles los detalles) 
+                                        Nota: Actualmente solo tenemos numbers. Idealmente necesitaríamos comparar con las respuestas correctas.
+                                        Como no tenemos las 'preguntas' aquí, solo mostramos score.
+                                        Si queremos mostrar detalle verde/rojo, necesitaríamos traer las preguntas también.
+                                    */}
+                                    <div className="flex items-center gap-1">
+                                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
+                                            {/* Barra de progreso visual simple basada en score */}
+                                            {/* Como no sabemos el total de preguntas aquí sin hacer otro fetch, asumimos score es absoluto */}
+                                            <div
+                                                className="h-full bg-green-500"
+                                                style={{ width: `${(response.score / (maxScore || 1)) * 100}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700 min-w-[20px] text-right">{response.score} pts</span>
+                                    </div>
                                 </div>
                             </div>
                         );
