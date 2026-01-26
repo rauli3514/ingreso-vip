@@ -641,13 +641,12 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 subtitle={invitation.gifts_section.subtitle}
                                 content={invitation.gifts_section.content}
 
-                                // Priority: Event Config (Global) -> Invitation Section Config (Local override if needed, but usually Global is preferred)
-                                // If user wants to override bank per invitation, we should swap this or add a toggle.
-                                // For now, let's allow invitation specific if event is empty.
-                                bank={eventData?.gift_config?.bank || invitation.gifts_section.bank}
-                                owner={eventData?.gift_config?.titular || invitation.gifts_section.owner}
-                                cbu={eventData?.gift_config?.cbu || invitation.gifts_section.cbu}
-                                alias={eventData?.gift_config?.alias || invitation.gifts_section.alias}
+                                // Priority: Invitation Section Config (Specific) -> Event Config (Global Fallback)
+                                // This ensures that if the user edits the section directly, their changes are seen.
+                                bank={invitation.gifts_section.bank || eventData?.gift_config?.bank}
+                                owner={invitation.gifts_section.owner || eventData?.gift_config?.titular}
+                                cbu={invitation.gifts_section.cbu || eventData?.gift_config?.cbu}
+                                alias={invitation.gifts_section.alias || eventData?.gift_config?.alias}
 
                                 mercadopagoLink={invitation.gifts_section.mercadopago_link}
                                 registryLinks={invitation.gifts_section.gifts_links}
