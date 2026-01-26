@@ -48,17 +48,23 @@ export default function PlaylistRenderer({
             if (srcMatch && srcMatch[1]) return srcMatch[1];
         }
 
+        // LIMPIEZA PREVIA: Si el usuario pegó texto tipo "Escucha mi playlist... https://..."
+        // Intentamos extraer solo la URL http/https
+        let cleanUrl = val;
+        const urlMatch = val.match(/(https?:\/\/[^\s]+)/); // Busca http://... o https://... hasta el primer espacio
+        if (urlMatch && urlMatch[1]) {
+            cleanUrl = urlMatch[1];
+        }
+
         // CASO 2: URI de Spotify (spotify:playlist:...)
-        if (val.startsWith('spotify:playlist:')) {
-            const id = val.split(':')[2];
+        if (cleanUrl.startsWith('spotify:playlist:')) {
+            const id = cleanUrl.split(':')[2];
             return `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
         }
 
         // CASO 3: URL Web (https://open.spotify.com/...)
         try {
-            // Limpiamos la URL para evitar problemas con query params extraños
-            // Pero mantenemos los necesarios si fuera un embed ya hecho
-            const urlObj = new URL(val.startsWith('http') ? val : `https://${val}`);
+            const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
             const pathSegments = urlObj.pathname.split('/').filter(Boolean);
 
             // Detectar ID de playlist
