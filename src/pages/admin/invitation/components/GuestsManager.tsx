@@ -8,6 +8,7 @@ interface Guest {
     last_name: string;
     passes: number;
     companions: string[]; // Array de strings (nombres)
+    invitation_sent?: boolean;
 }
 
 interface Props {
@@ -50,7 +51,8 @@ export default function GuestsManager({ eventId }: Props) {
                 first_name: g.first_name,
                 last_name: g.last_name,
                 passes: g.passes || 1,
-                companions: Array.isArray(g.companions) ? g.companions : []
+                companions: Array.isArray(g.companions) ? g.companions : [],
+                invitation_sent: g.invitation_sent || false
             }));
 
             setGuests(mappedGuests);
@@ -196,11 +198,37 @@ export default function GuestsManager({ eventId }: Props) {
 
     // Filter state
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'sent' | 'pending'>('all');
 
-    const filteredGuests = guests.filter(g =>
-        g.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        g.last_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleToggleInvitationSent = async (guestId: string, currentStatus: boolean) => {
+        // Optimistic update
+        setGuests(guests.map(g => g.id === guestId ? { ...g, invitation_sent: !currentStatus } : g));
+
+        try {
+            const { error } = await supabase
+                .from('guests')
+                .update({ invitation_sent: !currentStatus })
+                .eq('id', guestId);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error updating invitation sent status:', err);
+            // Revert
+            setGuests(guests.map(g => g.id === guestId ? { ...g, invitation_sent: currentStatus } : g));
+            alert('Error al actualizar estado de envío');
+        }
+    };
+
+    const filteredGuests = guests.filter(g => {
+        const matchesSearch = g.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            g.last_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (filterStatus === 'all') return matchesSearch;
+        if (filterStatus === 'sent') return matchesSearch && g.invitation_sent;
+        if (filterStatus === 'pending') return matchesSearch && !g.invitation_sent;
+
+        return matchesSearch;
+    });
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -316,14 +344,38 @@ export default function GuestsManager({ eventId }: Props) {
                 <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
                     <h4 className="font-bold text-slate-700">Lista de Invitados ({guests.length})</h4>
 
-                    {/* Buscador */}
-                    <input
-                        type="text"
-                        placeholder="Buscar invitado..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-64"
-                    />
+                    <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        {/* Filtros */}
+                        <div className="flex bg-white rounded-lg border border-slate-200 p-1">
+                            <button
+                                onClick={() => setFilterStatus('all')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'all' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('sent')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'sent' ? 'bg-green-100 text-green-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                Enviados
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('pending')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'pending' ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                No Enviados
+                            </button>
+                        </div>
+
+                        {/* Buscador */}
+                        <input
+                            type="text"
+                            placeholder="Buscar invitado..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-56"
+                        />
+                    </div>
                 </div>
 
                 {loading ? (
@@ -332,7 +384,7 @@ export default function GuestsManager({ eventId }: Props) {
                     <div className="p-12 text-center">
                         <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-400">
-                            {searchTerm ? 'No se encontraron coincidencias.' : 'No tienes invitados registrados.'}
+                            {searchTerm || filterStatus !== 'all' ? 'No se encontraron coincidencias.' : 'No tienes invitados registrados.'}
                         </p>
                     </div>
                 ) : (
@@ -340,22 +392,35 @@ export default function GuestsManager({ eventId }: Props) {
                         {filteredGuests.map((guest) => (
                             <div key={guest.id} className={`p-4 transition-colors ${editingGuestId === guest.id ? 'bg-indigo-50/50 border-l-4 border-indigo-500' : 'hover:bg-slate-50'}`}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h5 className="font-bold text-slate-800 text-lg">
-                                                {guest.first_name} {guest.last_name}
-                                            </h5>
-                                            <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold border border-indigo-200">
-                                                {guest.passes} Pase{guest.passes !== 1 ? 's' : ''}
-                                            </span>
+                                    <div className="flex items-start gap-4">
+                                        {/* Checkbox Enviado */}
+                                        <div className="pt-1">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!guest.invitation_sent}
+                                                onChange={() => handleToggleInvitationSent(guest.id, !!guest.invitation_sent)}
+                                                className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 cursor-pointer"
+                                                title="Marcar como enviado"
+                                            />
                                         </div>
-                                        {guest.companions && guest.companions.length > 0 && (
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                + {guest.companions.join(', ')}
-                                            </p>
-                                        )}
-                                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400 font-mono break-all md:hidden">
-                                            <ExternalLink size={10} /> {generateGuestUrl(guest)}
+
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h5 className="font-bold text-slate-800 text-lg">
+                                                    {guest.first_name} {guest.last_name}
+                                                </h5>
+                                                <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold border border-indigo-200">
+                                                    {guest.passes} Pase{guest.passes !== 1 ? 's' : ''}
+                                                </span>
+                                            </div>
+                                            {guest.companions && guest.companions.length > 0 && (
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    + {guest.companions.join(', ')}
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-1 mt-2 text-xs text-slate-400 font-mono break-all md:hidden">
+                                                <ExternalLink size={10} /> {generateGuestUrl(guest)}
+                                            </div>
                                         </div>
                                     </div>
 
