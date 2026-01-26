@@ -55,19 +55,13 @@ export default function EventCardRenderer({ title, description, locationName, ad
     };
 
     const getUberLink = () => {
-        // Universal Uber link
-        // User reported that coordinates are inaccurate for Uber but fine for Waze.
-        // User specifically requested to use the location name/address for Uber.
-        // We will prioritize address search for Uber.
-
-        if (!address) return undefined;
+        // Uber Universal Links require latitude and longitude.
+        if (!lat || !lng) return undefined;
 
         const nickname = encodeURIComponent(locationName);
         const formattedAddress = encodeURIComponent(address);
 
-        // Strategy: We ommit lat/lng to force Uber to search/resolve the address, 
-        // which often works better for large venues or when coordinates snap to a wrong street.
-        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[nickname]=${nickname}&dropoff[formatted_address]=${formattedAddress}`;
+        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}&dropoff[formatted_address]=${formattedAddress}`;
     };
 
     const getCabifyLink = () => {
@@ -178,15 +172,6 @@ export default function EventCardRenderer({ title, description, locationName, ad
                                     )}
                                 </div>
                             )}
-
-                            {/*
-                            <a
-                                href="#rsvp-section"
-                                className="inline-flex items-center gap-2 bg-slate-900 border border-slate-900 text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm hover:shadow-md hover:bg-slate-800 transition-all transform hover:-translate-y-0.5 w-full justify-center max-w-[250px]"
-                            >
-                                CONFIRMAR ASISTENCIA
-                            </a>
-                            */}
                         </div>
                     )}
                 </div>
