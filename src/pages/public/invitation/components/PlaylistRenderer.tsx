@@ -37,30 +37,52 @@ export default function PlaylistRenderer({
 
 
 
-    // Extraer Spotify playlist ID del URL
+    // Extraer Spotify playlist ID del URL con lógica robusta
     const getSpotifyEmbedUrl = () => {
         if (!spotifyPlaylistUrl) return null;
+        const val = spotifyPlaylistUrl.trim();
 
-        // Pattern to find the playlist ID
-        // Supports:
-        // - https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
-        // - https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si...
-        // - spotify:playlist:37i9dQZF1DXcBWIGoYBM5M
+        // CASO 1: El usuario pegó todo el código <iframe>
+        if (val.includes('<iframe') && val.includes('src="')) {
+            const srcMatch = val.match(/src="([^"]+)"/);
+            if (srcMatch && srcMatch[1]) return srcMatch[1];
+        }
 
-        let playlistId = null;
+        // CASO 2: URI de Spotify (spotify:playlist:...)
+        if (val.startsWith('spotify:playlist:')) {
+            const id = val.split(':')[2];
+            return `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
+        }
 
-        if (spotifyPlaylistUrl.includes('spotify:playlist:')) {
-            playlistId = spotifyPlaylistUrl.split('spotify:playlist:')[1];
-        } else {
-            const match = spotifyPlaylistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
-            if (match && match[1]) {
-                playlistId = match[1];
+        // CASO 3: URL Web (https://open.spotify.com/...)
+        try {
+            // Limpiamos la URL para evitar problemas con query params extraños
+            // Pero mantenemos los necesarios si fuera un embed ya hecho
+            const urlObj = new URL(val.startsWith('http') ? val : `https://${val}`);
+            const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+
+            // Detectar ID de playlist
+            const playlistIndex = pathSegments.indexOf('playlist');
+            if (playlistIndex !== -1 && pathSegments[playlistIndex + 1]) {
+                const id = pathSegments[playlistIndex + 1];
+                return `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
             }
+
+            // Detectar si es un link de embed directo que el usuario copió
+            if (pathSegments.includes('embed') && pathSegments.includes('playlist')) {
+                return val; // Ya es un link de embed, confiamos en él
+            }
+
+        } catch (e) {
+            console.warn('Error parseando URL de Spotify:', e);
         }
 
-        if (playlistId) {
-            return `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
+        // Fallback: Regex simple para intentar rescatar algo si lo anterior falla
+        const match = val.match(/playlist[\/:]([a-zA-Z0-9]+)/);
+        if (match && match[1]) {
+            return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0`;
         }
+
         return null;
     };
 
@@ -181,7 +203,15 @@ export default function PlaylistRenderer({
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 p-8 text-center">
                                 <Music size={48} className="mb-4 opacity-50" />
-                                <p>Spotify Playlist no configurada</p>
+                                {spotifyPlaylistUrl ? (
+                                    <div className="text-red-400">
+                                        <p className="font-bold">Error de Configuración</p>
+                                        <p className="text-xs mt-1">El link de la playlist no es válido.</p>
+                                        <p className="text-[10px] mt-2 opacity-70 break-all max-w-[200px] mx-auto">{spotifyPlaylistUrl}</p>
+                                    </div>
+                                ) : (
+                                    <p>Spotify Playlist no configurada</p>
+                                )}
                             </div>
                         )}
                     </div>
