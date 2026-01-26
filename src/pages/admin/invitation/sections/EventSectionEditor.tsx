@@ -134,6 +134,48 @@ export default function EventSectionEditor({ sectionKey, title, invitation, onCh
                             </p>
                         </div>
 
+                        {/* GPS Coordinates Manual Override */}
+                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
+                                <span>📍 Coordenadas Exactas</span>
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${sectionData.lat},${sectionData.lng}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={`text-[10px] bg-white border border-slate-200 px-2 py-1 rounded hover:bg-slate-50 ${(!sectionData.lat || !sectionData.lng) ? 'opacity-50 pointer-events-none' : ''}`}
+                                >
+                                    Probar en Maps
+                                </a>
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-medium text-slate-500 mb-1">Latitud</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={sectionData.lat || ''}
+                                        onChange={(e) => updateSection({ lat: e.target.value })}
+                                        placeholder="-34.6037"
+                                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-slate-900 focus:ring-1 focus:ring-indigo-500 outline-none text-xs font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-medium text-slate-500 mb-1">Longitud</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={sectionData.lng || ''}
+                                        onChange={(e) => updateSection({ lng: e.target.value })}
+                                        placeholder="-58.3816"
+                                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-slate-900 focus:ring-1 focus:ring-indigo-500 outline-none text-xs font-mono"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                                Estos números controlan a dónde lleva el botón de <b>Uber/Waze</b>. <br />
+                                <span className="italic">Haz click derecho en Google Maps sobre el lugar exacto para ver y copiar estos números.</span>
+                            </p>
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Nota o Descripción (Opcional)</label>
                             <textarea
@@ -145,41 +187,6 @@ export default function EventSectionEditor({ sectionKey, title, invitation, onCh
                             />
                         </div>
                     </div>
-                </div>
-
-                {/* GPS Coordinates for App Integration */}
-                <div className="pt-6 border-t border-slate-100">
-                    <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                        📍 Coordenadas GPS (Para Uber/Waze)
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-normal">Requerido para botones de transporte</span>
-                    </h4>
-                    <div className="grid grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Latitud</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={sectionData.lat || ''}
-                                onChange={(e) => updateSection({ lat: e.target.value })}
-                                placeholder="-34.6037"
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Longitud</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={sectionData.lng || ''}
-                                onChange={(e) => updateSection({ lng: e.target.value })}
-                                placeholder="-58.3816"
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono"
-                            />
-                        </div>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-2">
-                        💡 Tip: En Google Maps, haz clic derecho sobre el lugar y selecciona los números (ej: -34.60, -58.38) para copiarlos.
-                    </p>
                 </div>
             </div>
         </div>
