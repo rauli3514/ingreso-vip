@@ -56,21 +56,23 @@ export default function EventCardRenderer({ title, description, locationName, ad
 
     const getUberLink = () => {
         // Universal Uber link
-        if (!lat || !lng) return undefined;
-        // Updated to use a simpler universal link that often behaves better for just "Going Here"
-        // If pickup is set to my_location, sometimes it fails if permission doesn't grant immediately.
-        // Let's remove specific action to let the app decide, or just set dropoff.
+        // User reported that coordinates are inaccurate for Uber but fine for Waze.
+        // User specifically requested to use the location name/address for Uber.
+        // We will prioritize address search for Uber.
+
+        if (!address) return undefined;
+
         const nickname = encodeURIComponent(locationName);
         const formattedAddress = encodeURIComponent(address);
 
-        // Format: https://m.uber.com/ul/?action=setPickup&client_id=<CLIENT_ID>&pickup=my_location&dropoff[latitude]=<LAT>&dropoff[longitude]=<LONG>&dropoff[nickname]=<NAME>&dropoff[formatted_address]=<ADDRESS>
-        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${nickname}&dropoff[formatted_address]=${formattedAddress}`;
+        // Strategy: We ommit lat/lng to force Uber to search/resolve the address, 
+        // which often works better for large venues or when coordinates snap to a wrong street.
+        return `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[nickname]=${nickname}&dropoff[formatted_address]=${formattedAddress}`;
     };
 
     const getCabifyLink = () => {
         // Cabify doesn't have a public deep link API as open as Uber, 
         // usually just opening the app or falling back to web.
-        // Web: https://cabify.com/
         // Actually, explicit destination deep links are harder to guarantee across OS.
         // Let's stick to Maps if we can't reliably link, but for now let's just use Google Maps Directions as fallback or try a waze link.
         // Waze: https://waze.com/ul?ll=<LAT>,<LONG>&navigate=yes
