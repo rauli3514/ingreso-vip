@@ -172,37 +172,37 @@ export default function GiftsRenderer({
 
                                         <div className="space-y-3">
                                             {bank && (
-                                                <div className="bg-white p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 mb-1">Banco</p>
-                                                    <p className="font-semibold text-slate-800">{bank}</p>
+                                                <div className="bg-white p-3 rounded-lg flex items-center justify-between">
+                                                    <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Banco</span>
+                                                    <span className="font-bold text-slate-800 text-right">{bank}</span>
                                                 </div>
                                             )}
                                             {owner && (
-                                                <div className="bg-white p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 mb-1">Titular</p>
-                                                    <p className="font-semibold text-slate-800">{owner}</p>
+                                                <div className="bg-white p-3 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+                                                    <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Titular</span>
+                                                    <span className="font-bold text-slate-800 text-right capitalize">{owner.toLowerCase()}</span>
                                                 </div>
                                             )}
                                             {cbu && (
-                                                <div className="bg-white p-3 rounded-lg flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <p className="text-xs text-slate-500 mb-1">CBU</p>
-                                                        <p className="font-mono text-sm text-slate-800 break-all">{cbu}</p>
+                                                <div className="bg-white p-3 rounded-lg flex flex-col gap-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">CBU</span>
+                                                        <button onClick={() => copyToClipboard(cbu, 'cbu')} className="text-blue-500 hover:bg-blue-50 p-1 rounded transition-colors">
+                                                            {copiedField === 'cbu' ? <Check size={14} /> : <Copy size={14} />}
+                                                        </button>
                                                     </div>
-                                                    <button onClick={() => copyToClipboard(cbu, 'cbu')} className="ml-2 p-2 hover:bg-slate-100 text-slate-600 rounded-lg shrink-0">
-                                                        {copiedField === 'cbu' ? <Check size={20} className="text-green-600" /> : <Copy size={20} />}
-                                                    </button>
+                                                    <p className="font-mono text-sm text-slate-800 break-all text-center tracking-widest">{cbu}</p>
                                                 </div>
                                             )}
                                             {alias && (
-                                                <div className="bg-white p-3 rounded-lg flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <p className="text-xs text-slate-500 mb-1">Alias</p>
-                                                        <p className="font-semibold text-slate-800">{alias}</p>
+                                                <div className="bg-white p-3 rounded-lg flex flex-col gap-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Alias</span>
+                                                        <button onClick={() => copyToClipboard(alias, 'alias')} className="text-blue-500 hover:bg-blue-50 p-1 rounded transition-colors">
+                                                            {copiedField === 'alias' ? <Check size={14} /> : <Copy size={14} />}
+                                                        </button>
                                                     </div>
-                                                    <button onClick={() => copyToClipboard(alias, 'alias')} className="ml-2 p-2 hover:bg-slate-100 text-slate-600 rounded-lg shrink-0">
-                                                        {copiedField === 'alias' ? <Check size={20} className="text-green-600" /> : <Copy size={20} />}
-                                                    </button>
+                                                    <p className="font-bold text-lg text-slate-800 text-center uppercase tracking-wider">{alias}</p>
                                                 </div>
                                             )}
                                         </div>
