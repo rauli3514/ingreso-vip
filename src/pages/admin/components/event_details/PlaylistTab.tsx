@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Music, ThumbsUp, Trash2, Check, X } from 'lucide-react';
+import { Music, Trash2, Check, X } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import { Event, PlaylistRequest } from '../../../../types';
 
