@@ -622,12 +622,12 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                             />
                         )}
 
-                        {/* NEW: DRESS CODE GALLERY if available */}
-                        {eventData?.dress_code_images && eventData.dress_code_images.length > 0 && (
+                        {/* NEW: DRESS CODE GALLERY based on Invitation Config (Preferred) OR Event Data (Legacy) */}
+                        {(invitation.components_config?.dress_code?.inspiration_images?.length! > 0 || (eventData?.dress_code_images && eventData.dress_code_images.length > 0)) && (
                             <div className="py-12 bg-white/50 text-center">
                                 <h3 className="text-2xl font-serif text-gray-700 mb-6">Inspiración de Vestimenta</h3>
                                 <div className="container mx-auto px-4 flex gap-4 overflow-x-auto pb-4 snap-x justify-start md:justify-center">
-                                    {eventData.dress_code_images.map((url: string, idx: number) => (
+                                    {(invitation.components_config?.dress_code?.inspiration_images || eventData?.dress_code_images || []).map((url: string, idx: number) => (
                                         <img key={idx} src={url} className="h-64 md:h-80 w-auto rounded-lg shadow-md snap-center shrink-0 object-cover" />
                                     ))}
                                 </div>

@@ -141,6 +141,7 @@ export interface InvitationData {
             show_modal: boolean;
             recommended_colors: string[];
             avoid_colors: string[];
+            inspiration_images?: string[];
         };
         playlist?: {
             show: boolean;

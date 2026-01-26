@@ -1,5 +1,5 @@
 import { InvitationData } from '../../../../types';
-import { Shirt, Music, Users, Trophy } from 'lucide-react';
+import { Shirt, Music, Users, Trophy, Trash2 } from 'lucide-react';
 
 interface Props {
     invitation: Partial<InvitationData>;
@@ -105,6 +105,48 @@ export default function ComponentsConfigEditor({ invitation, onChange }: Props) 
                             >
                                 +
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Dress Code Images */}
+                    <div className="pt-4 border-t border-slate-100">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Imágenes de Inspiración (URLs)</label>
+                        <div className="space-y-2">
+                            {(config.dress_code?.inspiration_images || []).map((url: string, i: number) => (
+                                <div key={i} className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={url}
+                                        onChange={(e) => {
+                                            const newImages = [...(config.dress_code?.inspiration_images || [])];
+                                            newImages[i] = e.target.value;
+                                            updateConfig('dress_code', 'inspiration_images', newImages);
+                                        }}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded text-sm"
+                                        placeholder="https://ejemplo.com/imagen.jpg"
+                                    />
+                                    <img src={url} alt="Preview" className="w-10 h-10 object-cover rounded bg-slate-100" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                    <button
+                                        onClick={() => {
+                                            const newImages = (config.dress_code?.inspiration_images || []).filter((_: any, idx: number) => idx !== i);
+                                            updateConfig('dress_code', 'inspiration_images', newImages);
+                                        }}
+                                        className="p-2 text-red-500 hover:bg-red-50 rounded"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            <button
+                                onClick={() => {
+                                    const newImages = [...(config.dress_code?.inspiration_images || []), ''];
+                                    updateConfig('dress_code', 'inspiration_images', newImages);
+                                }}
+                                className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center gap-1"
+                            >
+                                + Agregar Imagen
+                            </button>
+                            <p className="text-xs text-slate-400 mt-1">Si dejas esto vacío, no se mostrará ninguna galería de inspiración.</p>
                         </div>
                     </div>
                 </div>

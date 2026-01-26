@@ -35,15 +35,31 @@ export default function PlaylistRenderer({
         if (guestName) setFormData(prev => ({ ...prev, guestName }));
     }, [guestName]);
 
-    const [timestamp] = useState(new Date().getTime());
+
 
     // Extraer Spotify playlist ID del URL
     const getSpotifyEmbedUrl = () => {
         if (!spotifyPlaylistUrl) return null;
-        // Support various spotify URL formats
-        const match = spotifyPlaylistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
-        if (match) {
-            return `https://open.spotify.com/embed/playlist/${match[1]}?utm_source=generator&theme=0&v=${timestamp}`;
+
+        // Pattern to find the playlist ID
+        // Supports:
+        // - https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+        // - https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si...
+        // - spotify:playlist:37i9dQZF1DXcBWIGoYBM5M
+
+        let playlistId = null;
+
+        if (spotifyPlaylistUrl.includes('spotify:playlist:')) {
+            playlistId = spotifyPlaylistUrl.split('spotify:playlist:')[1];
+        } else {
+            const match = spotifyPlaylistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
+            if (match && match[1]) {
+                playlistId = match[1];
+            }
+        }
+
+        if (playlistId) {
+            return `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
         }
         return null;
     };
