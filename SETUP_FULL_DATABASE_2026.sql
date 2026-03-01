@@ -1,7 +1,24 @@
 -- =============== SCRIPT DE ACTUALIZACIÓN DE BASE DE DATOS (INGRESOS VIP 2026) ===============
--- Este script crea las tablas nuevas, añade las columnas necesarias y ajusta los permisos (RLS).
+-- Este script crea las tablas faltantes, añade las columnas necesarias y ajusta los permisos (RLS).
 
--- 1. AÑADIR NUEVAS COLUMNAS A LA TABLA EVENTS
+-- 0. ASEGURARNOS QUE FUNCIONES BASE ESTAN
+create extension if not exists "uuid-ossp";
+
+-- 1. CREAR TABLA GUESTS SI NO EXISTE
+CREATE TABLE IF NOT EXISTS public.guests (
+  id uuid default uuid_generate_v4() primary key,
+  event_id uuid references public.events(id) on delete cascade not null,
+  first_name text not null,
+  last_name text not null,
+  display_name text,
+  table_info text,
+  assigned_video_url text,
+  status text default 'pending',
+  arrived_at timestamptz,
+  created_at timestamptz default now()
+);
+
+-- 2. AÑADIR NUEVAS COLUMNAS A LA TABLA EVENTS
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='events' AND column_name='theme_id') THEN
@@ -18,7 +35,7 @@ BEGIN
     END IF;
 END $$;
 
--- 2. AÑADIR NUEVAS COLUMNAS A LA TABLA GUESTS
+-- 3. AÑADIR NUEVAS COLUMNAS A LA TABLA GUESTS
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='guests' AND column_name='is_after_party') THEN
@@ -38,7 +55,13 @@ BEGIN
     END IF;
 END $$;
 
--- 3. AÑADIR NUEVAS COLUMNAS A LA TABLA INVITATIONS
+-- 4. AÑADIR NUEVAS COLUMNAS A LA TABLA INVITATIONS (Si existe, sino la creamos basico)
+CREATE TABLE IF NOT EXISTS public.invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invitations' AND column_name='advanced_settings') THEN
@@ -49,7 +72,7 @@ BEGIN
     END IF;
 END $$;
 
--- 4. CREAR NUEVAS TABLAS SI NO EXISTEN
+-- 5. CREAR NUEVAS TABLAS DE FUNCIONES INTERACTIVAS SI NO EXISTEN
 CREATE TABLE IF NOT EXISTS public.playlist_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
@@ -82,7 +105,7 @@ CREATE TABLE IF NOT EXISTS public.trivia_responses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. PERMISOS Y POLITICAS DE SEGURIDAD (Row Level Security)
+-- 6. PERMISOS Y POLITICAS DE SEGURIDAD (Row Level Security)
 
 -- Permitir uso genérico
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
