@@ -311,13 +311,12 @@ export default function EventDetails() {
                 />
             )}
 
-            {activeTab === 'tables' && (
-                <TablesTab
-                    event={event}
-                    guests={guests}
-                    onAssignTable={handleAssignTable}
-                />
-            )}
+            <TablesTab
+                event={event}
+                guests={guests}
+                onAssignTable={handleAssignTable}
+                onUpdateGuests={onUpdateGuests}
+            />
 
             {activeTab === 'design' && (
                 <DesignTab

@@ -368,7 +368,9 @@ export default function TableLayoutEditor({ event, guests, onUpdateGuests }: Tab
                                     <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar show-scrollbar">
                                         {unassignedGuests.map(g => (
                                             <div key={g.id} onClick={() => handleAssignGuest(g.id, selectedObject.label)} className="text-sm flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-slate-200 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
-                                                <span className="truncate text-slate-700">{g.first_name} {g.last_name}</span>
+                                                <span className="truncate text-slate-700 flex items-center gap-1">
+                                                    {g.first_name} {g.last_name} {g.is_after_party && <span title="Trasnoche" className="text-xs">🌙</span>}
+                                                </span>
                                                 <Plus size={14} className="text-blue-500" />
                                             </div>
                                         ))}
@@ -377,9 +379,46 @@ export default function TableLayoutEditor({ event, guests, onUpdateGuests }: Tab
                             </div>
                         </div>
                     ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                            <MousePointer2 size={48} className="mb-4 opacity-20" />
-                            <p className="text-sm">Selecciona una mesa en el plano para editar sus propiedades y asignar invitados.</p>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                            <h4 className="font-bold text-slate-700 text-sm border-b pb-2">Resumen de Ocupación</h4>
+                            <div className="space-y-2">
+                                {layout.objects.map(obj => {
+                                    const tableGuests = guests.filter(g => g.table_info === obj.label);
+                                    const count = tableGuests.length;
+                                    const max = obj.capacity || 0;
+                                    const isFull = count >= max && max > 0;
+                                    const isOverfull = count > max && max > 0;
+                                    return (
+                                        <div key={obj.id} className="flex justify-between items-center text-sm p-2 bg-white rounded-lg border border-slate-100 shadow-sm cursor-pointer hover:border-blue-300 transition-all" onClick={() => setSelectedId(obj.id)}>
+                                            <span className="font-medium text-slate-700">{obj.label}</span>
+                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${isOverfull ? 'bg-red-100 text-red-700' : isFull ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                {count} / {max}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                                {layout.objects.length === 0 && (
+                                    <div className="text-center text-slate-400 text-xs italic py-4">No hay mesas en el plano. Agrega una para comenzar.</div>
+                                )}
+                            </div>
+
+                            {event.has_after_party && (
+                                <div className="mt-6">
+                                    <h4 className="font-bold text-slate-700 text-sm border-b pb-2 mb-2">Trasnoche</h4>
+                                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 flex justify-between items-center shadow-sm">
+                                        <span className="text-sm font-medium text-purple-900 flex items-center gap-2">🌙 Total Trasnoche</span>
+                                        <span className="text-xs font-bold bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                                            {guests.filter(g => g.is_after_party).length}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-purple-600/70 mt-1 italic text-center">Tienen el icono 🌙 en la lista de invitados</p>
+                                </div>
+                            )}
+
+                            <div className="mt-8 text-center p-4">
+                                <MousePointer2 size={32} className="mx-auto mb-3 opacity-20 text-slate-600" />
+                                <p className="text-xs text-slate-500">Selecciona una mesa en la lista o en el plano para editarla detalladamente.</p>
+                            </div>
                         </div>
                     )}
                 </div>
