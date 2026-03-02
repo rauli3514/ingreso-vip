@@ -131,6 +131,33 @@ export default function SettingsTab({ event, onUpdateEvent }: SettingsTabProps) 
                         </div>
                     </div>
 
+                    {/* NEW SECTION FOR TABLE NAMES */}
+                    {formData.table_count && formData.table_count > 0 && (
+                        <div className="space-y-3 mt-4 border border-white/5 bg-white/5 p-4 rounded-lg">
+                            <label className="text-xs font-medium text-[#FBBF24] uppercase tracking-wider block">Nombres de Mesas (Opcional)</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {Array.from({ length: formData.table_count }).map((_, i) => (
+                                    <div key={i} className="space-y-1">
+                                        <label className="text-[10px] text-slate-400 uppercase text-ellipsis overflow-hidden whitespace-nowrap">Mesa {i + 1}</label>
+                                        <input
+                                            type="text"
+                                            value={formData.custom_table_names?.[String(i + 1)] || ''}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                custom_table_names: {
+                                                    ...(prev.custom_table_names || {}),
+                                                    [String(i + 1)]: e.target.value
+                                                }
+                                            }))}
+                                            placeholder={`Mesa ${i + 1}`}
+                                            className="w-full bg-black/20 border border-white/10 rounded-md py-1.5 px-3 text-white text-sm focus:outline-none focus:border-[#FBBF24]/50 focus:ring-1 focus:ring-[#FBBF24]/50 transition-all placeholder:text-slate-600"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
                         <div>
                             <div className="text-sm font-medium text-white">Habilitar Living / Sin Asignar</div>

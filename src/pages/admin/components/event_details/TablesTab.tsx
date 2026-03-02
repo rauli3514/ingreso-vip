@@ -32,7 +32,10 @@ export default function TablesTab({ event, guests, onAssignTable, onUpdateGuests
         onAssignTable(draggableId, newTableInfo);
     };
 
-    const standardTables = Array.from({ length: event.table_count || 0 }, (_, i) => `Mesa ${i + 1}`);
+    const standardTables = Array.from({ length: event.table_count || 0 }, (_, i) => {
+        const customName = event.custom_table_names?.[String(i + 1)];
+        return customName && customName.trim() !== '' ? customName.trim() : `Mesa ${i + 1}`;
+    });
     const customTables = new Set<string>();
     guests.forEach(g => {
         const normalized = normalizeTableName(g.table_info);
@@ -45,6 +48,13 @@ export default function TablesTab({ event, guests, onAssignTable, onUpdateGuests
         const aMatch = a.match(/^Mesa (\d+)$/);
         const bMatch = b.match(/^Mesa (\d+)$/);
         if (aMatch && bMatch) return parseInt(aMatch[1]) - parseInt(bMatch[1]);
+
+        const aIndex = standardTables.indexOf(a);
+        const bIndex = standardTables.indexOf(b);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+
         return a.localeCompare(b);
     });
 

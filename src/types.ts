@@ -71,6 +71,7 @@ export interface Event {
     venue_lat?: number;
     venue_lng?: number;
     dress_code_images?: string[]; // URLs
+    custom_table_names?: Record<string, string>; // Nuevo: Map '1' -> 'Mesa Principal'
 }
 
 export interface Guest {
