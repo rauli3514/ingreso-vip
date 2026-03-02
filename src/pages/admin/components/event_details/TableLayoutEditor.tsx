@@ -58,18 +58,22 @@ export default function TableLayoutEditor({ event, guests, onUpdateGuests }: Tab
 
     const fetchLayout = async () => {
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('event_layouts')
                 .select('*')
                 .eq('event_id', event.id)
-                .single();
+                .order('updated_at', { ascending: false })
+                .limit(1);
 
-            if (data) {
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                const layoutData = data[0];
                 setLayout({
-                    id: data.id,
-                    width: Number(data.width),
-                    height: Number(data.height),
-                    objects: typeof data.objects === 'string' ? JSON.parse(data.objects) : data.objects
+                    id: layoutData.id,
+                    width: Number(layoutData.width),
+                    height: Number(layoutData.height),
+                    objects: typeof layoutData.objects === 'string' ? JSON.parse(layoutData.objects) : layoutData.objects
                 });
             }
         } catch (err) {
@@ -83,7 +87,8 @@ export default function TableLayoutEditor({ event, guests, onUpdateGuests }: Tab
                 event_id: event.id,
                 width: layout.width,
                 height: layout.height,
-                objects: layout.objects
+                objects: layout.objects,
+                updated_at: new Date().toISOString()
             };
 
             let error;
@@ -566,9 +571,14 @@ const TableGroup = ({ obj, isSelected, onSelect, onChange, guests }: any) => {
                 onClick={(e) => { e.cancelBubble = true; onSelect(); }}
                 onTap={(e) => { e.cancelBubble = true; onSelect(); }}
                 onDragEnd={(e) => {
-                    onChange({ x: e.target.x(), y: e.target.y() });
+                    e.cancelBubble = true;
+                    const node = groupRef.current;
+                    if (node) {
+                        onChange({ x: node.x(), y: node.y() });
+                    }
                 }}
-                onTransformEnd={() => {
+                onTransformEnd={(e) => {
+                    e.cancelBubble = true;
                     const node = groupRef.current;
                     const scaleX = node.scaleX();
                     const scaleY = node.scaleY();
