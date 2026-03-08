@@ -375,13 +375,35 @@ export default function GuestApp() {
                 }
             `}</style>
             <div className="fixed inset-0 overflow-hidden" style={{ fontFamily: event.theme_font_family || 'Outfit' }}>
-                {/* Background */}
+                {/* Background — imagen completa sin recortes en portrait mobile */}
                 <div className="absolute inset-0">
-                    <img src={bgImage} className="w-full h-full object-cover" alt="Background" />
+                    {/* Color de fondo base (tema) que se ve donde la imagen no alcanza */}
+                    <div
+                        className="absolute inset-0"
+                        style={{ backgroundColor: themeColors.background }}
+                    />
+                    {/* Imagen en tamaño completo, anclada arriba sin zoom */}
                     <div
                         className="absolute inset-0"
                         style={{
-                            background: `linear-gradient(to bottom, ${themeColors.background}99, ${themeColors.background}66, ${themeColors.background}BB)`
+                            backgroundImage: `url(${bgImage})`,
+                            backgroundSize: '100% auto',
+                            backgroundPosition: 'top center',
+                            backgroundRepeat: 'no-repeat',
+                        }}
+                    />
+                    {/* Gradiente de transición imagen → fondo oscuro */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            background: `linear-gradient(
+                                to bottom,
+                                transparent 0%,
+                                transparent 35%,
+                                ${themeColors.background}99 60%,
+                                ${themeColors.background}EE 80%,
+                                ${themeColors.background} 100%
+                            )`
                         }}
                     />
                 </div>
