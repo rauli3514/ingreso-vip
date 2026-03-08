@@ -63,7 +63,6 @@ export default function ReceptionistTab({ event, guests, onUpdateEvent, onUpdate
             else if (uploadTarget.type === 'table_video' && uploadTarget.id) {
                 const currentConfig = event.video_configuration || {};
                 const newConfig = { ...currentConfig, [uploadTarget.id]: publicUrl };
-
                 await supabase.from('events').update({ video_configuration: newConfig }).eq('id', event.id);
                 onUpdateEvent({ video_configuration: newConfig });
             }
@@ -75,10 +74,8 @@ export default function ReceptionistTab({ event, guests, onUpdateEvent, onUpdate
                     .update({ assigned_video_url: publicUrl })
                     .in('id', guestIds);
 
-                // Update local guests
                 const updatedGuests = guests.map(g => guestIds.includes(g.id) ? { ...g, assigned_video_url: publicUrl } : g);
                 onUpdateGuests(updatedGuests);
-
                 setSelectedGuestsForVideo(new Set());
                 alert(`Video asignado a ${guestIds.length} invitados correctamente.`);
             }
@@ -123,47 +120,59 @@ export default function ReceptionistTab({ event, guests, onUpdateEvent, onUpdate
                             disabled={isUploading}
                             className="btn btn-primary text-xs py-2 px-4 flex items-center gap-2"
                         >
-                            {isUploading && uploadTarget?.type === 'default_video' ? 'Subiendo...' : <><Upload size={14} /> {event.video_url_default ? 'Cambiar Video' : 'Subir Video Default'}</>}
+                            {isUploading && uploadTarget?.type === 'default_video'
+                                ? 'Subiendo...'
+                                : <><Upload size={14} /> {event.video_url_default ? 'Cambiar Video' : 'Subir Video Default'}</>
+                            }
                         </button>
                     </div>
                 </div>
 
-                {/* Table Videos */}
-                <div className="space-y-4">
+                {/* Videos por Mesa — usa nombres personalizados si existen */}
+                <div className="space-y-4 mb-8">
                     <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">Videos por Mesa</h4>
                     <div className="grid grid-cols-1 gap-3">
-                        {[...Array.from({ length: event.table_count || 5 }, (_, i) => `Mesa ${i + 1}`)].map(tableName => (
-                            <div key={tableName} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
-                                        {tableName.replace('Mesa ', '')}
+                        {Array.from({ length: event.table_count || 5 }, (_, i) => {
+                            const num = i + 1;
+                            const customName = event.custom_table_names?.[String(num)];
+                            const tableName = customName || `Mesa ${num}`;
+                            const hasVideo = !!event.video_configuration?.[tableName];
+                            return (
+                                <div key={num} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
+                                            {num}
+                                        </div>
+                                        <span className="text-sm text-slate-200 font-medium">{tableName}</span>
                                     </div>
-                                    <span className="text-sm text-slate-200 font-medium">{tableName}</span>
+                                    <div className="flex items-center gap-2">
+                                        {hasVideo ? (
+                                            <span className="text-xs text-[#FBBF24] mr-2 flex items-center gap-1">
+                                                <Video size={10} /> Asignado
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-slate-500 italic mr-2">Sin video asignado</span>
+                                        )}
+                                        <button
+                                            onClick={() => handleUploadClick('table_video', tableName)}
+                                            disabled={isUploading}
+                                            className={`p-2 rounded-lg transition-colors disabled:opacity-40 ${hasVideo ? 'text-[#FBBF24] bg-[#FBBF24]/10' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+                                        >
+                                            <Upload size={14} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {event.video_configuration?.[tableName] ? (
-                                        <span className="text-xs text-[#FBBF24] mr-2 flex items-center gap-1"><Video size={10} /> Asignado</span>
-                                    ) : (
-                                        <span className="text-xs text-slate-500 italic mr-2">Sin video asignado</span>
-                                    )}
-                                    <button
-                                        onClick={() => handleUploadClick('table_video', tableName)}
-                                        className={`p-2 rounded-lg transition-colors ${event.video_configuration?.[tableName] ? 'text-[#FBBF24] bg-[#FBBF24]/10' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
-                                    >
-                                        <Upload size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Custom Personal Videos */}
+                {/* Videos Personalizados por Invitado */}
                 <div className="pt-6 border-t border-white/5">
                     <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">Videos Personalizados (Uno o Varios Invitados)</h4>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[500px]">
-                        {/* Selection Panel */}
+                        {/* Panel de selección */}
                         <div className="glass-card p-4 flex flex-col border border-white/10">
                             <div className="mb-4 relative">
                                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -223,7 +232,7 @@ export default function ReceptionistTab({ event, guests, onUpdateEvent, onUpdate
                             </div>
                         </div>
 
-                        {/* Upload Actions */}
+                        {/* Panel de acción */}
                         <div className="flex flex-col justify-center gap-4">
                             <div className="bg-white/5 p-6 rounded-xl border border-white/10 text-center">
                                 <div className="w-12 h-12 rounded-full bg-[#FBBF24]/20 flex items-center justify-center mx-auto mb-4 text-[#FBBF24]">
