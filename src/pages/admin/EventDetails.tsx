@@ -6,7 +6,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import {
     ArrowLeft, Calendar, Users, MapPin,
     Upload, Plus, Clock, CheckCircle2,
-    Palette, Video, Download, Settings, QrCode, Music
+    Palette, Video, Download, Settings, QrCode, Music, Camera
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -21,6 +21,7 @@ import ReceptionistTab from './components/event_details/ReceptionistTab';
 import DownloadsTab from './components/event_details/DownloadsTab';
 import SettingsTab from './components/event_details/SettingsTab';
 import PlaylistTab from './components/event_details/PlaylistTab';
+import PhotoKioskTab from './components/event_details/PhotoKioskTab';
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>();
@@ -28,7 +29,7 @@ export default function EventDetails() {
     const [event, setEvent] = useState<Event | null>(null);
     const [guests, setGuests] = useState<Guest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'guests' | 'tables' | 'settings' | 'design' | 'receptionist' | 'downloads' | 'playlist'>('guests');
+    const [activeTab, setActiveTab] = useState<'guests' | 'tables' | 'settings' | 'design' | 'receptionist' | 'downloads' | 'playlist' | 'photokiosk'>('guests');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -238,6 +239,13 @@ export default function EventDetails() {
                         >
                             <QrCode size={16} className="mr-2" /> Ver App
                         </button>
+                        <button
+                            onClick={() => window.open(`${window.location.origin}/kiosco/${event?.id}?admin=1`, '_blank')}
+                            className="btn btn-outline border-cyan-200 text-cyan-600 hover:bg-cyan-50 hover:border-cyan-300"
+                            title="Ver Quiosco de Fotos"
+                        >
+                            <Camera size={16} className="mr-2" /> Quiosco
+                        </button>
                         {event.status !== 'closed' && (
                             <>
                                 <button
@@ -276,6 +284,7 @@ export default function EventDetails() {
                         { id: 'receptionist', label: 'Recepcionista', icon: Video },
                         { id: 'playlist', label: 'Música', icon: Music },
                         { id: 'downloads', label: 'Descargas', icon: Download },
+                        { id: 'photokiosk', label: 'Foto Quiosco', icon: Camera },
                         { id: 'settings', label: 'Configuración', icon: Settings },
                     ].map((tab) => (
                         <button
@@ -338,6 +347,12 @@ export default function EventDetails() {
 
             {activeTab === 'playlist' && (
                 <PlaylistTab
+                    event={event}
+                />
+            )}
+
+            {activeTab === 'photokiosk' && (
+                <PhotoKioskTab
                     event={event}
                 />
             )}

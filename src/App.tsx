@@ -12,6 +12,7 @@ import InvitationEditor from './pages/admin/invitation/InvitationEditor';
 
 import GuestApp from './pages/guest/GuestApp';
 import InvitationRenderer from './pages/public/invitation/InvitationRenderer';
+import PhotoKioskPage from './pages/public/PhotoKioskPage';
 
 function App() {
     return (
@@ -35,6 +36,7 @@ function App() {
                     <Route path="/evento/:id" element={<GuestApp />} />
                     <Route path="/invitacion/:id" element={<InvitationRenderer />} />
                     <Route path="/invitation/:id" element={<InvitationRenderer />} />
+                    <Route path="/kiosco/:id" element={<PhotoKioskPage />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
