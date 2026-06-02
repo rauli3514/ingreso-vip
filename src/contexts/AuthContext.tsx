@@ -48,6 +48,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } else {
                 setRole(null);
                 setLoading(false);
+                localStorage.removeItem('eventpix_data');
+                localStorage.removeItem('eventpix_auth');
             }
         });
 
@@ -89,6 +91,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const signOut = async () => {
+        localStorage.removeItem('eventpix_data');
+        localStorage.removeItem('eventpix_auth');
         await supabase.auth.signOut();
     };
 

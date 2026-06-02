@@ -54,7 +54,7 @@ const calculateTimeRemaining = (targetTime: string) => {
 };
 
 export default function GuestApp() {
-    console.log('🔄 GUEST APP UPDATED: FORCE RENDER v2025.9');
+    console.log('🔄 GUEST APP UPDATED: v2026.1 - Voice & CSV Fix');
     const { id } = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -66,6 +66,7 @@ export default function GuestApp() {
     const [searchQuery, setSearchQuery] = useState('');
     const [guests, setGuests] = useState<Guest[]>([]);
     const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
     const [timeRemaining, setTimeRemaining] = useState<string>('');
 
     // Timer for Trasnoche
@@ -80,6 +81,19 @@ export default function GuestApp() {
             return () => clearInterval(interval);
         }
     }, [event?.after_party_time]);
+
+    // Cleanup recognition on unmount
+    useEffect(() => {
+        return () => {
+            if (recognitionRef.current) {
+                try {
+                    recognitionRef.current.stop();
+                } catch (e) {
+                    // Ignore
+                }
+            }
+        };
+    }, []);
 
     // Get theme colors
     const theme = getThemeById(event?.theme_id || 'default');
@@ -280,20 +294,78 @@ export default function GuestApp() {
 
 
     const toggleMic = () => {
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            alert('Usa HTTPS para activar el micrófono en iPhone.');
+            return;
+        }
 
-        const recognition = new (window as any).webkitSpeechRecognition();
-        recognition.lang = 'es-ES';
-        recognition.start();
-        setIsListening(true);
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('Navegador no compatible con voz.');
+            return;
+        }
 
-        recognition.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            setSearchQuery(transcript);
+        if (isListening) {
+            if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (e) { }
+            }
             setIsListening(false);
-        };
+            return;
+        }
 
-        recognition.onerror = () => setIsListening(false);
-        recognition.onend = () => setIsListening(false);
+        // Desbloquear audio para Safari
+        const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+            const audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // Activación inmediata
+        setIsListening(true);
+        setSearchQuery('');
+
+        try {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-AR';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                // Vibrar brevemente para confirmar que está escuchando
+                if ('vibrate' in navigator) navigator.vibrate(50);
+                console.log('🎤 Escuchando...');
+            };
+
+            recognition.onresult = (event: any) => {
+                const results = event.results;
+                const transcript = results[results.length - 1][0].transcript;
+                setSearchQuery(transcript);
+
+                if (results[results.length - 1].isFinal) {
+                    setIsListening(false);
+                    recognition.stop();
+                }
+            };
+
+            recognition.onerror = (event: any) => {
+                console.error('❌ Error mic:', event.error);
+                if (event.error === 'not-allowed') {
+                    alert('Permiso denegado. Actívalo en Ajustes > Safari > Micrófono.');
+                }
+                setIsListening(false);
+            };
+
+            recognition.onend = () => {
+                setIsListening(false);
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
+
+        } catch (error) {
+            console.error('🔥 Error:', error);
+            setIsListening(false);
+        }
     };
 
     const handleGuestSelect = (guest: Guest) => {
@@ -310,15 +382,21 @@ export default function GuestApp() {
             .replace(/[\u0300-\u036f]/g, ''); // Remover acentos
     };
 
-    const filteredGuests = searchQuery.length > 2
-        ? guests.filter(g => {
-            const fullName = `${g.first_name} ${g.last_name} ${g.display_name || ''}`;
-            const normalizedFullName = normalizeText(fullName);
-            const normalizedQuery = normalizeText(searchQuery);
+    const filteredGuests = searchQuery.length >= 2
+        ? guests
+            .filter(g => {
+                const fullName = `${g.first_name} ${g.last_name} ${g.display_name || ''}`;
+                const normalizedFullName = normalizeText(fullName);
+                const normalizedQuery = normalizeText(searchQuery);
 
-            // Búsqueda flexible: permite coincidencias parciales
-            return normalizedFullName.includes(normalizedQuery);
-        })
+                // Búsqueda flexible: permite coincidencias parciales
+                return normalizedFullName.includes(normalizedQuery);
+            })
+            .sort((a, b) => {
+                const nameA = (a.display_name || `${a.first_name} ${a.last_name}`).toLowerCase();
+                const nameB = (b.display_name || `${b.first_name} ${b.last_name}`).toLowerCase();
+                return nameA.localeCompare(nameB, 'es');
+            })
         : [];
 
     if (loading) {
@@ -665,7 +743,7 @@ export default function GuestApp() {
                                         </div>
                                     )}
 
-                                    {searchQuery && searchQuery.length > 2 && filteredGuests.length === 0 && (
+                                    {searchQuery && searchQuery.length >= 2 && filteredGuests.length === 0 && (
                                         <div className="text-center text-white/70 p-6">
                                             No se encontraron coincidencias
                                         </div>

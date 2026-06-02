@@ -23,26 +23,34 @@ export default function DownloadsTab({ event, guests }: DownloadsTabProps) {
     const downloadGuestsCSV = () => {
         if (!guests.length) return alert('No hay invitados para descargar.');
 
-        // Define columns
-        const headers = ['Nombre', 'Apellido', 'Display Name', 'Mesa', 'Estado', 'Email', 'Telefono'];
-        const csvContent = [
-            headers.join(','),
+        // Define columns in requested order: Apellido, Nombre, Mesa
+        const headers = ['Apellido', 'Nombre', 'Mesa', 'Estado', 'Telefono', 'Email'];
+
+        // Use semicolon (;) for better compatibility with Spanish Excel
+        const separator = ';';
+
+        const csvRows = [
+            headers.join(separator),
             ...guests.map(g => [
-                `"${g.first_name || ''}"`,
                 `"${g.last_name || ''}"`,
-                `"${g.display_name || ''}"`,
+                `"${g.first_name || ''}"`,
                 `"${g.table_info || ''}"`,
                 `"${g.status}"`,
-                `"${(g as any).email || ''}"`,
-                `"${(g as any).phone || ''}"`
-            ].join(','))
-        ].join('\n');
+                `"${(g as any).phone || ''}"`,
+                `"${(g as any).email || ''}"`
+            ].join(separator))
+        ];
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const csvContent = csvRows.join('\r\n');
+
+        // Add UTF-8 BOM for Excel compatibility
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `${event?.name || 'evento'}_invitados.csv`);
+        link.setAttribute('download', `${event?.name || 'evento'}_lista_invitados.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

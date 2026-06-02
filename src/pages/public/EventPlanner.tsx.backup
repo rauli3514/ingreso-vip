@@ -1,0 +1,2139 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Stage, Layer, Rect, Circle, Text as KonvaText, Group, Transformer, Line } from 'react-konva';
+import Papa from 'papaparse';
+import jsPDF from 'jspdf';
+import {
+    Sparkles, Plus, Trash2, Download, Upload, ArrowRight, ChevronRight, Check,
+    CheckCircle2, Info, Calendar, Users, Music, Smartphone, Share2, Crown, X,
+    Gift, AlertCircle, Undo, HelpCircle, Edit2, Home, Heart, Smile, PartyPopper,
+    Moon, Trash, Search, Filter, MessageCircle, RefreshCw, ZoomIn, ZoomOut, CheckSquare,
+    DollarSign, MapPin, Eye
+} from 'lucide-react';
+import { getUpdatedChairs } from '../../lib/layout-utils';
+
+// Core Interfaces
+interface PlannerGuest {
+    id: string;
+    first_name: string;
+    last_name: string;
+    display_name: string;
+    table_info?: string;
+    group?: string; // Familia, Amigos, etc.
+    status: 'pending' | 'confirmed';
+    is_after_party?: boolean;
+    note?: string;
+}
+
+interface PlannerTable {
+    id: string;
+    type: 'round' | 'rect';
+    x: number;
+    y: number;
+    rotation: number;
+    radius?: number; // round
+    width?: number; // rect
+    height?: number; // rect
+    label: string;
+    capacity: number;
+}
+
+export default function EventPlanner() {
+    const navigate = useNavigate();
+
+    // ----------------------------------------------------
+    // STATE: Navigation & Steps
+    // ----------------------------------------------------
+    const [viewMode, setViewMode] = useState<'landing' | 'wizard' | 'planner'>('landing');
+    const [wizardStep, setWizardStep] = useState<number>(1);
+
+    // ----------------------------------------------------
+    // STATE: Wizard Data
+    // ----------------------------------------------------
+    const [eventType, setEventType] = useState<string>('');
+    const [customEventType, setCustomEventType] = useState<string>('');
+    const [estimatedGuests, setEstimatedGuests] = useState<number>(100);
+    const [alreadyHasGuestList, setAlreadyHasGuestList] = useState<boolean | null>(null);
+
+    // Temp file upload / CSV preview state
+    const [csvParsedGuests, setCsvParsedGuests] = useState<any[]>([]);
+    const [csvValidationError, setCsvValidationError] = useState<string | null>(null);
+    const [csvFile, setCsvFile] = useState<File | null>(null);
+
+    // ----------------------------------------------------
+    // STATE: Planner Workspace
+    // ----------------------------------------------------
+    const [guests, setGuests] = useState<PlannerGuest[]>([]);
+    const [tables, setTables] = useState<PlannerTable[]>([]);
+    const [salonWidth, setSalonWidth] = useState<number>(1500); // in cm
+    const [salonHeight, setSalonHeight] = useState<number>(1000); // in cm
+    
+    // UI state in planner
+    const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+    const [scale, setScale] = useState<number>(0.35);
+    const [position, setPosition] = useState<{ x: number; y: number }>({ x: 40, y: 40 });
+    const [showGrid, setShowGrid] = useState<boolean>(true);
+    const [guestSearchQuery, setGuestSearchQuery] = useState<string>('');
+    const [guestFilterTab, setGuestFilterTab] = useState<'all' | 'unassigned' | 'confirmed' | 'pending' | 'after_party'>('all');
+    const [editingGuest, setEditingGuest] = useState<PlannerGuest | null>(null);
+    const [isAddGuestOpen, setIsAddGuestOpen] = useState<boolean>(false);
+    
+    // Manual Guest input states
+    const [newGuestFirstName, setNewGuestFirstName] = useState('');
+    const [newGuestLastName, setNewGuestLastName] = useState('');
+    const [newGuestGroup, setNewGuestGroup] = useState('Familia');
+    const [newGuestIsAfterParty, setNewGuestIsAfterParty] = useState(false);
+    const [newGuestNote, setNewGuestNote] = useState('');
+
+    // Conversion and Recommendation draws
+    const [isPremiumDrawerOpen, setIsPremiumDrawerOpen] = useState<boolean>(false);
+    const [isRecommendationsOpen, setIsRecommendationsOpen] = useState<boolean>(false);
+    const [showConversionCelebration, setShowConversionCelebration] = useState<boolean>(false);
+    const [hasTriggeredConversion, setHasTriggeredConversion] = useState<boolean>(false);
+
+    // Canvas references
+    const stageRef = useRef<any>(null);
+
+    // ----------------------------------------------------
+    // LOCAL STORAGE SYNC
+    // ----------------------------------------------------
+    useEffect(() => {
+        const storedFreeEvent = localStorage.getItem('eventpix_free_event');
+        if (storedFreeEvent) {
+            try {
+                const parsed = JSON.parse(storedFreeEvent);
+                if (parsed.guests) setGuests(parsed.guests);
+                if (parsed.tables) setTables(parsed.tables);
+                if (parsed.eventType) setEventType(parsed.eventType);
+                if (parsed.estimatedGuests) setEstimatedGuests(parsed.estimatedGuests);
+                if (parsed.salonWidth) setSalonWidth(parsed.salonWidth);
+                if (parsed.salonHeight) setSalonHeight(parsed.salonHeight);
+                // If there's already progress, let them enter or offer it
+            } catch (e) {
+                console.error('Error loading stored event data', e);
+            }
+        }
+    }, []);
+
+    const saveEventToStorage = (updatedGuests: PlannerGuest[], updatedTables: PlannerTable[]) => {
+        const payload = {
+            eventType,
+            estimatedGuests,
+            guests: updatedGuests,
+            tables: updatedTables,
+            salonWidth,
+            salonHeight
+        };
+        localStorage.setItem('eventpix_free_event', JSON.stringify(payload));
+    };
+
+    // Auto-save whenever guests, tables or dimensions change
+    useEffect(() => {
+        if (viewMode === 'planner') {
+            saveEventToStorage(guests, tables);
+        }
+    }, [guests, tables, salonWidth, salonHeight, eventType, estimatedGuests]);
+
+    // ----------------------------------------------------
+    // CONVERSION PSYCHOLOGY CHECKER
+    // ----------------------------------------------------
+    useEffect(() => {
+        if (viewMode === 'planner' && !hasTriggeredConversion) {
+            // Conversion criteria: >= 30 guests loaded OR >= 2 tables created
+            if (guests.length >= 25 || tables.length >= 2) {
+                setTimeout(() => {
+                    setShowConversionCelebration(true);
+                    setHasTriggeredConversion(true);
+                }, 3000);
+            }
+        }
+    }, [guests.length, tables.length, viewMode]);
+
+    // ----------------------------------------------------
+    // WIZARD TRANSITIONS & ACTIONS
+    // ----------------------------------------------------
+    const startWizard = () => {
+        setWizardStep(1);
+        setViewMode('wizard');
+    };
+
+    const handleRestoreExisting = () => {
+        setViewMode('planner');
+    };
+
+    const resetEntirePlanner = () => {
+        if (window.confirm('¿Estás seguro de que deseas borrar todo y empezar de cero? Esta acción no se puede deshacer.')) {
+            localStorage.removeItem('eventpix_free_event');
+            setGuests([]);
+            setTables([]);
+            setEventType('');
+            setEstimatedGuests(100);
+            setSalonWidth(1500);
+            setSalonHeight(1000);
+            setViewMode('landing');
+            setWizardStep(1);
+            setAlreadyHasGuestList(null);
+            setCsvParsedGuests([]);
+            setCsvFile(null);
+            setHasTriggeredConversion(false);
+            setShowConversionCelebration(false);
+        }
+    };
+
+    const handleWizardNext = () => {
+        if (wizardStep === 2 && !eventType && !customEventType) {
+            alert('Por favor selecciona o escribe el tipo de evento.');
+            return;
+        }
+        setWizardStep(prev => prev + 1);
+    };
+
+    const handleWizardBack = () => {
+        setWizardStep(prev => Math.max(1, prev - 1));
+    };
+
+    const selectEventType = (type: string) => {
+        setEventType(type);
+        setCustomEventType('');
+    };
+
+    // ----------------------------------------------------
+    // TEMPLATE & EXCEL/CSV ACTIONS
+    // ----------------------------------------------------
+    const downloadCsvTemplate = () => {
+        const headers = 'Mesa,Nombre,Apellido,Grupo,Confirmado,Nota\n';
+        const sample1 = 'Mesa 1,Juan,Pérez,Familia,Sí,Vegetariano\n';
+        const sample2 = 'Mesa 1,María,González,Familia,Sí,\n';
+        const sample3 = 'Mesa 2,Carlos,Tevez,Amigos,No,🌙 Trasnoche\n';
+        const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + sample1 + sample2 + sample3);
+        
+        const link = document.createElement('a');
+        link.setAttribute('href', csvContent);
+        link.setAttribute('download', `plantilla_organizacion_eventpix.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const exportCurrentToCsv = () => {
+        if (guests.length === 0) {
+            alert('Aún no tienes invitados para exportar.');
+            return;
+        }
+        let csvContent = 'Mesa,Nombre,Apellido,Grupo,Confirmado,Nota\n';
+        guests.forEach(g => {
+            const mesa = g.table_info || '';
+            const grupo = g.group || '';
+            const confirmado = g.status === 'confirmed' ? 'Sí' : 'No';
+            const nota = (g.is_after_party ? '🌙 Trasnoche. ' : '') + (g.note || '');
+            
+            // simple escape
+            const escape = (text: string) => `"${text.replace(/"/g, '""')}"`;
+            
+            csvContent += `${escape(mesa)},${escape(g.first_name)},${escape(g.last_name)},${escape(grupo)},${escape(confirmado)},${escape(nota)}\n`;
+        });
+
+        const encodedUri = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `evento_${eventType || 'planificador'}_export.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setCsvFile(file);
+        setCsvValidationError(null);
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                if (results.errors.length > 0) {
+                    setCsvValidationError('Hubo un error al leer el archivo. Asegúrate de usar un formato CSV válido.');
+                    return;
+                }
+
+                const rawData = results.data as any[];
+                if (rawData.length === 0) {
+                    setCsvValidationError('El archivo CSV está vacío.');
+                    return;
+                }
+
+                // Normalizar llaves a minúscula
+                const normalized = rawData.map(row => {
+                    const normalizedRow: any = {};
+                    Object.keys(row).forEach(key => {
+                        normalizedRow[key.toLowerCase().trim()] = row[key];
+                    });
+                    return normalizedRow;
+                });
+
+                const parsed = normalized.map((row, idx) => {
+                    const mesa = row['mesa'] || row['table'] || row['ubicacion'] || '';
+                    const nombre = row['nombre'] || row['first_name'] || row['name'] || '';
+                    const apellido = row['apellido'] || row['last_name'] || row['surname'] || '';
+                    const grupo = row['grupo'] || row['group'] || 'Otros';
+                    const confirmadoStr = row['confirmado'] || row['confirmed'] || 'no';
+                    const nota = row['nota'] || row['note'] || '';
+
+                    const isConfirmed = confirmadoStr.toLowerCase().includes('si') || 
+                                      confirmadoStr.toLowerCase().includes('sí') || 
+                                      confirmadoStr.toLowerCase() === 'yes' || 
+                                      confirmadoStr.toLowerCase() === 'true';
+
+                    const isAfterParty = nota.toLowerCase().includes('trasnoche') || nota.toLowerCase().includes('🌙');
+
+                    return {
+                        id: `guest-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+                        first_name: nombre.trim(),
+                        last_name: apellido.trim(),
+                        display_name: `${nombre.trim()} ${apellido.trim()}`,
+                        table_info: mesa.trim() || undefined,
+                        group: grupo.trim() || 'Familia',
+                        status: isConfirmed ? 'confirmed' : 'pending',
+                        is_after_party: isAfterParty,
+                        note: nota.trim() || undefined,
+                        isValid: !!nombre.trim()
+                    };
+                });
+
+                setCsvParsedGuests(parsed);
+            },
+            error: (err) => {
+                setCsvValidationError(`Error al parsear el archivo: ${err.message}`);
+            }
+        });
+    };
+
+    const confirmCsvImport = () => {
+        const validGuests = csvParsedGuests.filter(g => g.isValid).map(g => ({
+            id: g.id,
+            first_name: g.first_name,
+            last_name: g.last_name,
+            display_name: g.display_name,
+            table_info: g.table_info,
+            group: g.group,
+            status: g.status,
+            is_after_party: g.is_after_party,
+            note: g.note
+        }));
+
+        if (validGuests.length === 0) {
+            alert('No se encontraron invitados válidos para importar.');
+            return;
+        }
+
+        // Si ya hay invitados en el planner, unirlos
+        const combined = [...guests, ...validGuests];
+        setGuests(combined);
+
+        // Auto-crear mesas mencionadas en el CSV que no existan
+        const uniqueTableNames = Array.from(new Set(validGuests.map(g => g.table_info).filter(Boolean))) as string[];
+        const currentTableNames = tables.map(t => t.label);
+        const newTables: PlannerTable[] = [];
+
+        uniqueTableNames.forEach((tName, index) => {
+            if (!currentTableNames.includes(tName)) {
+                const id = `table-${Date.now()}-${index}`;
+                // Grid layout sutil para ubicarlas inicialmente
+                const col = index % 4;
+                const row = Math.floor(index / 4);
+                newTables.push({
+                    id,
+                    type: 'round',
+                    x: 200 + col * 250,
+                    y: 200 + row * 250,
+                    rotation: 0,
+                    radius: 75,
+                    label: tName,
+                    capacity: getUpdatedChairs('round', { radius: 75, width: 0, height: 0 })
+                });
+            }
+        });
+
+        if (newTables.length > 0) {
+            setTables(prev => [...prev, ...newTables]);
+        }
+
+        saveEventToStorage(combined, [...tables, ...newTables]);
+        setViewMode('planner');
+    };
+
+    const simulateDevCsvImport = () => {
+        const mockGuests = [
+            { id: '1', first_name: 'Lionel', last_name: 'Messi', display_name: 'Lionel Messi', group: 'Familia', status: 'confirmed', is_after_party: false, note: 'Mesa Principal' },
+            { id: '2', first_name: 'Antonela', last_name: 'Roccuzzo', display_name: 'Antonela Roccuzzo', group: 'Familia', status: 'confirmed', is_after_party: false, note: 'Mesa Principal' },
+            { id: '3', first_name: 'Rodrigo', last_name: 'De Paul', display_name: 'Rodrigo De Paul', group: 'Amigos', status: 'confirmed', is_after_party: false, note: '' },
+            { id: '4', first_name: 'Ángel', last_name: 'Di María', display_name: 'Ángel Di María', group: 'Familia', status: 'confirmed', is_after_party: false, note: '' },
+            { id: '5', first_name: 'Emiliano', last_name: 'Martínez', display_name: 'Emiliano Martínez', group: 'Amigos', status: 'pending', is_after_party: true, note: '🌙 Con ganas de bailar' },
+            { id: '6', first_name: 'Lautaro', last_name: 'Martínez', display_name: 'Lautaro Martínez', group: 'Amigos', status: 'confirmed', is_after_party: false, note: '' },
+            { id: '7', first_name: 'Alexis', last_name: 'Mac Allister', display_name: 'Alexis Mac Allister', group: 'Amigos', status: 'pending', is_after_party: false, note: '' },
+            { id: '8', first_name: 'Enzo', last_name: 'Fernández', display_name: 'Enzo Fernández', group: 'Amigos', status: 'confirmed', is_after_party: true, note: '' },
+            { id: '9', first_name: 'Cuti', last_name: 'Romero', display_name: 'Cuti Romero', group: 'Trabajo', status: 'confirmed', is_after_party: false, note: 'Vegetariano' },
+            { id: '10', first_name: 'Lisandro', last_name: 'Martínez', display_name: 'Lisandro Martínez', group: 'Trabajo', status: 'confirmed', is_after_party: false, note: '' }
+        ] as PlannerGuest[];
+
+        const mockTables = [
+            { id: 't1', type: 'round' as const, x: 250, y: 250, rotation: 0, radius: 75, label: 'Mesa 1', capacity: 10 },
+            { id: 't2', type: 'rect' as const, x: 600, y: 350, rotation: 0, width: 200, height: 100, label: 'Mesa 2', capacity: 12 }
+        ] as PlannerTable;
+
+        setGuests(mockGuests);
+        setTables([mockTables as any]);
+        saveEventToStorage(mockGuests, [mockTables as any]);
+        setViewMode('planner');
+    };
+
+    // ----------------------------------------------------
+    // PLANNER ACTIONS: Table layout management
+    // ----------------------------------------------------
+    const addTable = (type: 'round' | 'rect') => {
+        const id = `table-${Date.now()}`;
+        // Posicionar en el centro visible del viewport
+        const centerX = (-position.x + (window.innerWidth / 3)) / scale;
+        const centerY = (-position.y + (window.innerHeight / 3)) / scale;
+
+        const labelNum = tables.length + 1;
+        const newTable: PlannerTable = type === 'round' 
+            ? {
+                id,
+                type,
+                x: Math.max(100, Math.min(salonWidth - 100, centerX)),
+                y: Math.max(100, Math.min(salonHeight - 100, centerY)),
+                rotation: 0,
+                radius: 75,
+                label: `Mesa ${labelNum}`,
+                capacity: getUpdatedChairs('round', { radius: 75, width: 0, height: 0 })
+            }
+            : {
+                id,
+                type,
+                x: Math.max(100, Math.min(salonWidth - 200, centerX)),
+                y: Math.max(100, Math.min(salonHeight - 100, centerY)),
+                rotation: 0,
+                width: 200,
+                height: 100,
+                label: `Mesa ${labelNum}`,
+                capacity: getUpdatedChairs('rect', { radius: 0, width: 200, height: 100 })
+            };
+
+        const updatedTables = [...tables, newTable];
+        setTables(updatedTables);
+        setSelectedTableId(id);
+    };
+
+    const updateTable = (id: string, attrs: Partial<PlannerTable>) => {
+        const updated = tables.map(t => t.id === id ? { ...t, ...attrs } as PlannerTable : t);
+        setTables(updated);
+    };
+
+    const deleteTable = (id: string) => {
+        const table = tables.find(t => t.id === id);
+        if (!table) return;
+
+        if (window.confirm(`¿Seguro que deseas eliminar la "${table.label}"? Los invitados sentados aquí pasarán a estar sin ubicar.`)) {
+            // Unassign guests
+            const updatedGuests = guests.map(g => g.table_info === table.label ? { ...g, table_info: undefined } : g);
+            setGuests(updatedGuests);
+
+            const updatedTables = tables.filter(t => t.id !== id);
+            setTables(updatedTables);
+            setSelectedTableId(null);
+        }
+    };
+
+    const selectedTable = useMemo(() => {
+        return tables.find(t => t.id === selectedTableId) || null;
+    }, [tables, selectedTableId]);
+
+    // ----------------------------------------------------
+    // PLANNER ACTIONS: Guests assignment & management
+    // ----------------------------------------------------
+    const assignedGuests = useMemo(() => {
+        if (!selectedTable) return [];
+        return guests.filter(g => g.table_info === selectedTable.label);
+    }, [guests, selectedTable]);
+
+    const unassignedGuests = useMemo(() => {
+        return guests.filter(g => !g.table_info);
+    }, [guests]);
+
+    const handleAssignGuest = (guestId: string, tableName: string) => {
+        const currentTable = tables.find(t => t.label === tableName);
+        const alreadyAssignedCount = guests.filter(g => g.table_info === tableName).length;
+        
+        if (currentTable && alreadyAssignedCount >= currentTable.capacity) {
+            if (!window.confirm(`La ${tableName} ya ha alcanzado su capacidad máxima (${currentTable.capacity} sillas). ¿Quieres sobrecargar la mesa de todas formas?`)) {
+                return;
+            }
+        }
+
+        const updated = guests.map(g => g.id === guestId ? { ...g, table_info: tableName } : g);
+        setGuests(updated);
+    };
+
+    const handleUnassignGuest = (guestId: string) => {
+        const updated = guests.map(g => g.id === guestId ? { ...g, table_info: undefined } : g);
+        setGuests(updated);
+    };
+
+    const handleToggleSentStatus = (guestId: string) => {
+        const updated = guests.map(g => g.id === guestId ? { ...g, status: (g.status === 'confirmed' ? 'pending' : 'confirmed') } : g);
+        setGuests(updated);
+    };
+
+    const handleAddManualGuestSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newGuestFirstName.trim()) return;
+
+        const newGuest: PlannerGuest = {
+            id: `guest-${Date.now()}`,
+            first_name: newGuestFirstName.trim(),
+            last_name: newGuestLastName.trim(),
+            display_name: `${newGuestFirstName.trim()} ${newGuestLastName.trim()}`,
+            group: newGuestGroup,
+            status: 'pending',
+            is_after_party: newGuestIsAfterParty,
+            note: newGuestNote.trim() || undefined
+        };
+
+        const updated = [...guests, newGuest];
+        setGuests(updated);
+        
+        // Reset manual states
+        setNewGuestFirstName('');
+        setNewGuestLastName('');
+        setNewGuestIsAfterParty(false);
+        setNewGuestNote('');
+        setIsAddGuestOpen(false);
+    };
+
+    const deleteGuest = (guestId: string) => {
+        if (window.confirm('¿Seguro que deseas eliminar a este invitado de la lista?')) {
+            const updated = guests.filter(g => g.id !== guestId);
+            setGuests(updated);
+        }
+    };
+
+    // Filter and search guests inside dashboard list
+    const filteredGuests = useMemo(() => {
+        return guests.filter(g => {
+            const matchesSearch = g.display_name.toLowerCase().includes(guestSearchQuery.toLowerCase()) ||
+                                 (g.group && g.group.toLowerCase().includes(guestSearchQuery.toLowerCase())) ||
+                                 (g.table_info && g.table_info.toLowerCase().includes(guestSearchQuery.toLowerCase()));
+
+            if (guestFilterTab === 'all') return matchesSearch;
+            if (guestFilterTab === 'unassigned') return matchesSearch && !g.table_info;
+            if (guestFilterTab === 'confirmed') return matchesSearch && g.status === 'confirmed';
+            if (guestFilterTab === 'pending') return matchesSearch && g.status === 'pending';
+            if (guestFilterTab === 'after_party') return matchesSearch && g.is_after_party;
+
+            return matchesSearch;
+        });
+    }, [guests, guestSearchQuery, guestFilterTab]);
+
+    // ----------------------------------------------------
+    // PDF DOWNLOAD LOGIC
+    // ----------------------------------------------------
+    const downloadPdfLayout = () => {
+        if (!stageRef.current) return;
+        
+        // Deseleccionar temporalmente para no pintar el transformador en el PDF
+        const prevSelected = selectedTableId;
+        setSelectedTableId(null);
+
+        setTimeout(() => {
+            const dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
+            const pdf = new jsPDF('l', 'mm', 'a4');
+            const width = pdf.internal.pageSize.getWidth();
+            const height = pdf.internal.pageSize.getHeight();
+            
+            // Dibujar cabecera corporativa elegante
+            pdf.setFillColor(15, 23, 42); // slate-900
+            pdf.rect(0, 0, width, 25, 'F');
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('EVENTPIX EVENT PLANNER', 15, 12);
+            
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(226, 232, 240);
+            pdf.text(`Distribución de Salón — ${eventType || 'Mi Evento'} (~${guests.length} invitados)`, 15, 18);
+            
+            pdf.setTextColor(251, 191, 36); // amber-400
+            pdf.text('PLAN FREE', width - 35, 15);
+            
+            // Añadir imagen del salón
+            pdf.addImage(dataUrl, 'PNG', 10, 30, width - 20, height - 40);
+            
+            pdf.save(`distribucion-${eventType || 'evento'}.pdf`);
+
+            // Volver a seleccionar
+            setSelectedTableId(prevSelected);
+        }, 150);
+    };
+
+    // ----------------------------------------------------
+    // SIDEBAR INTELLIGENT ADVICES & CHECKLIST
+    // ----------------------------------------------------
+    const tipsList = useMemo(() => {
+        const advices = [
+            "Tip EventPix: Agrupar por afinidad (familiares de un lado, amigos de la infancia del otro) reduce tensiones en la fiesta. 🤍",
+            "Tip de Espacio: Deja al menos 120cm entre mesas para asegurar una circulación de mozos e invitados sin golpes.",
+            "Tip de Trasnoche: Los invitados con el icono 🌙 no suelen requerir mesas principales de cena. Agrúpalos en livings o barras.",
+            "Tip de Sonido: Evita colocar las mesas de personas mayores justo al lado del DJ. ¡Ellos valoran la conversación tranquila!",
+            "Fricción Cero: Recuerda que puedes descargar tu progreso en Excel e importarlo nuevamente en cualquier computador."
+        ];
+        
+        // Consejos dinámicos contextuales
+        const contextual = [];
+        if (unassignedGuests.length > 0) {
+            contextual.push(`💡 Tienes ${unassignedGuests.length} invitados sin ubicar. Selecciónalos en el panel y colócalos en una mesa.`);
+        } else if (guests.length > 0) {
+            contextual.push("✨ ¡Increíble! Todos tus invitados tienen un lugar en el salón. ¡Gran trabajo!");
+        }
+
+        if (tables.length === 0) {
+            contextual.push("💡 Para empezar a sentar gente, añade una mesa Redonda o Rectangular usando los botones superiores.");
+        }
+
+        return [...contextual, ...advices];
+    }, [unassignedGuests.length, guests.length, tables.length]);
+
+    const activeTipIndex = Math.floor((guests.length + tables.length) % tipsList.length);
+    const activeTip = tipsList[activeTipIndex] || tipsList[0];
+
+    // Grid lines cache
+    const gridLines = useMemo(() => {
+        const lines = [];
+        for (let i = 0; i <= salonWidth; i += 100) {
+            lines.push(<Line key={`v-${i}`} points={[i, 0, i, salonHeight]} stroke="#e2e8f0" strokeWidth={1} opacity={0.6} />);
+        }
+        for (let i = 0; i <= salonHeight; i += 100) {
+            lines.push(<Line key={`h-${i}`} points={[0, i, salonWidth, i]} stroke="#e2e8f0" strokeWidth={1} opacity={0.6} />);
+        }
+        return lines;
+    }, [salonWidth, salonHeight]);
+
+    // ----------------------------------------------------
+    // CONVERSION PROVIDERS SUGGESTIONS DATA
+    // ----------------------------------------------------
+    const suggestedProviders = useMemo(() => {
+        const count = guests.length || estimatedGuests;
+        return [
+            {
+                id: 'furniture',
+                category: 'Mobiliario y Vajilla',
+                title: 'Alquiler de livings, mesas y vajilla premium',
+                desc: `Recomendado para tu evento de ${count} personas. Incluye armado del salón y retiro pos-evento.`,
+                image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80',
+                actionLabel: 'Cotizar Mobiliario'
+            },
+            {
+                id: 'dj',
+                category: 'Música y Sonido',
+                title: 'DJs Especializados en Bodas & 15 años',
+                desc: 'Sonido de alta definición, pantallas LED gigantes y luces robóticas inteligentes integradas en pista.',
+                image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
+                actionLabel: 'Ver Disponibilidad'
+            },
+            {
+                id: 'mirror',
+                category: 'Experiencia EventPix VIP',
+                title: '📸 Espejo Mágico Fotográfico',
+                desc: 'Fotos ilimitadas impresas al instante con cotillón premium, marcos personalizados y QR de descarga.',
+                image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=400&q=80',
+                actionLabel: 'Reservar Espejo'
+            },
+            {
+                id: 'recep',
+                category: 'Acreditación EventPix VIP',
+                title: '🤖 Recepcionista Virtual y QR',
+                desc: 'Elimina las filas. Acreditación exprés con tótems táctiles y control por código QR en puerta.',
+                image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80',
+                actionLabel: 'Consultar Acreditación'
+            }
+        ];
+    }, [guests.length, estimatedGuests]);
+
+    return (
+        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+            
+            {/* Nav Header */}
+            <header className="bg-slate-950 border-b border-slate-800/80 px-6 py-4 flex justify-between items-center sticky top-0 z-40 shadow-md">
+                <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewMode('landing')}>
+                    <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold text-lg">
+                        EP
+                    </div>
+                    <div>
+                        <h1 className="text-md font-bold tracking-tight text-white flex items-center gap-1.5">
+                            EventPix <span className="text-xs bg-slate-800 text-blue-400 font-bold px-2 py-0.5 rounded-full border border-slate-700">Planner Free</span>
+                        </h1>
+                        <p className="text-[10px] text-slate-400 tracking-wider">TECNOLOGÍA PARA TU EVENTO</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {guests.length > 0 && viewMode === 'landing' && (
+                        <button 
+                            onClick={handleRestoreExisting}
+                            className="bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border border-blue-500/20 text-xs font-semibold px-4 py-2 rounded-xl transition-all flex items-center gap-2"
+                        >
+                            <RefreshCw size={14} className="animate-spin-slow" />
+                            Continuar Organizando
+                        </button>
+                    )}
+                    
+                    <button 
+                        onClick={() => setIsPremiumDrawerOpen(true)}
+                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-amber-500/15 flex items-center gap-1.5 transition-all"
+                    >
+                        <Crown size={14} className="fill-slate-950 text-slate-950" />
+                        Acceso Premium
+                    </button>
+                </div>
+            </header>
+
+            {/* ----------------------------------------------------
+                LANDING VIEW
+            ---------------------------------------------------- */}
+            {viewMode === 'landing' && (
+                <main className="flex-1 flex flex-col items-center">
+                    
+                    {/* Hero Section */}
+                    <section className="max-w-5xl w-full px-6 pt-16 pb-12 text-center flex flex-col items-center relative">
+                        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+                        
+                        <div className="inline-flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-4 py-1.5 rounded-full text-xs font-semibold text-blue-400 mb-6 shadow-inner animate-pulse-slow">
+                            <Sparkles size={14} /> Asistente Inteligente Paso a Paso
+                        </div>
+
+                        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-6 max-w-3xl leading-[1.15]">
+                            Organizá tu evento gratis <br className="hidden md:inline" />
+                            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">sin planillas de caos</span>
+                        </h2>
+
+                        <p className="text-slate-300 text-md md:text-xl max-w-2xl mb-10 leading-relaxed font-light">
+                            Armá tu lista de invitados, importá desde Excel y distribuí las mesas de tu fiesta visualmente de la forma más rápida y amigable.
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-4 justify-center w-full max-w-md">
+                            <button
+                                onClick={startWizard}
+                                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 text-md transition-all hover:scale-[1.02] active:scale-95 duration-200"
+                            >
+                                Empezar mi evento
+                                <ArrowRight size={18} />
+                            </button>
+                            {guests.length > 0 && (
+                                <button
+                                    onClick={handleRestoreExisting}
+                                    className="w-full sm:w-auto bg-slate-800/90 border border-slate-700 hover:bg-slate-700/90 text-white font-bold px-6 py-4 rounded-2xl flex items-center justify-center gap-2 text-md transition-all"
+                                >
+                                    Ver mi progreso
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="mt-4 text-xs text-slate-500 font-semibold tracking-wider uppercase flex items-center gap-4">
+                            <span>Gratis</span> • <span>Fácil</span> • <span>Sin complicaciones</span>
+                        </div>
+
+                        {/* Immersive Layout Mockup Preview */}
+                        <div className="mt-16 w-full max-w-4xl rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 p-3 shadow-2xl relative group">
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent z-10" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
+                                <button 
+                                    onClick={startWizard}
+                                    className="bg-white/95 backdrop-blur text-slate-900 font-bold px-6 py-3.5 rounded-xl shadow-2xl flex items-center gap-2 hover:bg-white hover:scale-105 active:scale-95 transition-all text-sm uppercase tracking-wider"
+                                >
+                                    <Eye size={16} /> Ver Planificador en Acción
+                                </button>
+                            </div>
+
+                            <img 
+                                src="https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=1200&q=80" 
+                                alt="EventPix Planner Preview" 
+                                className="w-full h-[280px] md:h-[450px] object-cover rounded-xl opacity-40 group-hover:opacity-50 transition-opacity blur-[1px]"
+                            />
+                        </div>
+                    </section>
+
+                    {/* Problems Section */}
+                    <section className="bg-slate-950 w-full py-20 border-y border-slate-800/60 flex justify-center">
+                        <div className="max-w-4xl w-full px-6">
+                            <div className="text-center mb-16">
+                                <h3 className="text-2xl md:text-4xl font-extrabold text-white mb-4">
+                                    ¿Tu lista de invitados se volvió un caos?
+                                </h3>
+                                <p className="text-slate-400 text-sm max-w-xl mx-auto">
+                                    Todos pasamos por lo mismo al organizar una fiesta. Las planillas de Excel se desbordan y nadie sabe quién se sienta con quién.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div className="bg-red-500/10 text-red-400 p-3 rounded-xl shrink-0"><Users size={20} /></div>
+                                    <div>
+                                        <h4 className="text-white font-bold mb-1">“Pensé que éramos 80 y terminamos siendo 120”</h4>
+                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                            Es normal subestimar la lista. Nuestro asistente te ayuda a vislumbrar el número real al instante.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div className="bg-indigo-500/10 text-indigo-400 p-3 rounded-xl shrink-0"><MapPin size={20} /></div>
+                                    <div>
+                                        <h4 className="text-white font-bold mb-1">“No sé quién se sienta con quién”</h4>
+                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                            Evita peleas. Organiza grupos familiares o de trabajo y distribuye las mesas visualmente con un par de clics.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div className="bg-amber-500/10 text-amber-400 p-3 rounded-xl shrink-0"><Calendar size={20} /></div>
+                                    <div>
+                                        <h4 className="text-white font-bold mb-1">“No sé cuántas mesas necesito”</h4>
+                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                            El organizador calcula automáticamente las sillas y mesas recomendadas para que no falte espacio en el salón.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-xl shrink-0"><Sparkles size={20} /></div>
+                                    <div>
+                                        <h4 className="text-white font-bold mb-1">“No quiero olvidarme de nada”</h4>
+                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                            El checklist inteligente te indica qué paso dar a continuación, guiándote como un asistente real.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-12 text-center">
+                                <button
+                                    onClick={startWizard}
+                                    className="bg-slate-850 hover:bg-slate-800 border border-slate-700 text-white font-bold px-8 py-3.5 rounded-2xl text-sm transition-all"
+                                >
+                                    Organizar mi evento
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </main>
+            )}
+
+            {/* ----------------------------------------------------
+                WIZARD FLOW VIEW
+            ---------------------------------------------------- */}
+            {viewMode === 'wizard' && (
+                <main className="flex-1 flex justify-center items-center p-6 bg-slate-950/80 relative">
+                    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+                    
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl shadow-2xl p-8 flex flex-col relative z-10 overflow-hidden">
+                        
+                        {/* Progress Header */}
+                        <div className="flex justify-between items-center mb-6">
+                            <span className="text-[10px] font-bold tracking-widest text-blue-400 uppercase">Paso {wizardStep} de 4</span>
+                            <div className="flex gap-1.5">
+                                {[1, 2, 3, 4].map(s => (
+                                    <div 
+                                        key={s} 
+                                        className={`h-1.5 rounded-full transition-all duration-300 ${wizardStep >= s ? 'w-6 bg-blue-500' : 'w-2 bg-slate-800'}`} 
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* STEP 1: Bienvenida */}
+                        {wizardStep === 1 && (
+                            <div className="flex-1 flex flex-col justify-center py-4">
+                                <div className="text-center mb-6">
+                                    <span className="inline-block text-4xl mb-4 animate-bounce">🎉</span>
+                                    <h3 className="text-2xl font-bold text-white mb-2">Te vamos a ayudar a organizar tu evento paso a paso</h3>
+                                    <p className="text-sm text-slate-300 font-light leading-relaxed">
+                                        En pocos minutos vas a tener un panorama real y organizado de tu fiesta. Dile adiós al caos de la lista de invitados.
+                                    </p>
+                                </div>
+                                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center text-xs text-slate-400 font-medium">
+                                    ⏱️ Tiempo estimado: <span className="text-blue-400">5 minutos para empezar</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 2: Tipo de Evento */}
+                        {wizardStep === 2 && (
+                            <div className="flex-1 flex flex-col justify-center py-2">
+                                <h3 className="text-xl font-bold text-white text-center mb-6">¿Qué estás organizando?</h3>
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    {[
+                                        { label: 'Casamiento', icon: '💍' },
+                                        { label: '15 Años', icon: '👑' },
+                                        { label: 'Cumpleaños', icon: '🎂' },
+                                        { label: 'Empresarial', icon: '💼' },
+                                        { label: 'Bautismo', icon: '🕊️' },
+                                        { label: 'Otro', icon: '🎉' }
+                                    ].map(item => (
+                                        <button
+                                            key={item.label}
+                                            onClick={() => selectEventType(item.label)}
+                                            className={`p-4 rounded-xl border text-center transition-all flex flex-col items-center gap-2 group ${eventType === item.label ? 'bg-blue-600/10 border-blue-500 text-blue-400 shadow-md' : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'}`}
+                                        >
+                                            <span className="text-2xl group-hover:scale-110 transition-transform duration-200">{item.icon}</span>
+                                            <span className="text-xs font-semibold">{item.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {eventType === 'Otro' && (
+                                    <div className="animate-in fade-in duration-200">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Escribe tu tipo de evento</label>
+                                        <input
+                                            type="text"
+                                            value={customEventType}
+                                            onChange={(e) => setCustomEventType(e.target.value)}
+                                            placeholder="Ej: Aniversario, Graduación..."
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* STEP 3: Cantidad Estimada */}
+                        {wizardStep === 3 && (
+                            <div className="flex-1 flex flex-col justify-center py-4">
+                                <h3 className="text-xl font-bold text-white text-center mb-2">¿Cuántas personas creés que asistirán?</h3>
+                                <p className="text-xs text-slate-400 text-center mb-8 font-light">
+                                    No importa si no sabes el número exacto. Después lo ajustamos 😉
+                                </p>
+
+                                <div className="space-y-6">
+                                    <div className="text-center">
+                                        <span className="text-5xl font-black text-white bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                                            {estimatedGuests}
+                                        </span>
+                                        <span className="text-xs text-slate-400 ml-1.5 font-bold uppercase tracking-wider">Invitados</span>
+                                    </div>
+
+                                    <div className="px-4">
+                                        <input
+                                            type="range"
+                                            min="20"
+                                            max="300"
+                                            step="5"
+                                            value={estimatedGuests}
+                                            onChange={(e) => setEstimatedGuests(Number(e.target.value))}
+                                            className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        />
+                                        <div className="flex justify-between text-[10px] text-slate-500 font-bold mt-2">
+                                            <span>20 Íntimo</span>
+                                            <span>150 Mediano</span>
+                                            <span>300+ Grande</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs text-slate-400 italic text-center leading-relaxed">
+                                        {estimatedGuests < 60 ? (
+                                            "¡Un evento íntimo! 💖 Ideal para compartir con la familia y amigos más cercanos en un ambiente super cálido."
+                                        ) : estimatedGuests < 150 ? (
+                                            "¡Tamaño perfecto! 🥳 Una fiesta con toda la energía y el espacio para interactuar y divertirse cómodamente."
+                                        ) : (
+                                            "¡Wow, un fiestón! 🚀 Se viene un mega evento. Necesitarás una buena distribución para que todos se diviertan."
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 4: Importación de Invitados */}
+                        {wizardStep === 4 && (
+                            <div className="flex-1 flex flex-col justify-center py-2">
+                                <h3 className="text-xl font-bold text-white text-center mb-6">¿Ya armaste tu lista de invitados?</h3>
+                                
+                                {alreadyHasGuestList === null ? (
+                                    <div className="flex flex-col gap-4">
+                                        <button
+                                            onClick={() => setAlreadyHasGuestList(true)}
+                                            className="p-5 bg-slate-950 border border-slate-800 hover:border-blue-500 rounded-2xl text-left transition-all group flex justify-between items-center"
+                                        >
+                                            <div>
+                                                <h4 className="font-bold text-white text-sm mb-1 group-hover:text-blue-400 transition-colors">Sí, ya la tengo armada</h4>
+                                                <p className="text-xs text-slate-500 font-light">Podés importar un Excel/CSV y ahorrar muchísimo tiempo.</p>
+                                            </div>
+                                            <ChevronRight size={18} className="text-slate-600 group-hover:text-blue-400 transition-colors" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setAlreadyHasGuestList(false);
+                                                // Simular un invitado inicial para no entrar vacio
+                                                const dummyGuests = [
+                                                    { id: 'g-init-1', first_name: 'Invitado', last_name: 'Ejemplo', display_name: 'Invitado Ejemplo', group: 'Familia', status: 'pending' }
+                                                ] as PlannerGuest[];
+                                                setGuests(dummyGuests);
+                                                saveEventToStorage(dummyGuests, []);
+                                                setViewMode('planner');
+                                            }}
+                                            className="p-5 bg-slate-950 border border-slate-800 hover:border-blue-500 rounded-2xl text-left transition-all group flex justify-between items-center"
+                                        >
+                                            <div>
+                                                <h4 className="font-bold text-white text-sm mb-1 group-hover:text-blue-400 transition-colors">No, todavía no</h4>
+                                                <p className="text-xs text-slate-500 font-light">No pasa nada. Empezamos a cargar los invitados juntos.</p>
+                                            </div>
+                                            <ChevronRight size={18} className="text-slate-600 group-hover:text-blue-400 transition-colors" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // SI RESPONDIÓ "SÍ": Cargar archivo
+                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                        {csvParsedGuests.length === 0 ? (
+                                            <>
+                                                <div 
+                                                    className="border-2 border-dashed border-slate-800 hover:border-blue-500/50 bg-slate-950 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer group transition-colors"
+                                                    onClick={() => document.getElementById('csv-file-input')?.click()}
+                                                >
+                                                    <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-slate-500 group-hover:text-blue-400 transition-colors mb-3">
+                                                        <Upload size={20} />
+                                                    </div>
+                                                    <h4 className="text-white text-xs font-bold mb-1">Haz click para subir tu archivo CSV</h4>
+                                                    <p className="text-[10px] text-slate-600 font-medium">Soporta archivos separados por comas (.csv)</p>
+                                                    <input 
+                                                        type="file" 
+                                                        id="csv-file-input" 
+                                                        accept=".csv"
+                                                        onChange={handleCsvUpload} 
+                                                        className="hidden" 
+                                                    />
+                                                </div>
+
+                                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                                    <div className="flex items-start gap-2 text-xs text-slate-400">
+                                                        <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
+                                                        <div>
+                                                            <p className="font-bold text-slate-300 mb-1">Formato admitido en Excel/CSV:</p>
+                                                            <p className="leading-relaxed font-light text-[10px]">
+                                                                Columnas: <span className="font-mono text-slate-200">Mesa</span>, <span className="font-mono text-slate-200">Nombre</span>, <span className="font-mono text-slate-200">Apellido</span>, <span className="font-mono text-slate-200">Grupo</span>, <span className="font-mono text-slate-200">Confirmado</span>, <span className="font-mono text-slate-200">Nota</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={downloadCsvTemplate}
+                                                        className="w-full bg-slate-900 hover:bg-slate-800 text-xs font-bold py-2 rounded-lg border border-slate-800 text-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+                                                    >
+                                                        <Download size={12} /> Descargar Plantilla Excel
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex justify-between items-center text-xs pt-2">
+                                                    <button 
+                                                        onClick={() => setAlreadyHasGuestList(null)}
+                                                        className="text-slate-500 hover:text-slate-300"
+                                                    >
+                                                        Volver
+                                                    </button>
+                                                    <button
+                                                        onClick={simulateDevCsvImport}
+                                                        className="text-[10px] bg-slate-950 text-slate-600 hover:text-slate-400 px-2.5 py-1 rounded border border-slate-800/80"
+                                                    >
+                                                        [DEV] Simular Importación Rápida
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            // VISTA PREVIA
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                    <h4 className="text-sm font-bold text-white">Vista Previa de Invitados</h4>
+                                                    <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-semibold">
+                                                        {csvParsedGuests.filter(g => g.isValid).length} Válidos
+                                                    </span>
+                                                </div>
+
+                                                <div className="max-h-48 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950 custom-scrollbar text-xs">
+                                                    <table className="w-full text-left">
+                                                        <thead className="bg-slate-900 text-slate-400 sticky top-0 uppercase text-[9px] font-bold tracking-wider">
+                                                            <tr>
+                                                                <th className="p-3">Nombre</th>
+                                                                <th className="p-3">Mesa</th>
+                                                                <th className="p-3">Grupo</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-800/50">
+                                                            {csvParsedGuests.slice(0, 15).map((g, idx) => (
+                                                                <tr key={idx} className="hover:bg-slate-900/30">
+                                                                    <td className="p-3 font-semibold text-white">{g.display_name}</td>
+                                                                    <td className="p-3 text-slate-400">{g.table_info || '-'}</td>
+                                                                    <td className="p-3 text-slate-400">{g.group || '-'}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                    {csvParsedGuests.length > 15 && (
+                                                        <div className="p-3 text-center text-slate-600 italic">... y {csvParsedGuests.length - 15} invitados más</div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setCsvParsedGuests([])}
+                                                        className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs"
+                                                    >
+                                                        Subir otro archivo
+                                                    </button>
+                                                    <button
+                                                        onClick={confirmCsvImport}
+                                                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl text-xs"
+                                                    >
+                                                        Confirmar Importación
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {csvValidationError && (
+                                            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-2">
+                                                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                                                <span>{csvValidationError}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Navigation Footer */}
+                        {wizardStep < 4 && (
+                            <div className="flex justify-between items-center border-t border-slate-800/60 pt-6 mt-6">
+                                <button
+                                    onClick={handleWizardBack}
+                                    className={`text-slate-400 hover:text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all ${wizardStep === 1 ? 'opacity-0 pointer-events-none' : ''}`}
+                                >
+                                    Atrás
+                                </button>
+                                
+                                <button
+                                    onClick={handleWizardNext}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg shadow-blue-500/15 flex items-center gap-1.5 transition-all"
+                                >
+                                    Continuar
+                                    <ChevronRight size={14} />
+                                </button>
+                            </div>
+                        )}
+                        
+                    </div>
+                </main>
+            )}
+
+            {/* ----------------------------------------------------
+                PLANNER DASHBOARD VIEW
+            ---------------------------------------------------- */}
+            {viewMode === 'planner' && (
+                <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+                    
+                    {/* LEFT PANEL: Workspace Settings, Smart Checklist & Advices */}
+                    <aside className="w-full md:w-80 bg-slate-950 border-r border-slate-800/80 flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
+                        
+                        {/* Section Header */}
+                        <div className="p-5 border-b border-slate-800/80">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Mi Evento</h3>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-white font-bold text-md leading-tight">
+                                        {eventType ? `${eventType}` : 'Fiesta Personalizada'}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-1">Free Local Storage</p>
+                                </div>
+                                <button 
+                                    onClick={resetEntirePlanner}
+                                    className="p-2 bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/20 text-slate-500 hover:text-red-400 rounded-lg transition-colors"
+                                    title="Resetear todo el planificador"
+                                >
+                                    <Trash size={14} />
+                                </button>
+                            </div>
+
+                            {/* Salon dimensions setup */}
+                            <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-900">
+                                <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Ancho Salón (cm)</label>
+                                    <input 
+                                        type="number" 
+                                        value={salonWidth}
+                                        onChange={(e) => setSalonWidth(Number(e.target.value))}
+                                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Largo Salón (cm)</label>
+                                    <input 
+                                        type="number" 
+                                        value={salonHeight}
+                                        onChange={(e) => setSalonHeight(Number(e.target.value))}
+                                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Event Stats Summary */}
+                        <div className="p-5 border-b border-slate-800/80 grid grid-cols-3 gap-2 bg-slate-950/40">
+                            <div className="text-center p-2.5 bg-slate-900/50 rounded-xl border border-slate-800/40">
+                                <span className="block text-xl font-black text-white">{guests.length}</span>
+                                <span className="text-[9px] font-bold text-slate-500 uppercase">Cargados</span>
+                            </div>
+                            <div className="text-center p-2.5 bg-slate-900/50 rounded-xl border border-slate-800/40">
+                                <span className="block text-xl font-black text-blue-400">{guests.filter(g => g.table_info).length}</span>
+                                <span className="text-[9px] font-bold text-slate-500 uppercase">Sentados</span>
+                            </div>
+                            <div className="text-center p-2.5 bg-slate-900/50 rounded-xl border border-slate-800/40">
+                                <span className="block text-xl font-black text-amber-500">{unassignedGuests.length}</span>
+                                <span className="text-[9px] font-bold text-slate-500 uppercase">Sin Ubicar</span>
+                            </div>
+                        </div>
+
+                        {/* Checklist Section */}
+                        <div className="p-5 border-b border-slate-800/80">
+                            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Próximo Paso</h4>
+                            <div className="space-y-3.5">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${guests.length > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'border-slate-800 bg-slate-900 text-transparent'}`}>
+                                        <Check size={12} />
+                                    </div>
+                                    <span className={`text-xs ${guests.length > 0 ? 'text-slate-400 line-through' : 'text-white font-semibold'}`}>Crear/Importar invitados</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${tables.length > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'border-slate-800 bg-slate-900 text-transparent'}`}>
+                                        <Check size={12} />
+                                    </div>
+                                    <span className={`text-xs ${tables.length > 0 ? 'text-slate-400 line-through' : 'text-white font-semibold'}`}>Añadir mesas al salón</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${guests.length > 0 && unassignedGuests.length === 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'border-slate-800 bg-slate-900 text-transparent'}`}>
+                                        <Check size={12} />
+                                    </div>
+                                    <span className={`text-xs ${guests.length > 0 && unassignedGuests.length === 0 ? 'text-slate-400 line-through' : 'text-white font-semibold'}`}>Distribuir invitados</span>
+                                </div>
+                                <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setIsRecommendationsOpen(true)}>
+                                    <div className="w-5 h-5 rounded-md border border-slate-800 bg-slate-900 text-transparent group-hover:border-blue-500 shrink-0 flex items-center justify-center" />
+                                    <span className="text-xs text-white font-semibold group-hover:text-blue-400 transition-colors">Revisar recomendaciones</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Smart Assistant Tip Panel */}
+                        <div className="p-5 flex-1 flex flex-col justify-end">
+                            <div className="bg-slate-900 border border-slate-800/80 p-4 rounded-2xl relative shadow-md">
+                                <div className="absolute -top-3 left-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-[9px] tracking-wider uppercase px-2 py-0.5 rounded-full">
+                                    Consejo Inteligente
+                                </div>
+                                <p className="text-xs text-slate-300 font-light leading-relaxed pt-1 select-text">
+                                    {activeTip}
+                                </p>
+                            </div>
+                        </div>
+
+                    </aside>
+
+                    {/* CENTER PANEL: Canvas Workspace */}
+                    <div className="flex-1 flex flex-col relative bg-slate-900 overflow-hidden">
+                        
+                        {/* Upper Toolbar */}
+                        <div className="bg-slate-950/80 border-b border-slate-800/80 px-6 py-3.5 flex flex-wrap justify-between items-center gap-4 z-10">
+                            
+                            {/* Table controls */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => addTable('round')}
+                                    className="bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-inner"
+                                >
+                                    <div className="w-4 h-4 rounded-full border border-slate-400 group-hover:border-white shrink-0" />
+                                    + Mesa Redonda
+                                </button>
+                                <button
+                                    onClick={() => addTable('rect')}
+                                    className="bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-inner"
+                                >
+                                    <div className="w-5 h-3.5 border border-slate-400 group-hover:border-white shrink-0 rounded-sm" />
+                                    + Mesa Rectangular
+                                </button>
+                            </div>
+
+                            {/* Zoom, grid, templates & downloads */}
+                            <div className="flex items-center gap-3">
+                                <div className="bg-slate-900 border border-slate-800 p-0.5 rounded-xl flex gap-0.5 shadow-inner">
+                                    <button 
+                                        onClick={() => setScale(s => Math.min(1.5, s + 0.05))}
+                                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                        title="Acercar"
+                                    >
+                                        <ZoomIn size={14} />
+                                    </button>
+                                    <button 
+                                        onClick={() => setScale(s => Math.max(0.1, s - 0.05))}
+                                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                        title="Alejar"
+                                    >
+                                        <ZoomOut size={14} />
+                                    </button>
+                                    <button 
+                                        onClick={() => { setScale(0.35); setPosition({ x: 40, y: 40 }); }}
+                                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                        title="Centrar Plano"
+                                    >
+                                        <RefreshCw size={12} />
+                                    </button>
+                                </div>
+
+                                <button 
+                                    onClick={() => setShowGrid(!showGrid)}
+                                    className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${showGrid ? 'bg-blue-600/10 border-blue-500/20 text-blue-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
+                                >
+                                    Cuadrícula
+                                </button>
+
+                                <div className="h-4 w-px bg-slate-800" />
+
+                                <button
+                                    onClick={() => {
+                                        setAlreadyHasGuestList(true);
+                                        setWizardStep(4);
+                                        setCsvParsedGuests([]);
+                                        setViewMode('wizard');
+                                    }}
+                                    className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                                >
+                                    <Upload size={14} />
+                                    Importar CSV
+                                </button>
+
+                                <button
+                                    onClick={exportCurrentToCsv}
+                                    className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                                >
+                                    <Download size={14} />
+                                    Exportar Excel
+                                </button>
+
+                                <button
+                                    onClick={downloadPdfLayout}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-blue-500/15 transition-all"
+                                >
+                                    Descargar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Interactive Stage Room Canvas */}
+                        <div 
+                            className="flex-1 relative overflow-hidden cursor-grab select-none active:cursor-grabbing" 
+                            style={{ 
+                                backgroundColor: '#0f172a',
+                                backgroundImage: 'radial-gradient(#1e293b 1px, transparent 1px)',
+                                backgroundSize: '15px 15px'
+                            }}
+                        >
+                            {/* Canvas overlay instructions */}
+                            <div className="absolute bottom-4 left-6 z-10 pointer-events-none bg-slate-950/80 border border-slate-800/80 px-4 py-2.5 rounded-xl text-[10px] text-slate-400 leading-normal flex flex-col gap-0.5">
+                                <span className="font-bold text-white mb-0.5 uppercase tracking-wider">Controles del Salón</span>
+                                <span>🖱️ Rueda del ratón para Zoom</span>
+                                <span>🤚 Arrastra el fondo vacío para mover la cámara</span>
+                                <span>⭕ Selecciona y arrastra mesas para acomodarlas</span>
+                            </div>
+
+                            <Stage
+                                width={window.innerWidth}
+                                height={window.innerHeight}
+                                scaleX={scale}
+                                scaleY={scale}
+                                x={position.x}
+                                y={position.y}
+                                draggable
+                                onDragEnd={(e) => {
+                                    if (e.target === e.target.getStage()) {
+                                        setPosition({ x: e.target.x(), y: e.target.y() });
+                                    }
+                                }}
+                                ref={stageRef}
+                            >
+                                <Layer>
+                                    {/* Salon Floor boundary */}
+                                    <Rect 
+                                        x={0}
+                                        y={0}
+                                        width={salonWidth}
+                                        height={salonHeight}
+                                        fill="#020617"
+                                        stroke="#475569"
+                                        strokeWidth={4}
+                                        shadowColor="black"
+                                        shadowBlur={40}
+                                        shadowOpacity={0.4}
+                                    />
+
+                                    {/* Grid Lines */}
+                                    {showGrid && gridLines}
+
+                                    {/* Tables rendering */}
+                                    {tables.map((table) => (
+                                        <CanvasTableGroup 
+                                            key={table.id}
+                                            table={table}
+                                            isSelected={selectedTableId === table.id}
+                                            onSelect={() => setSelectedTableId(table.id)}
+                                            onChange={(newAttrs) => updateTable(table.id, newAttrs)}
+                                            assignedGuests={guests.filter(g => g.table_info === table.label)}
+                                        />
+                                    ))}
+                                </Layer>
+                            </Stage>
+                        </div>
+                    </div>
+
+                    {/* RIGHT PANEL: Guest List Editor & Detail Assignments */}
+                    <aside className="w-full md:w-80 bg-slate-950 border-l border-slate-800/80 flex flex-col shrink-0 overflow-hidden relative">
+                        {selectedTable ? (
+                            // MESA SELECCIONADA DETALLE
+                            <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in duration-200">
+                                <div className="p-5 border-b border-slate-800/80 bg-slate-900/30 flex justify-between items-center">
+                                    <div>
+                                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Detalle de Mesa</span>
+                                        <h3 className="text-white font-extrabold text-md mt-0.5">{selectedTable.label}</h3>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <button 
+                                            onClick={() => deleteTable(selectedTable.id)}
+                                            className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-400 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+                                            title="Eliminar Mesa"
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                        <button 
+                                            onClick={() => setSelectedTableId(null)}
+                                            className="p-2 hover:bg-slate-900 text-slate-500 hover:text-slate-200 rounded-lg transition-colors"
+                                            title="Volver"
+                                        >
+                                            <X size={15} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="p-5 border-b border-slate-800/80 space-y-4">
+                                    <div>
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nombre / Número de Mesa</label>
+                                        <input 
+                                            type="text" 
+                                            value={selectedTable.label}
+                                            onChange={(e) => {
+                                                const newLabel = e.target.value.trim();
+                                                const oldLabel = selectedTable.label;
+                                                updateTable(selectedTable.id, { label: newLabel });
+                                                // Sincronizar campo table_info de invitados asociados
+                                                if (newLabel) {
+                                                    const updatedGuests = guests.map(g => g.table_info === oldLabel ? { ...g, table_info: newLabel } : g);
+                                                    setGuests(updatedGuests);
+                                                }
+                                            }}
+                                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-semibold"
+                                        />
+                                    </div>
+
+                                    {selectedTable.type === 'round' ? (
+                                        <div>
+                                            <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Radio de Mesa (cm)</label>
+                                            <input 
+                                                type="number" 
+                                                value={selectedTable.radius}
+                                                onChange={(e) => {
+                                                    const rad = Number(e.target.value);
+                                                    const cap = getUpdatedChairs('round', { radius: rad, width: 0, height: 0 });
+                                                    updateTable(selectedTable.id, { radius: rad, capacity: cap });
+                                                }}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Ancho (cm)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={selectedTable.width}
+                                                    onChange={(e) => {
+                                                        const w = Number(e.target.value);
+                                                        const cap = getUpdatedChairs('rect', { radius: 0, width: w, height: selectedTable.height || 100 });
+                                                        updateTable(selectedTable.id, { width: w, capacity: cap });
+                                                    }}
+                                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Largo (cm)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={selectedTable.height}
+                                                    onChange={(e) => {
+                                                        const h = Number(e.target.value);
+                                                        const cap = getUpdatedChairs('rect', { radius: 0, width: selectedTable.width || 200, height: h });
+                                                        updateTable(selectedTable.id, { height: h, capacity: cap });
+                                                    }}
+                                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Sillas / Capacidad Máxima</label>
+                                        <input 
+                                            type="number" 
+                                            value={selectedTable.capacity}
+                                            onChange={(e) => updateTable(selectedTable.id, { capacity: Number(e.target.value) })}
+                                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Sentados en mesa actual */}
+                                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar p-5 space-y-4">
+                                    <div>
+                                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex justify-between">
+                                            <span>Sentados</span>
+                                            <span className={`${assignedGuests.length > selectedTable.capacity ? 'text-red-400 font-extrabold' : 'text-slate-500'}`}>
+                                                {assignedGuests.length} / {selectedTable.capacity}
+                                            </span>
+                                        </h4>
+                                        <div className="space-y-1.5">
+                                            {assignedGuests.map(g => (
+                                                <div key={g.id} className="flex justify-between items-center bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs">
+                                                    <span className="font-semibold text-white truncate max-w-[140px]">
+                                                        {g.first_name} {g.last_name} {g.is_after_party && '🌙'}
+                                                    </span>
+                                                    <button 
+                                                        onClick={() => handleUnassignGuest(g.id)}
+                                                        className="text-red-400 hover:text-red-300 font-semibold text-[10px] hover:underline"
+                                                    >
+                                                        Quitar
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {assignedGuests.length === 0 && (
+                                                <p className="text-xs text-slate-600 italic text-center py-4">Ningún invitado sentado aquí.</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Sin asignar a ubicar */}
+                                    <div className="border-t border-slate-900 pt-4 flex-1 flex flex-col min-h-0">
+                                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Sin mesa asignada</h4>
+                                        <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-0.5">
+                                            {unassignedGuests.map(g => (
+                                                <div 
+                                                    key={g.id} 
+                                                    onClick={() => handleAssignGuest(g.id, selectedTable.label)}
+                                                    className="flex justify-between items-center bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-slate-800 px-3 py-2 rounded-xl text-xs cursor-pointer transition-all group"
+                                                >
+                                                    <span className="font-semibold text-slate-300 group-hover:text-white truncate max-w-[150px]">
+                                                        {g.first_name} {g.last_name} {g.is_after_party && '🌙'}
+                                                    </span>
+                                                    <span className="text-blue-500 group-hover:text-blue-400 font-extrabold text-xs">+</span>
+                                                </div>
+                                            ))}
+                                            {unassignedGuests.length === 0 && (
+                                                <p className="text-xs text-slate-600 italic text-center py-4">Todos tus invitados ya tienen una mesa.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            // LISTA DE INVITADOS GENERAL
+                            <div className="flex-1 flex flex-col overflow-hidden">
+                                
+                                {/* Header search & filter */}
+                                <div className="p-5 border-b border-slate-800/80 bg-slate-900/20">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-white font-extrabold text-sm">Lista de Invitados</h3>
+                                        <button
+                                            onClick={() => setIsAddGuestOpen(true)}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-all"
+                                        >
+                                            <Plus size={14} /> Nuevo
+                                        </button>
+                                    </div>
+
+                                    {/* Search */}
+                                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
+                                        <Search size={14} className="text-slate-500" />
+                                        <input 
+                                            type="text"
+                                            value={guestSearchQuery}
+                                            onChange={(e) => setGuestSearchQuery(e.target.value)}
+                                            placeholder="Buscar invitado..."
+                                            className="bg-transparent border-none text-xs text-white focus:outline-none placeholder:text-slate-600 w-full"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Quick filter Tabs */}
+                                <div className="flex border-b border-slate-900 overflow-x-auto text-[10px] font-bold text-slate-500 shrink-0 custom-scrollbar">
+                                    {[
+                                        { id: 'all', label: 'Todos' },
+                                        { id: 'unassigned', label: 'Sin Mesa' },
+                                        { id: 'confirmed', label: 'Confirmados' },
+                                        { id: 'pending', label: 'Pendientes' },
+                                        { id: 'after_party', label: 'Trasnoche' }
+                                    ].map(tab => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setGuestFilterTab(tab.id as any)}
+                                            className={`px-4 py-2 border-b-2 whitespace-nowrap transition-colors ${guestFilterTab === tab.id ? 'border-blue-500 text-blue-400 bg-slate-900/10' : 'border-transparent hover:text-slate-350'}`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Guest list table scrollable */}
+                                <div className="flex-1 overflow-y-auto divide-y divide-slate-900 custom-scrollbar">
+                                    {filteredGuests.map(g => (
+                                        <div key={g.id} className="p-3.5 hover:bg-slate-900/20 flex justify-between items-center gap-4 transition-colors">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <p className="font-semibold text-white text-xs truncate">{g.first_name} {g.last_name}</p>
+                                                    {g.is_after_party && <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1 py-0.5 rounded font-bold shrink-0">🌙 Trasnoche</span>}
+                                                </div>
+                                                <div className="flex gap-2 text-[10px] text-slate-500 font-medium mt-1">
+                                                    <span>{g.group || 'Sin Grupo'}</span>
+                                                    {g.table_info ? (
+                                                        <span className="text-amber-500 font-semibold">{g.table_info}</span>
+                                                    ) : (
+                                                        <span className="text-slate-650 italic">Sin Ubicar</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={() => handleToggleSentStatus(g.id)}
+                                                    className={`px-2.5 py-1 rounded text-[9px] font-bold border transition-colors ${g.status === 'confirmed' ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-400'}`}
+                                                >
+                                                    {g.status === 'confirmed' ? 'Confirmado' : 'Pendiente'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => deleteGuest(g.id)}
+                                                    className="p-1 text-slate-600 hover:text-red-400 rounded transition-colors"
+                                                >
+                                                    <Trash size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {filteredGuests.length === 0 && (
+                                        <p className="text-xs text-slate-600 italic text-center py-8">Ningún invitado coincide con los filtros.</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Conversion celebration Floating Alert inside sidebar */}
+                        {showConversionCelebration && (
+                            <div className="absolute bottom-4 left-4 right-4 bg-gradient-to-tr from-slate-900 to-indigo-950 border border-blue-500/30 p-4 rounded-2xl shadow-2xl z-30 animate-in slide-in duration-300">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-1.5 text-xs text-blue-400 font-bold">
+                                        <PartyPopper size={14} />
+                                        <span>Tu evento ya tomó forma 🎉</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowConversionCelebration(false)} 
+                                        className="text-slate-500 hover:text-white"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-300 leading-normal font-light mb-3.5">
+                                    Con la lista armada y el plano encaminado, ya tienes un panorama real. Descubre complementos que harán tu fiesta inolvidable.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setIsRecommendationsOpen(true);
+                                        setShowConversionCelebration(false);
+                                    }}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2 rounded-xl shadow-lg shadow-blue-500/10 transition-all flex items-center justify-center gap-1"
+                                >
+                                    Ver recomendaciones útil
+                                    <ArrowRight size={12} />
+                                </button>
+                            </div>
+                        )}
+
+                    </aside>
+                </main>
+            )}
+
+            {/* ----------------------------------------------------
+                MODAL: Add guest manually form
+            ---------------------------------------------------- */}
+            {isAddGuestOpen && (
+                <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <form 
+                        onSubmit={handleAddManualGuestSubmit}
+                        className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+                    >
+                        <div className="p-5 border-b border-slate-800/80 bg-slate-950 flex justify-between items-center">
+                            <h3 className="text-white font-bold text-sm">Nuevo Invitado</h3>
+                            <button 
+                                type="button" 
+                                onClick={() => setIsAddGuestOpen(false)}
+                                className="text-slate-500 hover:text-white"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Nombre</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={newGuestFirstName}
+                                        onChange={(e) => setNewGuestFirstName(e.target.value)}
+                                        placeholder="Ej: Juan"
+                                        className="w-full bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Apellido</label>
+                                    <input 
+                                        type="text" 
+                                        value={newGuestLastName}
+                                        onChange={(e) => setNewGuestLastName(e.target.value)}
+                                        placeholder="Ej: Pérez"
+                                        className="w-full bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Grupo de Invitado</label>
+                                <select
+                                    value={newGuestGroup}
+                                    onChange={(e) => setNewGuestGroup(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="Familia">Familia</option>
+                                    <option value="Amigos">Amigos</option>
+                                    <option value="Trabajo">Trabajo</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-2 py-1">
+                                <input 
+                                    type="checkbox" 
+                                    id="manual-afterparty"
+                                    checked={newGuestIsAfterParty}
+                                    onChange={(e) => setNewGuestIsAfterParty(e.target.checked)}
+                                    className="w-4 h-4 accent-blue-500 cursor-pointer rounded bg-slate-950 border-slate-800"
+                                />
+                                <label htmlFor="manual-afterparty" className="text-xs text-slate-300 font-semibold cursor-pointer">
+                                    Invitado de Trasnoche (Sólo Baile) 🌙
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Restricciones o Notas</label>
+                                <input 
+                                    type="text" 
+                                    value={newGuestNote}
+                                    onChange={(e) => setNewGuestNote(e.target.value)}
+                                    placeholder="Ej: Vegetariano, Silla de ruedas, etc."
+                                    className="w-full bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-5 border-t border-slate-800/80 bg-slate-950 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsAddGuestOpen(false)}
+                                className="flex-1 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-white font-bold py-2.5 rounded-xl text-xs"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs"
+                            >
+                                Agregar a Lista
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* ----------------------------------------------------
+                RECOMMENDATIONS MODAL DRAWER
+            ---------------------------------------------------- */}
+            {isRecommendationsOpen && (
+                <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex justify-end">
+                    <div className="fixed inset-0" onClick={() => setIsRecommendationsOpen(false)} />
+                    <div className="bg-slate-950 border-l border-slate-800/80 w-full max-w-lg h-full flex flex-col relative z-10 animate-in slide-in duration-300 overflow-hidden shadow-2xl">
+                        
+                        <div className="p-6 border-b border-slate-800/80 bg-slate-900/30 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-white font-extrabold text-md flex items-center gap-2">
+                                    <Sparkles size={16} className="text-blue-400" />
+                                    Recomendaciones para tu Evento
+                                </h3>
+                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wider">
+                                    Basado en un salón de ~{guests.length || estimatedGuests} personas
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setIsRecommendationsOpen(false)}
+                                className="p-2 hover:bg-slate-900 rounded-lg text-slate-500 hover:text-white transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                            
+                            <p className="text-xs text-slate-350 leading-relaxed font-light">
+                                Creemos que organizar una fiesta debe ser divertido, no estresante. Hemos seleccionado a los mejores prestadores con convenios especiales para EventPix para facilitarte el trabajo.
+                            </p>
+
+                            <div className="space-y-4">
+                                {suggestedProviders.map((prov) => (
+                                    <div key={prov.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-all flex flex-col sm:flex-row shadow-lg">
+                                        <img 
+                                            src={prov.image} 
+                                            alt={prov.title} 
+                                            className="w-full sm:w-32 h-32 object-cover shrink-0"
+                                        />
+                                        <div className="p-4 flex flex-col justify-between">
+                                            <div>
+                                                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">{prov.category}</span>
+                                                <h4 className="font-bold text-white text-xs mt-0.5 mb-1">{prov.title}</h4>
+                                                <p className="text-[10px] text-slate-400 font-light leading-normal">{prov.desc}</p>
+                                            </div>
+                                            <div className="mt-3.5 pt-3.5 border-t border-slate-800/60 flex justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        alert(`¡Excelente elección! Hemos registrado tu interés en "${prov.title}". Un asesor experto se contactará contigo por WhatsApp.`);
+                                                    }}
+                                                    className="bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-white font-bold text-[10px] px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1"
+                                                >
+                                                    <MessageCircle size={10} className="text-green-400 shrink-0" />
+                                                    {prov.actionLabel}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                        </div>
+
+                        <div className="p-6 border-t border-slate-800/80 bg-slate-900/30 flex gap-2">
+                            <button
+                                onClick={() => setIsRecommendationsOpen(false)}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl text-xs transition-colors shadow-lg shadow-blue-500/10"
+                            >
+                                Entendido, Seguir Editando
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ----------------------------------------------------
+                PREMIUM DRAWER MODAL
+            ---------------------------------------------------- */}
+            {isPremiumDrawerOpen && (
+                <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-slate-950 border border-slate-800 w-full max-w-xl rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-5 z-10">
+                            <button 
+                                onClick={() => setIsPremiumDrawerOpen(false)}
+                                className="p-2 hover:bg-slate-900 rounded-full text-slate-500 hover:text-white transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Top banner */}
+                        <div className="bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 p-8 text-slate-950 relative overflow-hidden">
+                            <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-white/10 rounded-full blur-2xl" />
+                            <Crown size={36} className="text-slate-950 fill-slate-950 mb-3" />
+                            <h3 className="text-2xl font-black tracking-tight text-slate-950">Tu Evento Organizado Digitalmente</h3>
+                            <p className="text-xs text-slate-950/80 font-medium mt-1">Lleva tu fiesta al siguiente nivel sin complicaciones técnicas.</p>
+                        </div>
+
+                        {/* Comparatives */}
+                        <div className="p-8 space-y-6">
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">PLAN FREE</h4>
+                                    <ul className="space-y-2 text-xs">
+                                        <li className="flex items-center gap-1.5 text-slate-300">✅ Organizador de Invitados</li>
+                                        <li className="flex items-center gap-1.5 text-slate-300">✅ Distribución de Mesas</li>
+                                        <li className="flex items-center gap-1.5 text-slate-300">✅ Nube Básica (LocalStorage)</li>
+                                        <li className="flex items-center gap-1.5 text-slate-300">✅ Importación / Exportación Excel</li>
+                                        <li className="flex items-center gap-1.5 text-slate-300">✅ Recomendaciones y Consejos</li>
+                                        <li className="flex items-center gap-1.5 text-slate-650 line-through">❌ Invitaciones Digitales</li>
+                                        <li className="flex items-center gap-1.5 text-slate-650 line-through">❌ RSVP Automático y SMS</li>
+                                    </ul>
+                                </div>
+
+                                <div className="p-4 bg-blue-950/20 border border-blue-500/20 rounded-2xl relative">
+                                    <span className="absolute top-2.5 right-2.5 bg-blue-500 text-white font-extrabold text-[7px] px-1.5 py-0.5 rounded-full uppercase tracking-wider">Recomendado</span>
+                                    <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">PLAN PREMIUM</h4>
+                                    <ul className="space-y-2 text-xs">
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Todo lo del Plan Free</li>
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Nube Completa Multidispositivo</li>
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Invitaciones Digitales VIP</li>
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Confirmaciones (RSVP) en Vivo</li>
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Control QR y Recepcionista</li>
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Soporte 24/7 de EventPix</li>
+                                        <li className="flex items-center gap-1.5 text-white font-semibold">🌟 Backup Total Permanente</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs font-bold text-white">Pago Único por Evento</p>
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Olvídate de suscripciones mensuales confusas.</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-xl font-black text-amber-400 tracking-tight">$14.999 ARS</span>
+                                    <span className="block text-[8px] text-slate-500 uppercase tracking-wider font-bold">Un solo pago</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* Footer Checkout action */}
+                        <div className="p-8 border-t border-slate-850 bg-slate-950 flex gap-2">
+                            <button
+                                onClick={() => setIsPremiumDrawerOpen(false)}
+                                className="flex-1 bg-slate-900 hover:bg-slate-850 text-white font-bold py-3.5 rounded-2xl text-xs transition-colors"
+                            >
+                                Seguir con Plan Free
+                            </button>
+                            <button
+                                onClick={() => {
+                                    alert('¡Felicidades! Iniciando pasarela de pago EventPix VIP para tu evento. Podrás personalizar tus invitaciones web de inmediato.');
+                                    setIsPremiumDrawerOpen(false);
+                                }}
+                                className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-750 text-slate-950 font-black py-3.5 rounded-2xl text-xs transition-all shadow-xl shadow-amber-500/15"
+                            >
+                                Adquirir Premium VIP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Footer rights branding */}
+            <footer className="bg-slate-950 border-t border-slate-900/60 py-6 px-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest">
+                &copy; {new Date().getFullYear()} EventPix Planner • Desarrollado por Tecno Eventos. Todos los derechos reservados.
+            </footer>
+
+        </div>
+    );
+}
+
+// ----------------------------------------------------
+// CANVAS MODULE COMPONENT: Room table with chairs
+// ----------------------------------------------------
+interface CanvasTableGroupProps {
+    table: PlannerTable;
+    isSelected: boolean;
+    onSelect: () => void;
+    onChange: (attrs: any) => void;
+    assignedGuests: PlannerGuest[];
+}
+
+function CanvasTableGroup({ table, isSelected, onSelect, onChange, assignedGuests }: CanvasTableGroupProps) {
+    const groupRef = useRef<any>(null);
+    const trRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (isSelected && trRef.current && groupRef.current) {
+            trRef.current.nodes([groupRef.current]);
+            trRef.current.getLayer().batchDraw();
+        }
+    }, [isSelected]);
+
+    const chairsCount = table.capacity || getUpdatedChairs(table.type, { radius: table.radius || 0, width: table.width || 0, height: table.height || 0 });
+    
+    // Distribute chairs visual seats on canvas dynamically
+    const chairs = useMemo(() => {
+        const c = [];
+        if (table.type === 'round') {
+            const rad = table.radius || 75;
+            for (let i = 0; i < chairsCount; i++) {
+                const angle = (i * 2 * Math.PI) / chairsCount;
+                const chairX = (rad + 20) * Math.cos(angle);
+                const chairY = (rad + 20) * Math.sin(angle);
+                c.push({ x: chairX, y: chairY, occupied: i < assignedGuests.length });
+            }
+        } else {
+            const w = table.width || 200;
+            const h = table.height || 100;
+            const count = chairsCount;
+            const perimeter = 2 * (w + h);
+            let dist = 0;
+            const step = perimeter / count;
+            
+            for (let i = 0; i < count; i++) {
+                let x = 0, y = 0;
+                let d = dist;
+                if (d < w) {
+                    x = -w / 2 + d; y = -h / 2 - 20;
+                } else if (d < w + h) {
+                    x = w / 2 + 20; y = -h / 2 + (d - w);
+                } else if (d < 2 * w + h) {
+                    x = w / 2 - (d - (w + h)); y = h / 2 + 20;
+                } else {
+                    x = -w / 2 - 20; y = h / 2 - (d - (2 * w + h));
+                }
+                c.push({ x, y, occupied: i < assignedGuests.length });
+                dist += step;
+            }
+        }
+        return c;
+    }, [table.width, table.height, table.radius, table.type, chairsCount, assignedGuests.length]);
+
+    return (
+        <>
+            <Group
+                ref={groupRef}
+                x={table.x}
+                y={table.y}
+                rotation={table.rotation}
+                draggable
+                onClick={(e) => { e.cancelBubble = true; onSelect(); }}
+                onTap={(e) => { e.cancelBubble = true; onSelect(); }}
+                onDragEnd={(e) => {
+                    e.cancelBubble = true;
+                    const node = groupRef.current;
+                    if (node) {
+                        onChange({ x: Math.round(node.x()), y: Math.round(node.y()) });
+                    }
+                }}
+                onTransformEnd={(e) => {
+                    e.cancelBubble = true;
+                    const node = groupRef.current;
+                    const scaleX = node.scaleX();
+                    const scaleY = node.scaleY();
+                    
+                    node.scaleX(1);
+                    node.scaleY(1);
+
+                    if (table.type === 'round') {
+                        const newRad = Math.max(30, Math.round((table.radius || 75) * scaleX));
+                        onChange({
+                            x: Math.round(node.x()),
+                            y: Math.round(node.y()),
+                            radius: newRad,
+                            capacity: getUpdatedChairs('round', { radius: newRad, width: 0, height: 0 })
+                        });
+                    } else {
+                        const newW = Math.max(50, Math.round((table.width || 200) * scaleX));
+                        const newH = Math.max(40, Math.round((table.height || 100) * scaleY));
+                        onChange({
+                            x: Math.round(node.x()),
+                            y: Math.round(node.y()),
+                            width: newW,
+                            height: newH,
+                            capacity: getUpdatedChairs('rect', { radius: 0, width: newW, height: newH })
+                        });
+                    }
+                }}
+            >
+                {/* Chairs */}
+                {chairs.map((c, i) => (
+                    <Circle 
+                        key={i}
+                        x={c.x}
+                        y={c.y}
+                        radius={10}
+                        fill={c.occupied ? "#3b82f6" : "#1e293b"} // blue-500 when occupied
+                        stroke={c.occupied ? "#2563eb" : "#475569"}
+                        strokeWidth={1.5}
+                        shadowBlur={2}
+                        opacity={0.9}
+                    />
+                ))}
+
+                {/* Table Solid Body */}
+                {table.type === 'round' ? (
+                    <Circle 
+                        radius={table.radius || 75}
+                        fill={isSelected ? '#1e293b' : '#0f172a'}
+                        stroke={isSelected ? '#3b82f6' : '#334155'}
+                        strokeWidth={isSelected ? 3 : 1.5}
+                        shadowColor="black"
+                        shadowBlur={10}
+                        shadowOpacity={0.25}
+                    />
+                ) : (
+                    <Rect 
+                        x={-(table.width || 200) / 2}
+                        y={-(table.height || 100) / 2}
+                        width={table.width || 200}
+                        height={table.height || 100}
+                        fill={isSelected ? '#1e293b' : '#0f172a'}
+                        stroke={isSelected ? '#3b82f6' : '#334155'}
+                        strokeWidth={isSelected ? 3 : 1.5}
+                        cornerRadius={6}
+                        shadowColor="black"
+                        shadowBlur={10}
+                        shadowOpacity={0.25}
+                    />
+                )}
+
+                {/* Label text */}
+                <KonvaText 
+                    text={`${table.label}\n(${assignedGuests.length}/${chairsCount})`}
+                    fontSize={Math.max(10, Math.min(table.width || (table.radius || 75) * 1.5, 13))}
+                    fontStyle="bold"
+                    fontFamily="sans-serif"
+                    align="center"
+                    verticalAlign="middle"
+                    width={table.type === 'round' ? (table.radius || 75) * 1.7 : table.width}
+                    height={table.type === 'round' ? (table.radius || 75) * 1.7 : table.height}
+                    x={table.type === 'round' ? -(table.radius || 75) * 0.85 : -(table.width || 200) / 2}
+                    y={table.type === 'round' ? -(table.radius || 75) * 0.85 : -(table.height || 100) / 2}
+                    fill={isSelected ? '#60a5fa' : '#94a3b8'}
+                />
+
+            </Group>
+
+            {/* Transform outline frame */}
+            {isSelected && (
+                <Transformer 
+                    ref={trRef}
+                    boundBoxFunc={(oldBox, newBox) => {
+                        if (newBox.width < 60 || newBox.height < 50) return oldBox;
+                        return newBox;
+                    }}
+                    enabledAnchors={table.type === 'round' ? ['top-left', 'top-right', 'bottom-left', 'bottom-right'] : ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']}
+                />
+            )}
+        </>
+    );
+}

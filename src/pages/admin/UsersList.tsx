@@ -245,29 +245,47 @@ export default function UsersList() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`badge ${user.role === 'superadmin'
-                                                ? 'bg-foreground text-background border-border'
-                                                : 'bg-accent/10 text-accent-dark border-accent/20'
-                                                } px-2 py-1 rounded text-xs font-medium border`}>
-                                                {user.role === 'superadmin' ? 'Super Admin' : 'Proveedor'}
-                                            </span>
+                                            {(() => {
+                                                const isOwner = events.some(e => e.owner_id === user.id);
+                                                return (
+                                                    <span className={`badge ${user.role === 'superadmin'
+                                                        ? 'bg-foreground text-background border-border'
+                                                        : isOwner 
+                                                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        : 'bg-accent/10 text-accent-dark border-accent/20'
+                                                        } px-2 py-1 rounded text-xs font-medium border`}>
+                                                        {user.role === 'superadmin' ? 'Super Admin' : isOwner ? 'Cliente (Dueño de evento)' : 'Proveedor'}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-wrap gap-1">
                                                 {user.role === 'superadmin' ? (
                                                     <span className="text-xs text-muted italic">Acceso Total</span>
-                                                ) : user.assigned_event_ids && user.assigned_event_ids.length > 0 ? (
-                                                    user.assigned_event_ids.map(evtId => {
-                                                        const evt = events.find(e => e.id === evtId);
-                                                        return (
-                                                            <span key={evtId} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-surface text-foreground border border-border">
-                                                                {evt ? evt.name : 'Evento Desconocido'}
-                                                            </span>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <span className="text-xs text-muted italic">Sin asignación</span>
-                                                )}
+                                                ) : (() => {
+                                                    const ownedEvents = events.filter(e => e.owner_id === user.id);
+                                                    const assignedEvents = events.filter(e => user.assigned_event_ids?.includes(e.id));
+                                                    
+                                                    if (ownedEvents.length === 0 && assignedEvents.length === 0) {
+                                                        return <span className="text-xs text-muted italic">Sin eventos</span>;
+                                                    }
+                                                    
+                                                    return (
+                                                        <>
+                                                            {ownedEvents.map(evt => (
+                                                                <span key={`owned-${evt.id}`} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                                    {evt.name} (Propietario)
+                                                                </span>
+                                                            ))}
+                                                            {assignedEvents.map(evt => (
+                                                                <span key={`assigned-${evt.id}`} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-surface text-foreground border border-border">
+                                                                    {evt.name} (Asignado)
+                                                                </span>
+                                                            ))}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">

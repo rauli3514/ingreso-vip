@@ -6,7 +6,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import {
     ArrowLeft, Calendar, Users, MapPin,
     Upload, Plus, Clock, CheckCircle2,
-    Palette, Video, Download, Settings, QrCode, Music, Camera
+    Palette, Video, Download, Settings, QrCode, Music, Camera, Lock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -175,6 +175,26 @@ export default function EventDetails() {
         return `${window.location.origin}${baseUrl}/evento/${event?.id}`;
     };
 
+    const hasPremium = event ? ((event as any).planner_data?.services || []).some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready') : false;
+
+    const renderPremiumLock = (featureName: string) => (
+        <div className="flex flex-col items-center justify-center py-24 px-4 text-center glass-panel rounded-2xl border border-border mt-4">
+            <div className="w-20 h-20 rounded-full bg-accent/10 text-accent flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(var(--accent-color-rgb),0.2)]">
+                <Lock size={32} />
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-3 font-display">Herramienta Premium</h3>
+            <p className="text-muted-foreground max-w-md mb-8 text-sm leading-relaxed">
+                La sección de <strong>{featureName}</strong> es una herramienta exclusiva de EventPix Premium. Adquiere el paquete en tu Planificador para desbloquear todo el potencial de tu evento.
+            </p>
+            <button 
+                onClick={() => navigate('/planificador')}
+                className="btn btn-primary px-8 py-3 rounded-full font-bold shadow-lg shadow-accent/25 hover:shadow-accent/40 transition-all hover:-translate-y-0.5"
+            >
+                Adquirir Premium
+            </button>
+        </div>
+    );
+
     if (loading) return (
         <DashboardLayout>
             <div className="flex items-center justify-center h-64">
@@ -278,20 +298,20 @@ export default function EventDetails() {
             <div className="mb-8">
                 <div className="bg-surface border border-border p-1.5 rounded-xl inline-flex flex-wrap gap-1 shadow-sm">
                     {[
-                        { id: 'guests', label: 'Invitados', icon: Users },
-                        { id: 'tables', label: 'Organizador', icon: MapPin },
-                        { id: 'design', label: 'Diseño', icon: Palette },
-                        { id: 'receptionist', label: 'Recepcionista', icon: Video },
-                        { id: 'playlist', label: 'Música', icon: Music },
-                        { id: 'downloads', label: 'Descargas', icon: Download },
-                        { id: 'photokiosk', label: 'Foto Quiosco', icon: Camera },
-                        { id: 'settings', label: 'Configuración', icon: Settings },
+                        { id: 'guests', label: 'Invitados', icon: Users, isPremium: false },
+                        { id: 'tables', label: 'Organizador', icon: MapPin, isPremium: false },
+                        { id: 'design', label: 'Diseño', icon: Palette, isPremium: true },
+                        { id: 'receptionist', label: 'Recepcionista', icon: Video, isPremium: true },
+                        { id: 'playlist', label: 'Música', icon: Music, isPremium: true },
+                        { id: 'photokiosk', label: 'Foto Quiosco', icon: Camera, isPremium: true },
+                        { id: 'downloads', label: 'Descargas', icon: Download, isPremium: true },
+                        { id: 'settings', label: 'Configuración', icon: Settings, isPremium: false },
                     ].map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`
-                                flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
+                                flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative
                                 ${activeTab === tab.id
                                     ? 'bg-accent/10 text-accent-dark shadow-sm ring-1 ring-inset ring-accent/20'
                                     : 'text-muted hover:text-foreground hover:bg-background'}
@@ -299,6 +319,9 @@ export default function EventDetails() {
                         >
                             <tab.icon size={16} className={activeTab === tab.id ? 'text-accent' : 'text-muted-foreground'} />
                             {tab.label}
+                            {tab.isPremium && !hasPremium && (
+                                <Lock size={12} className="absolute top-2 right-2 text-accent/50" />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -330,38 +353,48 @@ export default function EventDetails() {
             )}
 
             {activeTab === 'design' && (
-                <DesignTab
-                    event={event}
-                    onUpdateEvent={onUpdateEvent}
-                />
+                hasPremium ? (
+                    <DesignTab
+                        event={event}
+                        onUpdateEvent={onUpdateEvent}
+                    />
+                ) : renderPremiumLock('Diseño de Invitaciones')
             )}
 
             {activeTab === 'receptionist' && (
-                <ReceptionistTab
-                    event={event}
-                    guests={guests}
-                    onUpdateEvent={onUpdateEvent}
-                    onUpdateGuests={onUpdateGuests}
-                />
+                hasPremium ? (
+                    <ReceptionistTab
+                        event={event}
+                        guests={guests}
+                        onUpdateEvent={onUpdateEvent}
+                        onUpdateGuests={onUpdateGuests}
+                    />
+                ) : renderPremiumLock('Recepcionista Virtual')
             )}
 
             {activeTab === 'playlist' && (
-                <PlaylistTab
-                    event={event}
-                />
+                hasPremium ? (
+                    <PlaylistTab
+                        event={event}
+                    />
+                ) : renderPremiumLock('Música Colaborativa')
             )}
 
             {activeTab === 'photokiosk' && (
-                <PhotoKioskTab
-                    event={event}
-                />
+                hasPremium ? (
+                    <PhotoKioskTab
+                        event={event}
+                    />
+                ) : renderPremiumLock('Foto Quiosco')
             )}
 
             {activeTab === 'downloads' && (
-                <DownloadsTab
-                    event={event}
-                    guests={guests}
-                />
+                hasPremium ? (
+                    <DownloadsTab
+                        event={event}
+                        guests={guests}
+                    />
+                ) : renderPremiumLock('Descargas Masivas')
             )}
 
             {activeTab === 'settings' && (

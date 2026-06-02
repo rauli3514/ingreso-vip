@@ -9,10 +9,20 @@ import EventsList from './pages/admin/EventsList';
 import EventDetails from './pages/admin/EventDetails';
 import UsersList from './pages/admin/UsersList';
 import InvitationEditor from './pages/admin/invitation/InvitationEditor';
+import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 
 import GuestApp from './pages/guest/GuestApp';
 import InvitationRenderer from './pages/public/invitation/InvitationRenderer';
 import PhotoKioskPage from './pages/public/PhotoKioskPage';
+import EventPlanner from './pages/public/EventPlanner';
+
+// EventPix Admin Routes
+import AdminLayout from './pages/admin/AdminLayout';
+import Analytics from './pages/admin/Analytics';
+import Leads from './pages/admin/Leads';
+import Providers from './pages/admin/Providers';
+import Premium from './pages/admin/Premium';
+import Conversions from './pages/admin/Conversions';
 
 function App() {
     return (
@@ -30,6 +40,19 @@ function App() {
                         <Route path="users" element={<UsersList />} />
                         <Route path="event/:id" element={<EventDetails />} />
                         <Route path="event/:id/invitation" element={<InvitationEditor />} />
+                        <Route path="metrics" element={<AnalyticsDashboard />} />
+                    </Route>
+
+                    {/* EventPix Admin Routes */}
+                    <Route path="/admin-ep" element={<ProtectedRoute />}>
+                        <Route element={<AdminLayout />}>
+                            <Route index element={<Navigate to="/admin-ep/analytics" replace />} />
+                            <Route path="analytics" element={<Analytics />} />
+                            <Route path="leads" element={<Leads />} />
+                            <Route path="providers" element={<Providers />} />
+                            <Route path="premium" element={<Premium />} />
+                            <Route path="conversions" element={<Conversions />} />
+                        </Route>
                     </Route>
 
                     {/* Guest Routes */}
@@ -37,6 +60,10 @@ function App() {
                     <Route path="/invitacion/:id" element={<InvitationRenderer />} />
                     <Route path="/invitation/:id" element={<InvitationRenderer />} />
                     <Route path="/kiosco/:id" element={<PhotoKioskPage />} />
+
+                    {/* EventPlanner Public SPA Routes */}
+                    <Route path="/planificador" element={<EventPlanner />} />
+                    <Route path="/planner" element={<EventPlanner />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Calendar, User, Users, Zap, X, Menu } from 'lucide-react';
+import { LogOut, Calendar, User, Users, Zap, X, Menu, BarChart3, Sparkles, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -9,6 +9,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const location = useLocation();
     const { signOut, user, role } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [canSeeMisEventos, setCanSeeMisEventos] = useState(false);
 
     // Bloquear usuarios deshabilitados
     useEffect(() => {
@@ -24,32 +25,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         navigate('/login');
     };
 
-    // Ensure user profile exists
+    // Ensure user profile exists and check access permissions
     useEffect(() => {
-        const ensureProfileExists = async () => {
+        const checkAccess = async () => {
             if (!user) return;
 
+            if (role === 'superadmin') {
+                setCanSeeMisEventos(true);
+                return;
+            }
+
             try {
-                const { error: profileError } = await supabase
+                let currentProfile = null;
+
+                // 1. Fetch Profile
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
                     .single();
 
                 if (profileError && profileError.code === 'PGRST116') {
-                    await supabase.from('profiles').insert({
+                    const { data: newProfile } = await supabase.from('profiles').insert({
                         id: user.id,
                         email: user.email,
                         role: 'provider'
-                    });
+                    }).select().single();
+                    currentProfile = newProfile;
+                } else {
+                    currentProfile = profile;
                 }
+
+                // 2. Check if user is staff (has assigned events)
+                const isStaff = currentProfile?.assigned_event_ids && currentProfile.assigned_event_ids.length > 0;
+                
+                // 3. Check if user is premium client
+                const { data: ownedEvents } = await supabase
+                    .from('events')
+                    .select('planner_data')
+                    .eq('owner_id', user.id);
+
+                const hasPremiumEvent = ownedEvents?.some(e => {
+                    const services = e.planner_data?.services || [];
+                    return services.some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready');
+                });
+
+                // Can see Mis Eventos IF they are staff OR they have paid for premium
+                setCanSeeMisEventos(isStaff || hasPremiumEvent);
+
             } catch (err) {
-                console.error('Error checking/creating profile:', err);
+                console.error('Error checking access:', err);
             }
         };
 
-        ensureProfileExists();
-    }, [user]);
+        checkAccess();
+    }, [user, role]);
 
     return (
         <div className="flex h-screen overflow-hidden bg-background relative">
@@ -76,10 +106,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-white leading-none">
-                                Ingreso VIP <span className="text-blue-400">Panel</span>
+                                {role === 'superadmin' ? 'EventPix ' : 'Ingreso VIP '}
+                                <span className="text-blue-400">
+                                    {role === 'superadmin' ? 'Admin' : 'Panel'}
+                                </span>
                             </h2>
                             <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">
-                                {role === 'superadmin' ? 'SUPER ADMIN' : 'Proveedor'}
+                                {role === 'superadmin' ? 'SUPER ADMIN' : 'CLIENTE VIP'}
                             </p>
                         </div>
                     </div>
@@ -93,21 +126,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-                    <NavItem
-                        icon={<Calendar size={18} />}
-                        label="Mis Eventos"
-                        active={location.pathname.includes('/admin/dashboard')}
-                        onClick={() => { navigate('/admin/dashboard'); setIsMobileMenuOpen(false); }}
-                    />
-
-                    {role === 'superadmin' && (
+                    {canSeeMisEventos && (
                         <NavItem
-                            icon={<Users size={18} />}
-                            label="Usuarios"
-                            active={location.pathname.includes('/admin/users')}
-                            onClick={() => { navigate('/admin/users'); setIsMobileMenuOpen(false); }}
+                            icon={<Calendar size={18} />}
+                            label="Mis Eventos"
+                            active={location.pathname.includes('/admin/dashboard')}
+                            onClick={() => { navigate('/admin/dashboard'); setIsMobileMenuOpen(false); }}
                         />
                     )}
+
+                    {role === 'superadmin' && (
+                        <>
+                            <NavItem
+                                icon={<Users size={18} />}
+                                label="Usuarios"
+                                active={location.pathname.includes('/admin/users')}
+                                onClick={() => { navigate('/admin/users'); setIsMobileMenuOpen(false); }}
+                            />
+                            <NavItem
+                                icon={<BarChart3 size={18} />}
+                                label="Analíticas"
+                                active={location.pathname.includes('/admin/metrics')}
+                                onClick={() => { navigate('/admin/metrics'); setIsMobileMenuOpen(false); }}
+                            />
+                        </>
+                    )}
+
+                    <div className="pt-4 mt-4 border-t border-white/5">
+                        <p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">EventPix (Nuevo)</p>
+                        <NavItem
+                            icon={<Sparkles size={18} />}
+                            label="Mi Organizador"
+                            active={location.pathname.includes('/planificador')}
+                            onClick={() => { navigate('/planificador'); setIsMobileMenuOpen(false); }}
+                        />
+                        {role === 'superadmin' && (
+                            <NavItem
+                                icon={<Crown size={18} />}
+                                label="Business Admin"
+                                active={location.pathname.includes('/admin-ep')}
+                                onClick={() => { navigate('/admin-ep'); setIsMobileMenuOpen(false); }}
+                            />
+                        )}
+                    </div>
                 </nav>
 
                 {/* User Info & Logout */}

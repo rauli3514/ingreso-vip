@@ -56,6 +56,18 @@ export default function EventsList() {
                     if (assignedIds.includes(event.id)) return true;
                     return false;
                 });
+
+                // Check if they should be here
+                const isStaff = assignedIds.length > 0;
+                const hasPremium = finalEvents.some(e => {
+                    const services = (e as any).planner_data?.services || [];
+                    return services.some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready');
+                });
+
+                if (!isStaff && !hasPremium) {
+                    navigate('/planificador');
+                    return;
+                }
             }
 
             setEvents(finalEvents);
@@ -190,7 +202,7 @@ export default function EventsList() {
                                         <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
                                             <Calendar size={16} />
                                         </div>
-                                        <span className="text-sm font-medium">{format(new Date(event.date + 'T00:00:00'), "dd 'de' MMMM, yyyy", { locale: es })}</span>
+                                        <span className="text-sm font-medium">{event.date ? format(new Date(event.date + 'T00:00:00'), "dd 'de' MMMM, yyyy", { locale: es }) : 'Fecha sin definir'}</span>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3">
