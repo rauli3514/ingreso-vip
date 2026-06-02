@@ -29,7 +29,7 @@ function App() {
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/" element={<Landing />} />
+                    <Route path="/" element={<EventPlanner />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
 
