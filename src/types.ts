@@ -232,3 +232,34 @@ export interface TriviaResponse {
     completed_at: string;
     created_at: string;
 }
+
+export interface Provider {
+    id: string;
+    company_name: string;
+    services_offered: string[];
+    location: string;
+    whatsapp_number: string;
+    base_price: number;
+    logo_url?: string;
+    rating: number;
+    reviews_count: number;
+    tier: 'standard' | 'premium';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Lead {
+    id: string;
+    provider_id: string;
+    event_id?: string;
+    client_name: string;
+    client_email?: string;
+    client_phone?: string;
+    estimated_budget: number;
+    event_details: Record<string, any>;
+    status: 'nuevo' | 'contactado' | 'cerrado';
+    created_at: string;
+    updated_at: string;
+    provider?: Provider;
+    event?: Event;
+}
