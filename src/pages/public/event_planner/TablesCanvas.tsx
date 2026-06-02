@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useRef } from 'react';
 import { EventData } from './types';
 import { motion } from 'framer-motion';

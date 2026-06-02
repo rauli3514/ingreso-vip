@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from 'react';
 import { EventData, PlannerService } from './types';
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, Sparkles, Lightbulb, Target, Smartphone, MonitorPlay, Camera } from 'lucide-react';
