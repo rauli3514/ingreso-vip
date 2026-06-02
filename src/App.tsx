@@ -29,7 +29,7 @@ function App() {
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/" element={<EventPlanner />} />
+                    <Route path="/" element={window.location.hostname.includes('vip') ? <Landing /> : <EventPlanner />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
 
