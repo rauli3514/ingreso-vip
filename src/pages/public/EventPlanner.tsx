@@ -24,13 +24,6 @@ const defaultServices: PlannerService[] = [
     { id: '12', category: 'Extras', name: 'Living / ambientación premium', status: 'pending', cost: 0, note: '', group: 'opcional' },
     { id: '13', category: 'Extras', name: 'Pantalla LED', status: 'pending', cost: 0, note: '', group: 'opcional' },
     { id: '17', category: 'Extras', name: 'Entretenimiento / show', status: 'pending', cost: 0, note: '', group: 'opcional' },
-    
-    // Premium EventPix (Estos no se mezclan con los proveedores normales)
-    { id: '8', category: 'Digital', name: 'Invitaciones Web EventPix', status: 'pending', cost: 0, note: '', group: 'eventpix_premium' },
-    { id: '9', category: 'Digital', name: 'Confirmaciones RSVP', status: 'pending', cost: 0, note: '', group: 'eventpix_premium' },
-    { id: '14', category: 'Digital', name: 'Espejo Mágico EventPix', status: 'pending', cost: 0, note: '', group: 'eventpix_premium' },
-    { id: '15', category: 'Digital', name: 'Recepcionista Virtual EventPix', status: 'pending', cost: 0, note: '', group: 'eventpix_premium' },
-    { id: '16', category: 'Digital', name: 'Libro de firmas digital', status: 'pending', cost: 0, note: '', group: 'eventpix_premium' },
 ];
 
 export default function EventPlanner() {

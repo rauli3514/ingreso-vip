@@ -492,7 +492,7 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                 </div>
 
                 {/* SECCIÓN PREMIUM EVENTPIX */}
-                {showTools && (
+                {false && showTools && (
                     <div className="mt-20 border-t border-slate-800 pt-16">
                         <div className="text-center max-w-2xl mx-auto mb-12">
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-blue-400 font-medium text-sm mb-6">
