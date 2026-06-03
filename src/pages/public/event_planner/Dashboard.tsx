@@ -11,6 +11,13 @@ import { supabase } from '../../../lib/supabase';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import MobileHero from './components/MobileHero';
+import MobileStats from './components/MobileStats';
+import EmotionalMessage from './components/EmotionalMessage';
+import EventProgress from './components/EventProgress';
+import NextStepCard from './components/NextStepCard';
+import GuestMobileCard from './components/GuestMobileCard';
+import { Star } from 'lucide-react';
 
 interface DashboardProps {
     eventData: EventData;
@@ -350,10 +357,10 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
     const unassignedGuests = filteredGuests.filter(g => !g.table_id);
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col">
+        <div className="min-h-screen bg-slate-950 flex flex-col relative pb-20 md:pb-0">
             
             {/* TOP HEADER (Simulating Ingreso VIP Panel) */}
-            <div className="bg-slate-900 border-b border-slate-800 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="hidden md:flex bg-slate-900 border-b border-slate-800 p-6 flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                         <input 
@@ -457,7 +464,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
             </div>
 
             {/* HUMAN ASSISTANT MICRO-COPY */}
-            <div className="bg-slate-900 border-b border-slate-800 p-4">
+            <div className="hidden md:block bg-slate-900 border-b border-slate-800 p-4">
                 <div className="max-w-4xl mx-auto flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/30">
                         <Info size={16} />
@@ -488,8 +495,22 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                 </div>
             </div>
 
+            {/* MOBILE HERO & EMOTIONAL COMPONENTS */}
+            <MobileHero 
+                onAddGuest={() => {
+                    setGuestToEdit(null);
+                    setIsGuestModalOpen(true);
+                }} 
+                onImportExcel={() => document.getElementById('mobile-upload-input')?.click()} 
+            />
+            <input type="file" id="mobile-upload-input" accept=".csv" className="hidden" onChange={handleFileUpload} />
+            <MobileStats eventData={eventData} />
+            <EmotionalMessage guestCount={eventData.guests.length} />
+            <EventProgress eventData={eventData} />
+            <NextStepCard eventData={eventData} onAction={setActiveTab} />
+
             {/* DASHBOARD SUMMARY CARDS */}
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950">
+            <div className="p-6 hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950">
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
                         <Users size={24} />
@@ -532,25 +553,25 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
             </div>
 
             {/* TAB NAVIGATION */}
-            <div className="px-6 mt-2">
-                <div className="flex bg-slate-900 p-1 rounded-xl w-fit border border-slate-800 overflow-x-auto custom-scrollbar">
+            <div className="px-4 md:px-6 mt-0 md:mt-2 bg-slate-950">
+                <div className="flex bg-slate-900 p-1.5 rounded-2xl w-full md:w-fit border border-slate-800 overflow-x-auto custom-scrollbar shadow-lg shadow-black/20">
                     <button 
                         onClick={() => setActiveTab('list')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'list' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'list' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
                     >
-                        <Users size={16} /> Invitados
+                        <Users size={18} /> Invitados
                     </button>
                     <button 
                         onClick={() => setActiveTab('kanban')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'kanban' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'kanban' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
                     >
-                        <LayoutGrid size={16} /> Mesas
+                        <LayoutGrid size={18} /> Mesas
                     </button>
                     <button 
                         onClick={() => setActiveTab('my_event')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'my_event' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'my_event' ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-500 shadow-md border border-amber-500/20' : 'text-slate-400 hover:text-amber-500/80 hover:bg-slate-800/50'}`}
                     >
-                        ⭐ Mi Evento
+                        <Star size={18} className={activeTab === 'my_event' ? 'fill-amber-500/20' : ''} /> Mi Evento
                     </button>
                 </div>
             </div>
@@ -615,8 +636,32 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
 
                 {/* --- LIST VIEW --- */}
                 {activeTab === 'list' && (
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 overflow-y-auto">
-                        <table className="w-full text-left border-collapse">
+                    <div className="bg-slate-950 md:bg-white md:rounded-2xl md:border md:border-slate-200 shadow-sm overflow-hidden flex-1 overflow-y-auto">
+                        
+                        {/* MOBILE CARDS VIEW */}
+                        <div className="md:hidden">
+                            {filteredGuests.map(guest => {
+                                const assignedTable = eventData.tables.find(t => t.id === guest.table_id);
+                                return (
+                                    <GuestMobileCard 
+                                        key={guest.id}
+                                        guest={guest}
+                                        tableName={assignedTable?.label || ''}
+                                        onEdit={openEditModal}
+                                        onDelete={handleDeleteGuest}
+                                    />
+                                );
+                            })}
+                            
+                            {filteredGuests.length === 0 && eventData.guests.length > 0 && (
+                                <div className="p-8 text-center text-slate-500">
+                                    No se encontraron invitados.
+                                </div>
+                            )}
+                        </div>
+
+                        {/* DESKTOP TABLE VIEW */}
+                        <table className="hidden md:table w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-200 bg-slate-50/50">
                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Invitado</th>
@@ -730,6 +775,14 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                 {/* --- KANBAN / TABLES VIEW --- */}
                 {activeTab === 'kanban' && (
                     <div className="flex-1 flex flex-col overflow-hidden relative">
+                        {/* PC TIP */}
+                        <div className="md:hidden mt-0 mb-4 bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex items-start gap-3 shadow-lg">
+                            <span className="text-xl">💻</span>
+                            <div>
+                                <p className="text-sm text-slate-300 font-medium">Tip: Para organizar mesas grandes y mover invitados visualmente, la computadora suele ser más cómoda 😉</p>
+                            </div>
+                        </div>
+
                         {/* Sub-header for Tables (Lista vs Visual) */}
                         <div className="mb-4 flex items-center justify-between">
                             <div className="flex bg-slate-900 p-1 rounded-xl w-fit border border-slate-800">
@@ -913,10 +966,25 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                     // Slight delay to avoid flicker while closing
                     setTimeout(() => setGuestToEdit(null), 200);
                 }} 
-                guestToEdit={guestToEdit}
+                guestToEdit={guestToEdit || undefined}
                 onGuestAdded={handleAddManualGuest} 
                 onGuestUpdated={handleUpdateGuest}
+                existingGroups={[...new Set(eventData.guests.map(g => g.group || '').filter(Boolean))]}
+                tables={eventData.tables}
             />
+
+            {/* FLOATING MOBILE CTA */}
+            <div className="md:hidden fixed bottom-6 right-6 z-[60]">
+                <button 
+                    onClick={() => {
+                        setGuestToEdit(null);
+                        setIsGuestModalOpen(true);
+                    }}
+                    className="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(37,99,235,0.4)] active:scale-95 transition-transform"
+                >
+                    <Plus size={24} strokeWidth={3} />
+                </button>
+            </div>
         </div>
     );
 }
