@@ -495,6 +495,49 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                 </div>
             </div>
 
+            {/* MOBILE TOP BAR (Save/Exit) */}
+            <div className="flex md:hidden bg-slate-900 border-b border-slate-800 px-4 py-3 items-center justify-between">
+                <div className="flex items-center gap-2">
+                    {isSaving ? (
+                        <span className="text-slate-400 text-xs font-medium flex items-center gap-1.5">
+                            <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                            Guardando...
+                        </span>
+                    ) : showSavedBadge ? (
+                        <span className="text-emerald-400 text-xs font-medium flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                            <CheckCircle2 size={12} /> Guardado
+                        </span>
+                    ) : (
+                        <span className="text-slate-500 text-xs font-medium flex items-center gap-1">
+                            <CheckCircle2 size={12} /> Sincronizado
+                        </span>
+                    )}
+                </div>
+
+                <div>
+                    {isLoggedIn ? (
+                        <button 
+                            onClick={async () => {
+                                await supabase.auth.signOut();
+                                localStorage.removeItem('eventpix_auth');
+                                localStorage.removeItem('eventpix_data');
+                                window.location.reload();
+                            }}
+                            className="text-slate-400 hover:text-white text-xs font-medium transition-colors border border-slate-700 px-3 py-1.5 rounded-lg bg-slate-800"
+                        >
+                            Salir
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={handlePremiumFeature}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all shadow-md"
+                        >
+                            <Save size={14} /> Guardar
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* MOBILE HERO & EMOTIONAL COMPONENTS */}
             <MobileHero 
                 onAddGuest={() => {
