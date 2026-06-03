@@ -38,6 +38,9 @@ export default function MobileHero({ onAddGuest, onImportExcel }: MobileHeroProp
                     <Upload size={18} className="text-slate-400" />
                     Importar Excel
                 </button>
+                <p className="text-[11px] text-slate-400 text-center mt-1">
+                    💡 <span className="font-medium text-slate-300">Tip web:</span> Ingresá desde tu compu para descargar la plantilla Excel modelo y cargar todo mucho más rápido.
+                </p>
             </div>
         </div>
     );
