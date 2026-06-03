@@ -175,11 +175,40 @@ export default function EventPlanner() {
                                 .limit(1);
                                 
                             if (events && events.length > 0) {
-                                await supabase
+                                const { error: updateError } = await supabase
                                     .from('events')
                                     .update({ planner_data: eventData })
                                     .eq('id', events[0].id);
-                                console.log('Synced to cloud successfully');
+                                
+                                if (updateError) {
+                                    console.error('Update error:', updateError);
+                                    alert('Ups, error interno al actualizar: ' + updateError.message + '\nPor favor enviame captura!');
+                                } else {
+                                    console.log('Synced to cloud successfully');
+                                }
+                            } else {
+                                // If no event exists for this user, create one!
+                                const { data: newEvent, error: insertError } = await supabase
+                                    .from('events')
+                                    .insert({
+                                        owner_id: session.user.id,
+                                        name: eventData.name || 'Mi Evento',
+                                        date: eventData.date || new Date().toISOString().split('T')[0],
+                                        planner_data: eventData
+                                    })
+                                    .select('id')
+                                    .single();
+                                
+                                if (insertError) {
+                                    console.error('Insert error:', insertError);
+                                    alert('Ups, error interno al guardar: ' + insertError.message + '\nPor favor enviame captura de esto!');
+                                }
+                                
+                                if (!insertError && newEvent) {
+                                    console.log('Created new event in cloud');
+                                    // Update local state to know about this cloud ID
+                                    setEventData(prev => ({ ...prev, cloudEventId: newEvent.id }));
+                                }
                             }
                         } catch (err) {
                             console.error('Failed to sync to cloud', err);
