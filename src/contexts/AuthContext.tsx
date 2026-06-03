@@ -77,7 +77,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             console.log('📊 Profile query result:', { data, error });
 
-            if (error) {
+            if (error && error.code === 'PGRST116') {
+                console.log('⚠️ Profile not found, creating one automatically...');
+                // Create profile if it doesn't exist (e.g. Google Auth from planner)
+                const { data: newProfile, error: insertError } = await supabase.from('profiles').insert({
+                    id: userId,
+                    email: email,
+                    role: 'provider'
+                }).select('role').single();
+
+                if (insertError) {
+                    console.error('❌ Error creating profile:', insertError);
+                } else {
+                    console.log('✅ Profile created successfully:', newProfile?.role);
+                    setRole(newProfile?.role as UserRole);
+                }
+            } else if (error) {
                 console.error('❌ Error fetching role:', error);
             } else {
                 console.log('✅ Role fetched successfully:', data?.role);
