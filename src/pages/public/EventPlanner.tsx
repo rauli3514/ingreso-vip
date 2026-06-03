@@ -177,7 +177,11 @@ export default function EventPlanner() {
                             if (events && events.length > 0) {
                                 const { error: updateError } = await supabase
                                     .from('events')
-                                    .update({ planner_data: eventData })
+                                    .update({ 
+                                        planner_data: eventData,
+                                        name: eventData.name || 'Mi Evento',
+                                        date: eventData.date || new Date().toISOString().split('T')[0]
+                                    })
                                     .eq('id', events[0].id);
                                 
                                 if (updateError) {
