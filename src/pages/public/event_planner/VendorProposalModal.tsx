@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X, Sparkles, MapPin, ExternalLink, Globe, Instagram, Loader2, Star, CheckCircle2 } from 'lucide-react';
 import { EventData, PlannerService } from './types';
-import { supabase } from '../../../../lib/supabase';
-import { Provider } from '../../../../types';
+import { supabase } from '../../../lib/supabase';
+import { Provider } from '../../../types';
 
 interface VendorProposalModalProps {
     isOpen: boolean;
