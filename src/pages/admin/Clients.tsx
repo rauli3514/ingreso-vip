@@ -24,7 +24,7 @@ export default function Clients() {
             if (eventsRes.error) throw eventsRes.error;
 
             const events = eventsRes.data || [];
-            const profiles = (profilesRes.data || []).filter(p => p.is_active !== false);
+            const profiles = profilesRes.data || [];
 
             const clientsWithEvents = profiles.map(profile => ({
                 ...profile,
