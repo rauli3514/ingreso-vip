@@ -142,12 +142,26 @@ export default function EventsAdmin() {
                             <div className="flex items-center justify-between pt-4 border-t border-slate-800">
                                 <div className="flex gap-2">
                                     <a 
+                                        href={`/admin/event/${event.id}`}
+                                        className="btn py-2 px-3 text-xs bg-blue-600 hover:bg-blue-500 text-white font-medium gap-2 flex items-center rounded-lg transition-colors"
+                                        title="Panel de Control del Evento"
+                                    >
+                                        Gestión
+                                    </a>
+                                    <a 
+                                        href={`/admin/event/${event.id}/invitation`}
+                                        className="btn py-2 px-3 text-xs bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 font-medium gap-2 flex items-center rounded-lg transition-colors"
+                                        title="Diseñar Invitación"
+                                    >
+                                        💌 Diseño
+                                    </a>
+                                    <a 
                                         href={`/evento/${event.id}`}
                                         target="_blank" rel="noopener noreferrer"
-                                        className="btn btn-outline py-2 px-3 text-xs bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 gap-2 flex items-center rounded-lg"
+                                        className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
                                         title="Ver App del Invitado"
                                     >
-                                        <ExternalLink size={14} /> Invitado
+                                        <ExternalLink size={16} />
                                     </a>
                                 </div>
                                 

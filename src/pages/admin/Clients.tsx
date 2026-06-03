@@ -19,12 +19,12 @@ export default function Clients() {
                 supabase.from('profiles').select('*').neq('role', 'superadmin').order('created_at', { ascending: false }),
                 supabase.from('events').select('*')
             ]);
-
+                
             if (profilesRes.error) throw profilesRes.error;
             if (eventsRes.error) throw eventsRes.error;
 
             const events = eventsRes.data || [];
-            const profiles = profilesRes.data || [];
+            const profiles = (profilesRes.data || []).filter(p => p.is_active !== false);
 
             const clientsWithEvents = profiles.map(profile => ({
                 ...profile,
