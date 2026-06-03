@@ -25,9 +25,15 @@ export default function AdminLayout() {
     };
 
     const navItems = [
-        { path: '/admin-ep/analytics', label: 'Analytics', icon: LayoutDashboard },
-        { path: '/admin-ep/leads', label: 'Leads', icon: Users },
-        { path: '/admin-ep/providers', label: 'Proveedores', icon: Store },
+        { path: '/admin-ep/analytics', label: 'Métricas EventPix', icon: LayoutDashboard, isExternal: false },
+        { path: '/admin-ep/leads', label: 'Leads', icon: Users, isExternal: false },
+        { path: '/admin-ep/providers', label: 'Proveedores', icon: Store, isExternal: false },
+    ];
+
+    const oldNavItems = [
+        { path: '/admin/dashboard', label: 'Mis Eventos', icon: LayoutDashboard },
+        { path: '/admin/users', label: 'Clientes (Novios)', icon: Users },
+        { path: '/admin/metrics', label: 'Métricas de Uso', icon: LayoutDashboard },
     ];
 
     return (
@@ -66,6 +72,32 @@ export default function AdminLayout() {
 
                 <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                     {navItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname.startsWith(item.path);
+                        
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={`
+                                    flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200
+                                    ${isActive 
+                                        ? 'bg-blue-600/10 text-blue-400 shadow-[inset_4px_0_0_0_rgba(37,99,235,1)]' 
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}
+                                `}
+                            >
+                                <Icon size={20} className={isActive ? "text-blue-500" : "text-slate-500"} />
+                                {item.label}
+                            </Link>
+                        );
+                    })}
+
+                    <div className="pt-4 mt-4 mb-2">
+                        <p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">Gestión Global</p>
+                    </div>
+
+                    {oldNavItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname.startsWith(item.path);
                         

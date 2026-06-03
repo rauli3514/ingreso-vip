@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Users, LayoutGrid, Plus, MoreVertical, GripVertical, CheckCircle2, Clock, Upload, Download, Save, Info, Settings, Trash2, Edit, Crown } from 'lucide-react';
+import { Users, LayoutGrid, Plus, MoreVertical, GripVertical, CheckCircle2, Clock, Upload, Download, Save, Info, Settings, Trash2, Edit, Crown, FileText } from 'lucide-react';
 import { EventData, PlannerGuest, PlannerTable } from './types';
 import { trackEvent } from '../../../lib/analytics';
 import Papa from 'papaparse';
@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface DashboardProps {
     eventData: EventData;
@@ -88,6 +89,60 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
         } catch (error) {
             console.error("Error generating PDF", error);
         }
+    };
+
+    const exportGuestListToPDF = () => {
+        const doc = new jsPDF();
+        
+        // Add Title
+        doc.setFontSize(18);
+        doc.setTextColor(15, 23, 42); // slate-900
+        doc.text(`Lista de Invitados - ${eventData.name}`, 14, 22);
+        
+        // Add Meta Info
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139); // slate-500
+        doc.text(`Total de Invitados: ${eventData.guests.length} | Confirmados: ${eventData.guests.filter(g => g.status === 'confirmed').length}`, 14, 30);
+        
+        // Table Data
+        const tableColumn = ["Nombre", "Grupo", "Mesa", "Estado", "Observaciones"];
+        const tableRows: any[] = [];
+
+        // Sort guests by group, then name for better reading
+        const sortedGuests = [...eventData.guests].sort((a, b) => {
+            if ((a.group || '') < (b.group || '')) return -1;
+            if ((a.group || '') > (b.group || '')) return 1;
+            return a.display_name.localeCompare(b.display_name);
+        });
+
+        sortedGuests.forEach(guest => {
+            let tableName = 'Sin asignar';
+            if (guest.table_id) {
+                const table = eventData.tables.find(t => t.id === guest.table_id);
+                if (table) tableName = table.label;
+            }
+
+            const guestData = [
+                guest.display_name,
+                guest.group || '-',
+                tableName,
+                guest.status === 'confirmed' ? 'Confirmado' : 'Pendiente',
+                guest.note || '-'
+            ];
+            tableRows.push(guestData);
+        });
+
+        (doc as any).autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 40,
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235], textColor: 255 }, // blue-600
+            alternateRowStyles: { fillColor: [248, 250, 252] }, // slate-50
+            margin: { top: 40 },
+        });
+
+        doc.save(`Invitados_${eventData.name.replace(/ /g, '_')}.pdf`);
     };
 
     // --- GUEST MANAGEMENT ---
@@ -544,6 +599,15 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                                 className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-lg flex-shrink-0"
                             >
                                 <Plus size={16} /> Agregar Mesa
+                            </button>
+                        )}
+                        
+                        {activeTab === 'list' && (
+                            <button 
+                                onClick={exportGuestListToPDF}
+                                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors flex-shrink-0 border border-slate-700"
+                            >
+                                <Download size={16} /> Exportar PDF
                             </button>
                         )}
                     </div>
