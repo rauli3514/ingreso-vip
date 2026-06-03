@@ -241,6 +241,8 @@ export interface Provider {
     whatsapp_number: string;
     base_price: number;
     logo_url?: string;
+    website_url?: string;
+    instagram_url?: string;
     rating: number;
     reviews_count: number;
     tier: 'standard' | 'premium';

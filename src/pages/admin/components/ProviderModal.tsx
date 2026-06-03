@@ -34,6 +34,8 @@ export default function ProviderModal({ isOpen, onClose, onSuccess, providerToEd
         whatsapp_number: '',
         base_price: '',
         logo_url: '',
+        website_url: '',
+        instagram_url: '',
         tier: 'standard' as 'standard' | 'premium',
         services_offered: [] as string[]
     });
@@ -46,6 +48,8 @@ export default function ProviderModal({ isOpen, onClose, onSuccess, providerToEd
                 whatsapp_number: providerToEdit.whatsapp_number || '',
                 base_price: providerToEdit.base_price?.toString() || '',
                 logo_url: providerToEdit.logo_url || '',
+                website_url: providerToEdit.website_url || '',
+                instagram_url: providerToEdit.instagram_url || '',
                 tier: providerToEdit.tier || 'standard',
                 services_offered: providerToEdit.services_offered || []
             });
@@ -56,6 +60,8 @@ export default function ProviderModal({ isOpen, onClose, onSuccess, providerToEd
                 whatsapp_number: '',
                 base_price: '',
                 logo_url: '',
+                website_url: '',
+                instagram_url: '',
                 tier: 'standard',
                 services_offered: []
             });
@@ -90,6 +96,8 @@ export default function ProviderModal({ isOpen, onClose, onSuccess, providerToEd
                 whatsapp_number: formData.whatsapp_number,
                 base_price: parseFloat(formData.base_price) || 0,
                 logo_url: formData.logo_url,
+                website_url: formData.website_url,
+                instagram_url: formData.instagram_url,
                 tier: formData.tier,
                 services_offered: formData.services_offered,
                 updated_at: new Date().toISOString()
@@ -256,6 +264,37 @@ export default function ProviderModal({ isOpen, onClose, onSuccess, providerToEd
                                     className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-white focus:border-blue-500 focus:outline-none transition-colors"
                                     placeholder="https://ejemplo.com/logo.png"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">
+                                    Página Web (Opcional)
+                                </label>
+                                <div className="relative">
+                                    <input 
+                                        type="url" 
+                                        value={formData.website_url}
+                                        onChange={(e) => setFormData({...formData, website_url: e.target.value})}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                                        placeholder="https://tuweb.com"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">
+                                    Instagram URL (Opcional)
+                                </label>
+                                <div className="relative">
+                                    <input 
+                                        type="url" 
+                                        value={formData.instagram_url}
+                                        onChange={(e) => setFormData({...formData, instagram_url: e.target.value})}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                                        placeholder="https://instagram.com/usuario"
+                                    />
+                                </div>
                             </div>
                         </div>
 
