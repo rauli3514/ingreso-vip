@@ -28,8 +28,6 @@ export default function AdminLayout() {
         { path: '/admin-ep/analytics', label: 'Analytics', icon: LayoutDashboard },
         { path: '/admin-ep/leads', label: 'Leads', icon: Users },
         { path: '/admin-ep/providers', label: 'Proveedores', icon: Store },
-        { path: '/admin-ep/premium', label: 'Premium', icon: Crown },
-        { path: '/admin-ep/conversions', label: 'Conversiones', icon: Filter },
     ];
 
     return (
