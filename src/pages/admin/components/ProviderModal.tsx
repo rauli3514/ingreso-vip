@@ -11,15 +11,18 @@ interface ProviderModalProps {
 }
 
 const AVAILABLE_SERVICES = [
-    'Música / DJ',
-    'Salón',
-    'Catering',
-    'Fotografía',
-    'Video',
+    'Salón / Lugar',
+    'Mesas y sillas',
+    'Comida / Catering',
     'Bebidas',
+    'Música / DJ',
     'Decoración',
-    'Entretenimiento',
     'Vajilla',
+    'Fotografía / Video',
+    'Barra de Tragos',
+    'Living / ambientación premium',
+    'Pantalla LED',
+    'Entretenimiento / show',
     'Invitaciones',
     'Otro'
 ];
