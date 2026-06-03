@@ -131,12 +131,14 @@ export default function EventsAdmin() {
                                     <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/50">
                                         <p className="text-xs text-slate-500 font-medium mb-1 flex items-center gap-1.5"><UsersIcon size={14} /> Invitados</p>
                                         <p className="text-lg font-bold text-slate-200">
-                                            {event.guests && event.guests[0] ? event.guests[0].count : event.guest_count_total}
+                                            {(event.guests && event.guests[0] && event.guests[0].count > 0) ? event.guests[0].count : (event.planner_data?.guests?.length || event.guest_count_total)}
                                         </p>
                                     </div>
                                     <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/50">
                                         <p className="text-xs text-slate-500 font-medium mb-1 flex items-center gap-1.5"><MapPin size={14} /> Mesas</p>
-                                        <p className="text-lg font-bold text-slate-200">{event.table_count}</p>
+                                        <p className="text-lg font-bold text-slate-200">
+                                            {event.planner_data?.tables?.length || event.table_count}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
