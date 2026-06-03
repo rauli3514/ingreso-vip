@@ -233,11 +233,12 @@ export default function SaveProgressModal({ isOpen, onClose, initialMode = 'regi
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Teléfono (opcional)</label>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">Teléfono / WhatsApp</label>
                                         <input 
                                             type="tel" 
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
+                                            required
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
                                             placeholder="+54 11 1234 5678"
                                         />

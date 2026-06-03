@@ -31,9 +31,9 @@ export default function AdminLayout() {
     ];
 
     const oldNavItems = [
-        { path: '/admin/dashboard', label: 'Mis Eventos', icon: LayoutDashboard },
-        { path: '/admin/users', label: 'Clientes (Novios)', icon: Users },
-        { path: '/admin/metrics', label: 'Métricas de Uso', icon: LayoutDashboard },
+        { path: '/admin-ep/events', label: 'Mis Eventos', icon: LayoutDashboard },
+        { path: '/admin-ep/clients', label: 'Clientes (Novios)', icon: Users },
+        { path: '/admin-ep/metrics', label: 'Métricas de Uso', icon: LayoutDashboard },
     ];
 
     return (

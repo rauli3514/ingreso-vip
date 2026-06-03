@@ -7,6 +7,7 @@ export default function Register() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -26,6 +27,11 @@ export default function Register() {
             const { error: authError } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        phone: phone // We will pass phone in user_metadata
+                    }
+                }
             });
 
             if (authError) throw authError;
@@ -74,6 +80,21 @@ export default function Register() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-black/40 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:border-[#FBBF24]/50 focus:bg-black/60 transition-all placeholder:text-slate-600"
                                 placeholder="tu@email.com"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 ml-1">Teléfono / WhatsApp</label>
+                        <div className="relative group">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#FBBF24] transition-colors font-bold flex items-center justify-center">📱</span>
+                            <input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                className="w-full bg-black/40 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:border-[#FBBF24]/50 focus:bg-black/60 transition-all placeholder:text-slate-600"
+                                placeholder="Ej: +54 9 11 1234-5678"
                                 required
                             />
                         </div>

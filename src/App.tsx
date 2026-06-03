@@ -16,13 +16,15 @@ import InvitationRenderer from './pages/public/invitation/InvitationRenderer';
 import PhotoKioskPage from './pages/public/PhotoKioskPage';
 import EventPlanner from './pages/public/EventPlanner';
 
-// EventPix Admin Routes
 import AdminLayout from './pages/admin/AdminLayout';
 import Analytics from './pages/admin/Analytics';
 import Leads from './pages/admin/Leads';
 import Providers from './pages/admin/Providers';
 import Premium from './pages/admin/Premium';
 import Conversions from './pages/admin/Conversions';
+import Clients from './pages/admin/Clients';
+import EventsAdmin from './pages/admin/EventsAdmin';
+import UsageMetrics from './pages/admin/UsageMetrics';
 
 function App() {
     return (
@@ -52,6 +54,9 @@ function App() {
                             <Route path="providers" element={<Providers />} />
                             <Route path="premium" element={<Premium />} />
                             <Route path="conversions" element={<Conversions />} />
+                            <Route path="clients" element={<Clients />} />
+                            <Route path="events" element={<EventsAdmin />} />
+                            <Route path="metrics" element={<UsageMetrics />} />
                         </Route>
                     </Route>
 

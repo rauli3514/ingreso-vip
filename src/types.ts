@@ -4,6 +4,7 @@ export interface UserProfile {
     id: string;
     email?: string;
     username?: string;
+    phone?: string;
     role: UserRole;
     is_active: boolean;
     assigned_event_ids?: string[]; // Array of UUIDs for assigned events
