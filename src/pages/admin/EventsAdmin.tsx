@@ -29,7 +29,7 @@ export default function EventsAdmin() {
 
             const { data: allEvents, error } = await supabase
                 .from('events')
-                .select('*')
+                .select('*, guests(count)')
                 .order('date', { ascending: true });
 
             if (error) throw error;
@@ -130,7 +130,9 @@ export default function EventsAdmin() {
                                 <div className="grid grid-cols-2 gap-4 mb-6">
                                     <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/50">
                                         <p className="text-xs text-slate-500 font-medium mb-1 flex items-center gap-1.5"><UsersIcon size={14} /> Invitados</p>
-                                        <p className="text-lg font-bold text-slate-200">{event.guest_count_total}</p>
+                                        <p className="text-lg font-bold text-slate-200">
+                                            {event.guests && event.guests[0] ? event.guests[0].count : event.guest_count_total}
+                                        </p>
                                     </div>
                                     <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/50">
                                         <p className="text-xs text-slate-500 font-medium mb-1 flex items-center gap-1.5"><MapPin size={14} /> Mesas</p>

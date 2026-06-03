@@ -17,7 +17,7 @@ export default function Clients() {
             setLoading(true);
             const [profilesRes, eventsRes] = await Promise.all([
                 supabase.from('profiles').select('*').neq('role', 'superadmin').order('created_at', { ascending: false }),
-                supabase.from('events').select('*')
+                supabase.from('events').select('*, guests(count)')
             ]);
                 
             if (profilesRes.error) throw profilesRes.error;
@@ -152,7 +152,7 @@ export default function Clients() {
                                                             <p className="text-slate-300 font-medium text-xs mb-1">{e.name}</p>
                                                             <div className="flex gap-3 text-[10px] text-slate-500">
                                                                 <span className="flex items-center gap-1"><Calendar size={10} /> {e.date}</span>
-                                                                <span className="flex items-center gap-1"><Users size={10} /> {e.guest_count_total} inv.</span>
+                                                                <span className="flex items-center gap-1"><Users size={10} /> {e.guests && e.guests[0] ? e.guests[0].count : e.guest_count_total} inv.</span>
                                                             </div>
                                                         </div>
                                                     ))}

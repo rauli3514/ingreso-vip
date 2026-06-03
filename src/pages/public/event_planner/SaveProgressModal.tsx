@@ -59,12 +59,18 @@ export default function SaveProgressModal({ isOpen, onClose, initialMode = 'regi
 
             // Optional: Insert guests if any exist
             if (eventData.guests && eventData.guests.length > 0 && event) {
-                const guestsToInsert = eventData.guests.map((g: any) => ({
-                    event_id: event.id,
-                    name: g.name,
-                    phone: g.phone || null,
-                    status: 'pending'
-                }));
+                const guestsToInsert = eventData.guests.map((g: any) => {
+                    const nameParts = g.name ? g.name.split(' ') : ['Invitado'];
+                    const firstName = nameParts[0];
+                    const lastName = nameParts.slice(1).join(' ');
+                    
+                    return {
+                        event_id: event.id,
+                        first_name: firstName,
+                        last_name: lastName || '',
+                        status: 'pending'
+                    };
+                });
                 await supabase.from('guests').insert(guestsToInsert);
             }
 
