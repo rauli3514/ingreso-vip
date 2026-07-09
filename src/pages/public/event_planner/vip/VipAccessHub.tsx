@@ -12,6 +12,7 @@ interface VipAccessHubProps {
 
 export default function VipAccessHub({ eventData, onBack, onUpdateEvent }: VipAccessHubProps) {
     const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+    const [customPosterBg, setCustomPosterBg] = useState<string | null>(null);
     const videoOption = eventData.videoOption || 'none';
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,13 +142,29 @@ export default function VipAccessHub({ eventData, onBack, onUpdateEvent }: VipAc
             canvas.width = width;
             canvas.height = height;
 
-            // 3. Background Gradient
-            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, themeColors.secondary);
-            gradient.addColorStop(0.5, themeColors.primary);
-            gradient.addColorStop(1, themeColors.background);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
+            // 3. Background Gradient or Custom Image
+            if (customPosterBg) {
+                const bgImg = new Image();
+                bgImg.src = customPosterBg;
+                await new Promise((resolve, reject) => {
+                    bgImg.onload = resolve;
+                    bgImg.onerror = () => reject(new Error('Error cargando fondo personalizado'));
+                });
+                const scale = Math.max(width / bgImg.width, height / bgImg.height);
+                const x = (width / 2) - (bgImg.width / 2) * scale;
+                const y = (height / 2) - (bgImg.height / 2) * scale;
+                ctx.drawImage(bgImg, x, y, bgImg.width * scale, bgImg.height * scale);
+                // Oscurecer un poco para que resalte el contenido
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fillRect(0, 0, width, height);
+            } else {
+                const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, themeColors.secondary);
+                gradient.addColorStop(0.5, themeColors.primary);
+                gradient.addColorStop(1, themeColors.background);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+            }
 
             // 4. Load and draw QR image
             const qrImg = new Image();
@@ -288,6 +305,29 @@ export default function VipAccessHub({ eventData, onBack, onUpdateEvent }: VipAc
                                     </span>
                                     {isGeneratingQR ? <span className="animate-spin text-amber-500">⏳</span> : <Download size={20} className="text-slate-500 group-hover:text-white transition-colors" />}
                                 </button>
+                            </div>
+
+                            {/* Opcional: Custom Background */}
+                            <div className="mt-6 pt-5 border-t border-slate-800/50">
+                                <p className="text-sm font-bold text-slate-300 mb-3">Fondo Personalizado (Opcional)</p>
+                                <input 
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onload = (ev) => setCustomPosterBg(ev.target?.result as string);
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-amber-500/10 file:text-amber-500 hover:file:bg-amber-500/20 w-full cursor-pointer transition-colors"
+                                />
+                                {customPosterBg && (
+                                    <button onClick={() => setCustomPosterBg(null)} className="mt-3 text-xs text-red-400 hover:text-red-300 font-medium px-3 py-1.5 rounded-lg bg-red-400/10 hover:bg-red-400/20 transition-colors">
+                                        Quitar fondo personalizado
+                                    </button>
+                                )}
                             </div>
                         </div>
 

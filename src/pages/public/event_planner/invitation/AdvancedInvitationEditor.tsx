@@ -80,6 +80,14 @@ export default function AdvancedInvitationEditor({ eventData, onClose }: Advance
 
     if (!invitation) return null;
 
+    const phoneData = (function() {
+        const raw = invitation?.components_config?.whatsapp_number || '';
+        const prefixes = ['+549', '+569', '+52', '+57', '+34', '+1'];
+        const prefix = prefixes.find(p => raw.startsWith(p)) || '+549';
+        const number = raw.startsWith(prefix) ? raw.slice(prefix.length) : raw;
+        return { prefix, number };
+    })();
+
     return (
         <div className="flex-1 w-full flex flex-col bg-slate-950 overflow-hidden relative z-50">
             {/* Toolbar */}
@@ -520,10 +528,9 @@ export default function AdvancedInvitationEditor({ eventData, onClose }: Advance
                                             <div className="flex gap-2">
                                                 <select 
                                                     className="bg-slate-950/80 border border-slate-800/80 rounded-xl px-2 py-3 text-white focus:outline-none focus:border-purple-500 shadow-inner w-[100px] text-sm"
-                                                    value={(invitation.components_config?.whatsapp_number || '').match(/^\+\d+/)?.[0] || '+549'}
+                                                    value={phoneData.prefix}
                                                     onChange={(e) => {
-                                                        const currentNum = (invitation.components_config?.whatsapp_number || '').replace(/^\+\d+/, '');
-                                                        updateSection('components_config', { whatsapp_number: e.target.value + currentNum });
+                                                        updateSection('components_config', { whatsapp_number: e.target.value + phoneData.number });
                                                     }}
                                                 >
                                                     <option value="+549">🇦🇷 +54 9</option>
@@ -535,10 +542,9 @@ export default function AdvancedInvitationEditor({ eventData, onClose }: Advance
                                                 </select>
                                                 <input 
                                                     type="tel"
-                                                    value={(invitation.components_config?.whatsapp_number || '').replace(/^\+\d+/, '')}
+                                                    value={phoneData.number}
                                                     onChange={(e) => {
-                                                        const prefix = (invitation.components_config?.whatsapp_number || '').match(/^\+\d+/)?.[0] || '+549';
-                                                        updateSection('components_config', { whatsapp_number: prefix + e.target.value.replace(/\D/g, '') });
+                                                        updateSection('components_config', { whatsapp_number: phoneData.prefix + e.target.value.replace(/\D/g, '') });
                                                     }}
                                                     placeholder="1123456789"
                                                     className="flex-1 bg-slate-950/80 border border-slate-800/80 rounded-xl px-5 shadow-inner py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner"
