@@ -175,7 +175,7 @@ export default function SaveProgressModal({ isOpen, onClose, initialMode = 'regi
                                         if (error) throw error;
                                     } catch (err) {
                                         console.error(err);
-                                        setError('Error al iniciar sesión con Google');
+                                        setErrorMsg('Error al iniciar sesión con Google');
                                         setIsLoading(false);
                                     }
                                 }}
@@ -327,7 +327,7 @@ export default function SaveProgressModal({ isOpen, onClose, initialMode = 'regi
                                                 if (error) throw error;
                                             } catch (err) {
                                                 console.error(err);
-                                                setError('Error al iniciar sesión con Google');
+                                                setErrorMsg('Error al iniciar sesión con Google');
                                                 setIsLoading(false);
                                             }
                                         }}

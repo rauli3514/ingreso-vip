@@ -130,7 +130,7 @@ export default function UsageMetrics() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className="text-xs bg-slate-950 px-2 py-1 rounded text-slate-400 font-mono border border-slate-800">
-                                            {evt.eventData ? JSON.stringify(evt.eventData).substring(0, 50) : 'N/A'}...
+                                            {(evt as any).eventData ? JSON.stringify((evt as any).eventData).substring(0, 50) : 'N/A'}...
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 font-mono text-xs text-slate-500">

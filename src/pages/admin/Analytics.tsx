@@ -72,19 +72,22 @@ export default function Analytics() {
                 
                 (leadsData || []).forEach(lead => {
                     if (lead.provider) {
+                        const provider: any = Array.isArray(lead.provider) ? lead.provider[0] : lead.provider;
+                        if (!provider) return;
+                        
                         // Handle array or string for category safely
-                        const cat = Array.isArray(lead.provider.category) 
-                            ? lead.provider.category[0] 
+                        const cat = Array.isArray(provider.category) 
+                            ? provider.category[0] 
                             : 'Servicio';
                             
-                        if (!providerCounts[lead.provider.id]) {
-                            providerCounts[lead.provider.id] = {
-                                name: lead.provider.company_name,
+                        if (!providerCounts[provider.id]) {
+                            providerCounts[provider.id] = {
+                                name: provider.company_name,
                                 category: cat,
                                 count: 0
                             };
                         }
-                        providerCounts[lead.provider.id].count += 1;
+                        providerCounts[provider.id].count += 1;
                     }
                 });
 

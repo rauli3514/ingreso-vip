@@ -185,6 +185,7 @@ export default function GiftsRenderer({
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
                                 )}
 
                                 {/* MercadoPago */}
