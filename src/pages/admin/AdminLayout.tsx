@@ -26,6 +26,7 @@ export default function AdminLayout() {
 
     const navItems = [
         { path: '/admin-ep/analytics', label: 'Métricas EventPix', icon: LayoutDashboard, isExternal: false },
+        { path: '/admin-ep/premium', label: 'Módulo Premium', icon: Crown, isExternal: false },
         { path: '/admin-ep/leads', label: 'Leads', icon: Users, isExternal: false },
         { path: '/admin-ep/providers', label: 'Proveedores', icon: Store, isExternal: false },
     ];

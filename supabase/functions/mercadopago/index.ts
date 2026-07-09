@@ -1,11 +1,9 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -14,14 +12,11 @@ serve(async (req) => {
   try {
     const { plan, eventId, price } = await req.json()
     
-    // Validate
     if (!plan || !price) {
       throw new Error('Faltan datos obligatorios')
     }
 
     const title = plan === 'esencial' ? 'Plan Invitación Digital EventPix' : 'Plan Ingreso VIP EventPix';
-    
-    // MODO PRODUCCIÓN: El token se saca de las variables de entorno de Supabase
     const MP_ACCESS_TOKEN = Deno.env.get('MP_ACCESS_TOKEN');
 
     if (!MP_ACCESS_TOKEN) {
@@ -57,7 +52,6 @@ serve(async (req) => {
 
     if (!mpResponse.ok) {
         const errorData = await mpResponse.json();
-        console.error("MP Error:", errorData);
         throw new Error(errorData.message || 'Error en MercadoPago');
     }
 
