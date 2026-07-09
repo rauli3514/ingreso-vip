@@ -6,5 +6,12 @@ export default defineConfig({
   base: '/',
   server: {
     port: 3000,
+    proxy: {
+      '/mp-api': {
+        target: 'https://api.mercadopago.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/mp-api/, '')
+      }
+    }
   }
 })

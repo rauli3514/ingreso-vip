@@ -17,18 +17,21 @@ import EmotionalMessage from './components/EmotionalMessage';
 import EventProgress from './components/EventProgress';
 import NextStepCard from './components/NextStepCard';
 import GuestMobileCard from './components/GuestMobileCard';
-import { Star } from 'lucide-react';
+import { Star, Calendar, Cloud, UserCheck, AlertCircle, Play, X, LogOut, ArrowRight, Table2, CheckSquare, ListTodo, HelpCircle, DollarSign, Wallet, Percent, AlertTriangle } from 'lucide-react';
+import ProServicesTab from './ProServicesTab';
+import type { SyncStatus } from '../EventPlanner';
 
 interface DashboardProps {
     eventData: EventData;
     onChange: (data: EventData) => void;
     initialOpenManualGuest?: boolean;
     onSaveRequest?: () => void;
+    syncStatus?: SyncStatus;
 }
 
 type TabType = 'list' | 'kanban' | 'my_event';
 
-export default function Dashboard({ eventData, onChange, initialOpenManualGuest, onSaveRequest }: DashboardProps) {
+export default function Dashboard({ eventData, onChange, initialOpenManualGuest = false, onSaveRequest, syncStatus = 'idle' }: DashboardProps) {
     const [activeTab, setActiveTab] = useState<TabType>('list');
     const [searchQuery, setSearchQuery] = useState('');
     const [uploading, setUploading] = useState(false);
@@ -42,20 +45,22 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
     const [isSaving, setIsSaving] = useState(false);
     const [showSavedBadge, setShowSavedBadge] = useState(false);
 
-    // Watch for eventData changes to show save badge
+    // Watch for syncStatus changes to show save badge
     React.useEffect(() => {
-        setIsSaving(true);
-        setShowSavedBadge(false);
-        const saveTimer = setTimeout(() => {
+        if (syncStatus === 'saving') {
+            setIsSaving(true);
+            setShowSavedBadge(false);
+        } else if (syncStatus === 'saved') {
             setIsSaving(false);
             setShowSavedBadge(true);
-            const hideTimer = setTimeout(() => {
-                setShowSavedBadge(false);
-            }, 3000);
-            return () => clearTimeout(hideTimer);
-        }, 800); // simulate saving delay
-        return () => clearTimeout(saveTimer);
-    }, [eventData]);
+        } else if (syncStatus === 'idle') {
+            setIsSaving(false);
+            setShowSavedBadge(false);
+        } else if (syncStatus === 'error') {
+            setIsSaving(false);
+            setShowSavedBadge(false);
+        }
+    }, [syncStatus]);
 
     // Check auth status
     const isLoggedIn = typeof window !== 'undefined' && localStorage.getItem('eventpix_auth') === 'true';
@@ -386,19 +391,26 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                     {/* Dynamic Auto-save Indicator */}
                     <div className="flex items-center gap-2 mr-2 transition-all duration-300 min-w-[140px] justify-end">
-                        {isSaving ? (
-                            <span className="text-slate-400 text-sm font-medium flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                                Guardando...
-                            </span>
-                        ) : showSavedBadge ? (
-                            <span className="text-emerald-400 text-sm font-medium flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 animate-in fade-in zoom-in duration-300">
-                                <CheckCircle2 size={16} /> Progreso guardado 😄
-                            </span>
-                        ) : (
-                            <span className="text-slate-500 text-sm font-medium flex items-center gap-1.5 px-3 py-1.5">
-                                <CheckCircle2 size={16} /> Sincronizado
-                            </span>
+                        <span className="text-[10px] md:text-xs font-medium text-slate-400 truncate max-w-[150px] md:max-w-[200px]">
+                            {eventData.name || 'Mi Evento'}
+                        </span>
+                        
+                        {/* Sync Status Badge */}
+                        {syncStatus === 'error' ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 text-red-500 rounded-full border border-red-500/20">
+                                <AlertTriangle size={12} className="animate-pulse" />
+                                <span className="text-[10px] font-bold tracking-wider">Error de Sync</span>
+                            </div>
+                        ) : isSaving ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full">
+                                <Cloud size={12} className="animate-pulse" />
+                                <span className="text-[10px] font-medium tracking-wider">Guardando...</span>
+                            </div>
+                        ) : showSavedBadge && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20 animate-in fade-in zoom-in duration-300">
+                                <CheckCircle2 size={12} />
+                                <span className="text-[10px] font-bold tracking-wider">Sincronizado</span>
+                            </div>
                         )}
                     </div>
 
@@ -426,9 +438,9 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                     )}
                     <div className="relative z-10 group/tooltip">
                         {/* Tooltip con flecha en el header de Dashboard */}
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-max bg-blue-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
+                        <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 text-center bg-blue-600 text-white text-xs font-medium py-2 px-3 rounded-xl shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
                             💡 Podés descargarla y armar tu lista tranquilo en tu compu ☕
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-600 rotate-45"></div>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-600 rotate-45"></div>
                         </div>
                         <button 
                             onClick={downloadTemplate}
@@ -569,7 +581,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                         <CheckCircle2 size={24} />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-white">0</p>
+                        <p className="text-2xl font-bold text-white">{eventData.guests.filter(g => g.status === 'confirmed').length}</p>
                         <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Confirmados</p>
                     </div>
                 </div>
@@ -579,7 +591,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                         <Clock size={24} />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-white">{eventData.guests.length}</p>
+                        <p className="text-2xl font-bold text-white">{eventData.guests.filter(g => g.status === 'pending').length}</p>
                         <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">En Espera</p>
                     </div>
                 </div>
@@ -616,6 +628,12 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                     >
                         <Star size={18} className={activeTab === 'my_event' ? 'fill-amber-500/20' : ''} /> Mi Evento
                     </button>
+                    <button 
+                        onClick={() => setActiveTab('pro')}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'pro' ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-blue-400 shadow-md border border-blue-500/20' : 'text-slate-400 hover:text-blue-400 hover:bg-slate-800/50'}`}
+                    >
+                        <Crown size={18} className={activeTab === 'pro' ? 'fill-blue-500/20 text-blue-400' : 'text-purple-400'} /> Servicios Pro
+                    </button>
                 </div>
             </div>
 
@@ -629,6 +647,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                         onSaveRequest={() => {
                             if (onSaveRequest) onSaveRequest();
                         }}
+                        onNavigateToPro={() => setActiveTab('pro')}
                     />
                 )}
 
@@ -740,7 +759,11 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="text-slate-500 text-sm">Pendiente</span>
+                                                {guest.status === 'confirmed' ? (
+                                                    <span className="text-emerald-500 text-sm font-medium">Confirmado</span>
+                                                ) : (
+                                                    <span className="text-slate-500 text-sm">Pendiente</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 text-right relative">
                                                 <button 
@@ -997,6 +1020,19 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest,
                         </div>
 
                     </div>
+                )}
+
+                {/* --- PRO SERVICES VIEW --- */}
+                {activeTab === 'pro' && (
+                    <ProServicesTab 
+                        eventData={eventData} 
+                        onUpdateEvent={(data) => {
+                            // Update local state immutably
+                            const newData = { ...eventData, ...data };
+                            onChange(newData);
+                        }}
+                        onSaveRequest={onSaveRequest} 
+                    />
                 )}
 
             </div>

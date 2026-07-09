@@ -261,6 +261,7 @@ export default function OnboardingWizard({ eventData, onChange, onComplete, onOp
                                         onChange={handleFileUpload}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                         disabled={uploading}
+                                        title=""
                                     />
                                     <div className="w-16 h-16 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center mb-6 border border-blue-500/20 group-hover:scale-110 transition-transform">
                                         {uploading ? <Loader2 size={32} className="animate-spin" /> : <Upload size={32} />}
@@ -269,15 +270,15 @@ export default function OnboardingWizard({ eventData, onChange, onComplete, onOp
                                     <p className="text-slate-400 mb-8 flex-1 text-sm">Si ya la tenés armada, cargala en segundos.</p>
                                     
                                     {!uploading && (
-                                        <div className="relative z-20">
-                                            {/* Tooltip con flecha */}
-                                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-max bg-blue-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg shadow-lg shadow-blue-500/20 animate-bounce">
-                                                💡 Podés descargarla y armar tu lista tranquilo en tu compu ☕
-                                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-600 rotate-45"></div>
-                                            </div>
+                                        <div className="relative z-20 w-full flex flex-col items-center gap-3 mt-2">
                                             <button className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 font-medium px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors" onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadTemplate(); }}>
                                                 <Download size={14} /> Descargar plantilla
                                             </button>
+                                            
+                                            {/* Mensaje de ayuda inline en lugar de absolute para no tapar nada */}
+                                            <div className="w-48 text-center bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[11px] leading-tight font-medium py-2 px-3 rounded-xl shadow-lg shadow-blue-500/10">
+                                                💡 Podés descargarla y armar tu lista tranquilo en tu compu ☕
+                                            </div>
                                         </div>
                                     )}
                                 </div>

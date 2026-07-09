@@ -26,6 +26,8 @@ const defaultServices: PlannerService[] = [
     { id: '17', category: 'Extras', name: 'Entretenimiento / show', status: 'pending', cost: 0, note: '', group: 'opcional' },
 ];
 
+export type SyncStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 export default function EventPlanner() {
     const [step, setStep] = useState<PlannerStep>('landing');
     const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -37,6 +39,8 @@ export default function EventPlanner() {
     
     // We lift this up so we can open the manual guest modal from the wizard
     const [openManualGuestInDashboard, setOpenManualGuestInDashboard] = useState(false);
+    
+    const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
     
     const [eventData, setEventData] = useState<EventData>(() => {
 
@@ -154,6 +158,56 @@ export default function EventPlanner() {
         return () => subscription.unsubscribe();
     }, []);
 
+    // Handle MercadoPago Return
+    useEffect(() => {
+        const processPayment = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentSuccess = urlParams.get('payment_success');
+            const plan = urlParams.get('plan');
+
+            if (paymentSuccess === 'true' && plan) {
+                // Remove params from URL immediately
+                window.history.replaceState({}, '', window.location.pathname);
+
+                // Register payment in DB
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    const { data: event } = await supabase.from('events').select('id').eq('owner_id', session.user.id).order('created_at', { ascending: false }).limit(1).single();
+                    if (event) {
+                        const { data: settings } = await supabase.from('app_settings').select('plan_esencial_price, plan_premium_price').eq('id', 1).single();
+                        const amount = plan === 'esencial' ? (settings?.plan_esencial_price || 45000) : (settings?.plan_premium_price || 85000);
+
+                        await supabase.from('payments').insert({
+                            event_id: event.id,
+                            plan_name: plan,
+                            amount: amount,
+                            status: 'approved'
+                        });
+                    }
+                }
+
+                setEventData(prev => {
+                    const modules = new Set(prev.active_modules || []);
+                    if (plan === 'esencial') {
+                        modules.add('invitation_pro');
+                    } else if (plan === 'premium') {
+                        modules.add('invitation_pro');
+                        modules.add('vip_access');
+                    }
+                    return {
+                        ...prev,
+                        active_modules: Array.from(modules)
+                    };
+                });
+                
+                setTimeout(() => {
+                    alert(`🎉 ¡Pago exitoso!\n\nTu plan ${plan === 'esencial' ? 'Invitación Digital' : 'Ingreso VIP'} ha sido activado correctamente. ¡Disfrútalo!`);
+                }, 500);
+            }
+        };
+        processPayment();
+    }, []);
+
     // Auto-save to LocalStorage AND Cloud (Debounced)
     useEffect(() => {
         if (step === 'dashboard') {
@@ -161,6 +215,7 @@ export default function EventPlanner() {
             
             // Sync to cloud if authenticated
             if (localStorage.getItem('eventpix_auth') === 'true') {
+                if (syncStatus !== 'saving') setSyncStatus('saving');
                 if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
                 
                 syncTimerRef.current = setTimeout(async () => {
@@ -186,9 +241,11 @@ export default function EventPlanner() {
                                 
                                 if (updateError) {
                                     console.error('Update error:', updateError);
-                                    alert('Ups, error interno al actualizar: ' + updateError.message + '\nPor favor enviame captura!');
+                                    setSyncStatus('error');
                                 } else {
                                     console.log('Synced to cloud successfully');
+                                    setSyncStatus('saved');
+                                    setTimeout(() => setSyncStatus('idle'), 3000);
                                 }
                             } else {
                                 // If no event exists for this user, create one!
@@ -205,20 +262,25 @@ export default function EventPlanner() {
                                 
                                 if (insertError) {
                                     console.error('Insert error:', insertError);
-                                    alert('Ups, error interno al guardar: ' + insertError.message + '\nPor favor enviame captura de esto!');
+                                    setSyncStatus('error');
                                 }
                                 
                                 if (!insertError && newEvent) {
                                     console.log('Created new event in cloud');
+                                    setSyncStatus('saved');
+                                    setTimeout(() => setSyncStatus('idle'), 3000);
                                     // Update local state to know about this cloud ID
                                     setEventData(prev => ({ ...prev, cloudEventId: newEvent.id }));
                                 }
                             }
                         } catch (err) {
                             console.error('Failed to sync to cloud', err);
+                            setSyncStatus('error');
                         }
+                    } else {
+                        setSyncStatus('idle');
                     }
-                }, 1500); // 1.5 second debounce
+                }, 1000); // 1 second debounce
             }
         }
     }, [eventData, step]);
@@ -253,6 +315,7 @@ export default function EventPlanner() {
                         onChange={setEventData} 
                         initialOpenManualGuest={openManualGuestInDashboard}
                         onSaveRequest={() => setAuthModalConfig({ isOpen: true, mode: 'register', view: 'options' })}
+                        syncStatus={syncStatus}
                     />
                 </div>
             )}

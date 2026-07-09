@@ -10,6 +10,7 @@ export interface PlannerGuest {
     is_after_party?: boolean;
     has_puff?: boolean;
     note?: string;
+    assigned_video_url?: string;
 }
 
 export interface PlannerTable {
@@ -33,6 +34,7 @@ export interface PlannerService {
     name: string;
     status: PlannerServiceStatus;
     cost: number;
+    paid?: number;
     note: string;
     group: 'imprescindible' | 'muy_importante' | 'opcional' | 'eventpix_premium';
 }
@@ -46,4 +48,9 @@ export interface EventData {
     services: PlannerService[];
     estimatedBudget: number;
     includesIva?: boolean;
+    active_modules?: string[];
+    invitation_settings?: any;
+    videoOption?: 'none' | 'perTable' | 'global' | 'perGuest';
+    video_url_default?: string;
+    video_configuration?: Record<string, string>;
 }

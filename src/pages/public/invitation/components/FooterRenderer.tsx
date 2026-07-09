@@ -38,40 +38,72 @@ export default function FooterRenderer({ sectionData, eventId, invitationRowId, 
                 </h3>
 
                 {/* Botones mejorados con cards */}
-                <div className="flex flex-col items-center gap-4 max-w-md mx-auto mb-16">
+                <div className="flex flex-col items-center gap-4 max-w-md mx-auto mb-16 w-full px-4">
 
-                    {links.confirm_ceremony && (
-                        <button
-                            onClick={() => handleConfirm('ceremony')}
-                            className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
-                        >
-                            ✨ Confirmar Asistencia a Ceremonia
-                        </button>
-                    )}
+                    {/* Modo Simplificado: Configuración desde components_config */}
+                    {sectionData.rsvp_enabled !== false ? (
+                        <div className="w-full space-y-4">
+                            <button
+                                onClick={() => {
+                                    const waNumber = sectionData.whatsapp_number;
+                                    if (waNumber) {
+                                        window.open(`https://wa.me/${waNumber.replace(/[^0-9]/g, '')}?text=Hola!%20Te%20escribo%20para%20confirmar%20mi%20asistencia.`, '_blank');
+                                    } else {
+                                        handleConfirm('party'); // Usamos 'party' como confirmación genérica
+                                    }
+                                }}
+                                className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium flex justify-center items-center gap-2"
+                            >
+                                ✨ Confirmar Asistencia
+                            </button>
 
-                    {links.confirm_party && (
-                        <button
-                            onClick={() => handleConfirm('party')}
-                            className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
-                        >
-                            🎉 Confirmar Asistencia a Fiesta
-                        </button>
-                    )}
-
-                    {links.suggest_song && (
-                        <button
-                            onClick={() => handleConfirm('song')}
-                            className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
-                        >
-                            🎵 Sugerir Canción
-                        </button>
-                    )}
-
-                    {(links.calendar_ceremony || links.calendar_party) && (
-                        <div className="pt-4 flex flex-col md:flex-row gap-3 w-full">
-                            {links.calendar_ceremony && <span className="cursor-pointer hover:text-slate-900 text-sm text-slate-500">📅 Agendar Ceremonia</span>}
-                            {links.calendar_party && <span className="cursor-pointer hover:text-slate-900 text-sm text-slate-500">📅 Agendar Fiesta</span>}
+                            {/* Botón Sugerir Canción en Modo Simplificado */}
+                            {sectionData.suggest_song_enabled !== false && (
+                                <button
+                                    onClick={() => handleConfirm('song')}
+                                    className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-3 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-sm md:text-base font-medium flex justify-center items-center gap-2"
+                                >
+                                    🎵 Sugerir Canción
+                                </button>
+                            )}
                         </div>
+                    ) : (
+                        // Botones Legacy VIP solo si el modo rsvp simplificado está desactivado explícitamente (o no existe pero hay links viejos)
+                        <>
+                            {links.confirm_ceremony && (
+                                <button
+                                    onClick={() => handleConfirm('ceremony')}
+                                    className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
+                                >
+                                    ✨ Confirmar Asistencia a Ceremonia
+                                </button>
+                            )}
+
+                            {links.confirm_party && (
+                                <button
+                                    onClick={() => handleConfirm('party')}
+                                    className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
+                                >
+                                    🎉 Confirmar Asistencia a Fiesta
+                                </button>
+                            )}
+
+                            {links.suggest_song && (
+                                <button
+                                    onClick={() => handleConfirm('song')}
+                                    className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 py-5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-slate-200 text-base md:text-lg font-medium"
+                                >
+                                    🎵 Sugerir Canción
+                                </button>
+                            )}
+                            
+                            {(links.calendar_ceremony || links.calendar_party) && (
+                                <div className="pt-4 flex flex-col md:flex-row gap-3 w-full">
+                                    {links.calendar_ceremony && <span className="cursor-pointer hover:text-slate-900 text-sm text-slate-500">📅 Agendar Ceremonia</span>}
+                                    {links.calendar_party && <span className="cursor-pointer hover:text-slate-900 text-sm text-slate-500">📅 Agendar Fiesta</span>}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 

@@ -9,10 +9,11 @@ import PremiumUpgradeModal from './PremiumUpgradeModal';
 interface MyEventTabProps {
     eventData: EventData;
     onChange: (data: EventData) => void;
-    onSaveRequest: () => void;
+    onSaveRequest?: () => void;
+    onNavigateToPro?: () => void;
 }
 
-export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEventTabProps) {
+export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavigateToPro }: MyEventTabProps) {
     const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
     const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
     const [activeVendorModal, setActiveVendorModal] = useState<PlannerService | null>(null);
@@ -20,13 +21,14 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
 
     const isLoggedIn = typeof window !== 'undefined' && localStorage.getItem('eventpix_auth') === 'true';
 
+    // Premium Checks
+    const hasInvitation = eventData.active_modules?.includes('invitation_pro');
+    const hasVipAccess = eventData.active_modules?.includes('vip_access');
+
     // Grouping
     const imprescindible = eventData.services.filter(s => s.group === 'imprescindible');
     const muy_importante = eventData.services.filter(s => s.group === 'muy_importante');
     const opcional = eventData.services.filter(s => s.group === 'opcional');
-
-    // Premium Check
-    const isPremium = eventData.services.some(s => s.group === 'eventpix_premium' && s.status === 'ready');
 
     // Progress Calculation
     const hasGuests = eventData.guests.length > 0;
@@ -151,11 +153,14 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
     const assistantCard = getAssistantCard();
 
     // Budget
-    const totalSpent = eventData.services.reduce((acc, curr) => acc + (curr.cost || 0), 0);
+    const totalCost = eventData.services.reduce((acc, curr) => acc + (curr.cost || 0), 0);
+    const totalPaid = eventData.services.reduce((acc, curr) => acc + (curr.paid || 0), 0);
+    const balance = totalCost - totalPaid;
+    
     const getBudgetMessage = () => {
         if (eventData.estimatedBudget === 0) return "Ingresá tu presupuesto estimado para llevar el control 💡";
-        if (totalSpent === 0) return "Todavía hay margen para sumar algo más 🎉";
-        const ratio = totalSpent / eventData.estimatedBudget;
+        if (totalCost === 0) return "Todavía hay margen para sumar algo más 🎉";
+        const ratio = totalCost / eventData.estimatedBudget;
         if (ratio < 0.75) return "Todavía estás dentro de lo planeado 😄";
         if (ratio <= 1.0) return "Casi al límite de tu presupuesto, ¡venís bien! 😎";
         return "Se está yendo un poquito de las manos 😅";
@@ -216,7 +221,11 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                                 {service.name}
                                             </h4>
                                             {service.status === 'ready' && service.cost > 0 && !isExpanded && (
-                                                <p className="text-xs text-emerald-400 mt-0.5">{formatMoney(service.cost)}</p>
+                                                <p className="text-xs mt-0.5 flex gap-3">
+                                                    <span className="text-slate-400">Total: {formatMoney(service.cost)}</span>
+                                                    {service.paid ? <span className="text-emerald-400">Abonado: {formatMoney(service.paid)}</span> : null}
+                                                    {service.cost > (service.paid || 0) && <span className="text-amber-400">Deuda: {formatMoney(service.cost - (service.paid || 0))}</span>}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
@@ -295,7 +304,7 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Detalle / Notas</label>
                                                 <input 
@@ -307,7 +316,7 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Gasto (Opcional)</label>
+                                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Costo Total</label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                                                     <input 
@@ -316,6 +325,19 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                                         onChange={(e) => handleServiceChange(service.id, { cost: Number(e.target.value) })}
                                                         placeholder="0"
                                                         className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Ya Pagado / Seña</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500/50">$</span>
+                                                    <input 
+                                                        type="number" 
+                                                        value={service.paid || ''}
+                                                        onChange={(e) => handleServiceChange(service.id, { paid: Number(e.target.value) })}
+                                                        placeholder="0"
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2.5 text-sm text-emerald-400 focus:outline-none focus:border-emerald-500 transition-colors"
                                                     />
                                                 </div>
                                             </div>
@@ -380,9 +402,9 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                             <p className="text-sm font-medium text-slate-400">Controla lo que gastas sin estresarte</p>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row gap-6 w-full md:w-auto">
-                            <div className="flex-1 min-w-[200px]">
-                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Presupuesto Estimado</label>
+                        <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
+                            <div className="flex-1 min-w-[150px]">
+                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Límite Estimado</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
                                     <input 
@@ -390,14 +412,24 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                         value={eventData.estimatedBudget || ''}
                                         onChange={(e) => onChange({ ...eventData, estimatedBudget: Number(e.target.value) })}
                                         placeholder="Ej: 2000000"
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-2 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors"
                                     />
                                 </div>
                             </div>
                             
-                            <div className="flex-1 min-w-[150px]">
-                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Gastado hasta ahora</label>
-                                <p className="text-2xl font-bold text-white leading-none">{formatMoney(totalSpent)}</p>
+                            <div className="flex-1 min-w-[120px]">
+                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Costo Total</label>
+                                <p className="text-xl font-bold text-white leading-none mt-2">{formatMoney(totalCost)}</p>
+                            </div>
+                            
+                            <div className="flex-1 min-w-[120px]">
+                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Abonado</label>
+                                <p className="text-xl font-bold text-emerald-400 leading-none mt-2">{formatMoney(totalPaid)}</p>
+                            </div>
+                            
+                            <div className="flex-1 min-w-[120px]">
+                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Pendiente</label>
+                                <p className="text-xl font-bold text-amber-400 leading-none mt-2">{formatMoney(balance)}</p>
                             </div>
                         </div>
                     </div>
@@ -409,10 +441,10 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                     <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
                                         <div 
                                             className={`h-full rounded-full transition-all duration-500 ${
-                                                totalSpent > eventData.estimatedBudget ? 'bg-red-500' : 
-                                                totalSpent > eventData.estimatedBudget * 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
+                                                totalCost > eventData.estimatedBudget ? 'bg-red-500' : 
+                                                totalCost > eventData.estimatedBudget * 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
                                             }`}
-                                            style={{ width: `${Math.min((totalSpent / eventData.estimatedBudget) * 100, 100)}%` }}
+                                            style={{ width: `${Math.min((totalCost / eventData.estimatedBudget) * 100, 100)}%` }}
                                         ></div>
                                     </div>
                                     <p className="text-xs font-medium text-slate-400 flex items-center gap-2">
@@ -524,13 +556,13 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                     <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-blue-500" /> Cuenta regresiva</li>
                                 </ul>
                                 <div className="space-y-3 mt-auto">
-                                    {isPremium && eventData.cloudEventId ? (
-                                        <Link 
-                                            to={`/admin/event/${eventData.cloudEventId}/invitation`}
+                                    {hasInvitation ? (
+                                        <button 
+                                            onClick={() => onNavigateToPro && onNavigateToPro()}
                                             className="block text-center w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
                                         >
                                             Configurar
-                                        </Link>
+                                        </button>
                                     ) : (
                                         <button 
                                             onClick={() => setIsPremiumModalOpen(true)}
@@ -539,7 +571,10 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                             Agregar a mi evento
                                         </button>
                                     )}
-                                    <button className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors">
+                                    <button 
+                                        onClick={() => window.open('/invitacion/preview', '_blank')}
+                                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors"
+                                    >
                                         Ver ejemplo
                                     </button>
                                 </div>
@@ -560,19 +595,19 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest }: MyEve
                                     <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-emerald-500" /> Confirmados en tiempo real</li>
                                     <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-emerald-500" /> Menos demoras</li>
                                 </ul>
-                                {isPremium && eventData.cloudEventId ? (
-                                    <Link 
-                                        to={`/admin/event/${eventData.cloudEventId}`}
+                                {hasVipAccess ? (
+                                    <button 
+                                        onClick={() => onNavigateToPro && onNavigateToPro()}
                                         className="block text-center mt-auto w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
                                     >
                                         Configurar
-                                    </Link>
+                                    </button>
                                 ) : (
                                     <button 
                                         onClick={() => setIsPremiumModalOpen(true)}
-                                        className="mt-auto w-full bg-slate-800 hover:bg-emerald-600 text-white font-medium py-3 rounded-xl transition-colors"
+                                        className="mt-auto w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors"
                                     >
-                                        Ver cómo funciona
+                                        Adquirir Ingreso VIP
                                     </button>
                                 )}
                             </div>

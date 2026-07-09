@@ -174,7 +174,7 @@ export default function GuestApp() {
     const fetchEventData = async () => {
         try {
             // Si el ID es 'demo', usar datos de demostración
-            if (id === 'demo') {
+            if (id?.toLowerCase() === 'demo') {
                 setEvent({
                     id: 'demo',
                     name: 'Evento Demo - Ingreso VIP',

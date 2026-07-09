@@ -1,29 +1,94 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Check, Loader2, Crown } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 import { trackEvent } from '../../../lib/analytics';
+import { createPreference } from '../../../lib/mercadopago';
 
 interface PremiumUpgradeModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (plan: string) => void;
+    onSaveRequest?: () => void;
 }
 
-export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess }: PremiumUpgradeModalProps) {
+export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess, onSaveRequest }: PremiumUpgradeModalProps) {
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [prices, setPrices] = useState({ esencial: 45000, premium: 85000 });
+    const [loadingPrices, setLoadingPrices] = useState(true);
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchPrices = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('app_settings')
+                        .select('plan_esencial_price, plan_premium_price')
+                        .eq('id', 1)
+                        .single();
+                    
+                    if (data && !error) {
+                        setPrices({
+                            esencial: data.plan_esencial_price,
+                            premium: data.plan_premium_price
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error fetching prices:", e);
+                } finally {
+                    setLoadingPrices(false);
+                }
+            };
+            fetchPrices();
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
-    const handleSubscribe = (planName: string) => {
+    const handleSubscribe = async (planName: string) => {
+        const isLoggedIn = localStorage.getItem('eventpix_auth') === 'true';
+        const savedData = localStorage.getItem('eventpix_data');
+        let hasEventSaved = false;
+        let currentEventId = 'evento_demo';
+        
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (parsed.cloudEventId) {
+                    hasEventSaved = true;
+                    currentEventId = parsed.cloudEventId;
+                }
+            } catch(e) {}
+        }
+
+        if (!isLoggedIn || !hasEventSaved) {
+            if (onSaveRequest) {
+                onClose();
+                onSaveRequest();
+            } else {
+                alert("Por favor, guarda tu progreso registrándote antes de realizar un pago para no perder los datos.");
+            }
+            return;
+        }
+
         setLoadingPlan(planName);
         trackEvent('premium_checkout_started', { plan: planName });
         
-        // Simulación de conexión a MercadoPago y pago exitoso
-        setTimeout(() => {
+        try {
+            // Obtener el precio correcto basado en el plan
+            const priceToCharge = planName === 'esencial' ? prices.esencial : prices.premium;
+
+            // Crear preferencia real en MercadoPago
+            const initPoint = await createPreference(planName as 'esencial' | 'premium', currentEventId, priceToCharge);
+            
+            // Redirigir a la pantalla de Checkout de MP
+            window.location.href = initPoint;
+            
+        } catch (error) {
+            console.error("Payment setup failed:", error);
+            alert("Error al conectar con MercadoPago. Revisa tu conexión e intenta de nuevo.");
             setLoadingPlan(null);
-            setSuccess(true);
-            trackEvent('premium_checkout_success', { plan: planName });
-        }, 3000);
+        }
     };
 
     if (success) {
@@ -107,20 +172,22 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess }: Prem
                             </button>
                         </div>
 
-                        {/* PLAN ESENCIAL */}
+                        {/* PLAN ESENCIAL -> INVITACIÓN DIGITAL */}
                         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col">
-                            <h3 className="text-xl font-bold text-white mb-2">Esencial</h3>
+                            <h3 className="text-xl font-bold text-white mb-2">Invitación Digital</h3>
                             <p className="text-slate-400 text-sm mb-6 min-h-[40px]">Ideal para empezar a automatizar las confirmaciones.</p>
                             
                             <div className="flex items-end gap-1 mb-8">
-                                <span className="text-4xl font-bold text-white">$45.000</span>
+                                <span className="text-4xl font-bold text-white">
+                                    {loadingPrices ? <Loader2 className="animate-spin w-8 h-8 text-emerald-500" /> : `$${prices.esencial.toLocaleString('es-AR')}`}
+                                </span>
                                 <span className="text-slate-500 text-sm mb-1">/ pago único</span>
                             </div>
                             
                             <div className="space-y-4 flex-1 mb-8">
                                 {[
                                     'Todo lo del plan Gratis',
-                                    'Invitación Web EventPix',
+                                    'Asistente Creador Mágico',
                                     'Confirmaciones RSVP automáticas',
                                     'Guardado permanente en la nube',
                                     'Acceso desde cualquier lugar'
@@ -141,31 +208,33 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess }: Prem
                             </button>
                         </div>
 
-                        {/* PLAN PREMIUM (RECOMENDADO) */}
-                        <div className="bg-gradient-to-b from-indigo-900/40 to-slate-900 border-2 border-indigo-500/50 rounded-3xl p-8 flex flex-col relative transform md:-translate-y-4 shadow-2xl shadow-indigo-500/10">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-4 rounded-full">
-                                ⭐ Más elegido
+                        {/* PLAN PREMIUM -> INGRESO VIP */}
+                        <div className="bg-gradient-to-b from-purple-900/40 to-slate-900 border-2 border-purple-500/50 rounded-3xl p-8 flex flex-col relative transform md:-translate-y-4 shadow-2xl shadow-purple-500/10">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 text-xs font-bold uppercase tracking-wider py-1 px-4 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]">
+                                ⭐ Experiencia Total
                             </div>
                             
-                            <h3 className="text-xl font-bold text-white mb-2">Premium EventPix</h3>
-                            <p className="text-indigo-200/70 text-sm mb-6 min-h-[40px]">La experiencia completa. Todo organizado y además simplificado.</p>
+                            <h3 className="text-xl font-bold text-white mb-2">Ingreso VIP</h3>
+                            <p className="text-purple-200/70 text-sm mb-6 min-h-[40px]">La experiencia completa. Todo organizado y además simplificado.</p>
                             
                             <div className="flex items-end gap-1 mb-8">
-                                <span className="text-4xl font-bold text-white">$85.000</span>
-                                <span className="text-indigo-300 text-sm mb-1">/ pago único</span>
+                                <span className="text-4xl font-bold text-white">
+                                    {loadingPrices ? <Loader2 className="animate-spin w-8 h-8 text-purple-400" /> : `$${prices.premium.toLocaleString('es-AR')}`}
+                                </span>
+                                <span className="text-purple-300 text-sm mb-1">/ pago único</span>
                             </div>
                             
                             <div className="space-y-4 flex-1 mb-8">
                                 {[
-                                    'Todo lo del plan Esencial',
+                                    'Todo lo de Invitación Digital',
                                     'Recepcionista Virtual para ingreso',
-                                    'EventPix / Espejo Mágico interactivo',
+                                    'Videos personalizados por invitado',
                                     'Herramientas premium completas',
                                     'Soporte prioritario'
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-start gap-3">
-                                        <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                            <Check size={12} className="text-indigo-400 font-bold" />
+                                        <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                            <Check size={12} className="text-purple-400 font-bold" />
                                         </div>
                                         <span className="text-sm font-medium text-white">{feature}</span>
                                     </div>
@@ -175,7 +244,7 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess }: Prem
                             <button 
                                 onClick={() => handleSubscribe('premium')}
                                 disabled={loadingPlan !== null}
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2 transform hover:scale-[1.02]"
+                                className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2 transform hover:scale-[1.02]"
                             >
                                 {loadingPlan === 'premium' ? <Loader2 className="animate-spin" /> : 'Pagar con MercadoPago'}
                             </button>

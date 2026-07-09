@@ -496,7 +496,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 className="absolute inset-0 z-0"
                                 style={{ y: yRange }}
                             >
-                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover scale-125" />
+                                <img src={invitation.cover_image_url || 'https://images.unsplash.com/photo-1519741497674-611481863552'} alt="Cover" className="w-full h-full object-cover object-top scale-105" />
                                 <div className="absolute inset-0 bg-black/40"></div>
                             </motion.div>
                             <div className="relative z-10 p-4 w-full h-full flex flex-col items-center justify-center pb-16">
@@ -684,14 +684,16 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         )}
 
                         {/* 7.4 PLAYLIST */}
-                        <PlaylistRenderer
-                            eventId={id!}
-                            themeColor={themeColors.primary}
-                            // Pass guest name if we have it
-                            guestName={guestData.name}
-                            // Fix: Pass the configured Spotify URL
-                            spotifyPlaylistUrl={invitation.components_config?.playlist?.spotify_url}
-                        />
+                        {invitation.components_config?.playlist?.show !== false && (
+                            <PlaylistRenderer
+                                eventId={id!}
+                                themeColor={themeColors.primary}
+                                // Pass guest name if we have it
+                                guestName={guestData.name}
+                                // Fix: Pass the configured Spotify URL
+                                spotifyPlaylistUrl={invitation.components_config?.playlist?.spotify_url}
+                            />
+                        )}
 
                         {/* 7.5 TRIVIA */}
                         <TriviaRenderer eventId={id!} themeColor={themeColors.primary} />
@@ -702,7 +704,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         {/* 8. FOOTER */}
                         {invitation.footer_section?.show !== false && (
                             <FooterRenderer
-                                sectionData={invitation.footer_section || {}}
+                                sectionData={invitation.components_config || {}}
                                 eventId={id!}
                                 invitationRowId={invitation.id}
                                 names={invitation.hero_section?.title || ''}
