@@ -252,7 +252,10 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess, onSave
                         
                     </div>
                     
-                    <div className="text-center mt-8">
+                    <div className="text-center mt-8 space-y-3">
+                        <p className="text-sm text-slate-400">
+                            ¿Tuviste algún problema? <a href="https://wa.me/5493624547382?text=organizador%20ingreso%20vip%20tengo%20este%20inconveniente..." target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium underline underline-offset-2">Comunicate con nuestro servicio técnico</a>
+                        </p>
                         <p className="text-xs text-slate-500">
                             Pagos procesados de forma segura mediante MercadoPago. No se guardan datos de tarjetas.
                         </p>
