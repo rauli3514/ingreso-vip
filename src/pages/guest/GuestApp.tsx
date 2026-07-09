@@ -274,13 +274,23 @@ export default function GuestApp() {
             if (eventError) throw eventError;
             setEvent(eventData);
 
-            const { data: guestsData, error: guestsError } = await supabase
-                .from('guests')
-                .select('id, event_id, status, first_name, last_name, display_name, table_info, assigned_video_url, is_after_party, has_puff')
-                .eq('event_id', id);
+            // Fetch guests from planner_data JSON if available
+            let loadedGuests: Guest[] = [];
+            if (eventData.planner_data && eventData.planner_data.guests) {
+                loadedGuests = eventData.planner_data.guests;
+            } else {
+                // Fallback to legacy guests table just in case
+                const { data: guestsData } = await supabase
+                    .from('guests')
+                    .select('id, event_id, status, first_name, last_name, display_name, table_info, assigned_video_url, is_after_party, has_puff')
+                    .eq('event_id', id);
+                
+                if (guestsData) {
+                    loadedGuests = guestsData;
+                }
+            }
 
-            if (guestsError) throw guestsError;
-            setGuests(guestsData || []);
+            setGuests(loadedGuests);
 
         } catch (error) {
             console.error('Error loading event data:', error);
