@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { Gift, X, Copy, Check, ShoppingBag, CreditCard, QrCode, Plane, Utensils, Coffee, Home, Heart } from 'lucide-react';
-import QRCode from 'qrcode';
-
+import { Gift, X, Copy, Check, ShoppingBag, CreditCard, Plane, Utensils, Coffee, Home, Heart } from 'lucide-react';
 interface GiftOption {
     type: 'transfer' | 'mercadopago' | 'registry' | 'custom';
     title: string;
@@ -49,7 +47,6 @@ export default function GiftsRenderer({
 }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
-    const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
     const copyToClipboard = async (text: string, field: string) => {
         try {
@@ -58,24 +55,6 @@ export default function GiftsRenderer({
             setTimeout(() => setCopiedField(null), 2000);
         } catch (err) {
             console.error('Error copying:', err);
-        }
-    };
-
-    const generateQR = async () => {
-        if (!alias && !cbu) return;
-        try {
-            const text = alias || cbu || '';
-            const dataUrl = await QRCode.toDataURL(text, {
-                width: 300,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            });
-            setQrDataUrl(dataUrl);
-        } catch (err) {
-            console.error('Error generating QR:', err);
         }
     };
 
@@ -206,26 +185,6 @@ export default function GiftsRenderer({
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* QR Button */}
-                                        {!qrDataUrl && (
-                                            <button
-                                                onClick={generateQR}
-                                                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-medium transition-colors"
-                                            >
-                                                <QrCode size={20} />
-                                                Generar QR para Transferencia
-                                            </button>
-                                        )}
-
-                                        {/* QR Code */}
-                                        {qrDataUrl && (
-                                            <div className="mt-4 bg-white p-4 rounded-lg text-center animate-in fade-in zoom-in duration-300">
-                                                <img src={qrDataUrl} alt="QR Code" className="mx-auto max-w-[200px]" />
-                                                <p className="text-xs text-slate-500 mt-2">Escanea para copiar datos</p>
-                                            </div>
-                                        )}
-                                    </div>
                                 )}
 
                                 {/* MercadoPago */}
