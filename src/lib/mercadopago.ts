@@ -6,8 +6,8 @@ import { supabase } from './supabase';
  * (Supabase Edge Functions) para no exponer el ACCESS_TOKEN en el frontend.
  */
 
-// Credenciales de Producción
-export const MP_PUBLIC_KEY = 'APP_USR-e318ae46-db63-459b-996e-6782a6737cbf';
+// Credenciales de Producción (Real)
+export const MP_PUBLIC_KEY = 'APP_USR-76370c80-b95e-45c0-96a5-b72d57a804b2';
 
 export const createPreference = async (plan: 'esencial' | 'premium', eventId: string = 'demo', price: number) => {
     try {
