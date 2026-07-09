@@ -115,7 +115,7 @@ export default function EventPlanner() {
                             .single();
                             
                         if (event && event.planner_data) {
-                            // Merge cloud data with default services (in case we added new defaults)
+                            // Merge cloud data with default services
                             const cloudData = event.planner_data as EventData;
                             const finalServices = defaultServices.map(ds => {
                                 const existing = cloudData.services?.find(ps => ps.name === ds.name);
@@ -125,11 +125,52 @@ export default function EventPlanner() {
                                 return ds;
                             });
                             
+                            // Check for pending MercadoPago success in URL before setting hydrated data
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const paymentSuccess = urlParams.get('payment_success');
+                            const plan = urlParams.get('plan');
+                            
+                            let newActiveModules = cloudData.active_modules || [];
+                            
+                            if (paymentSuccess === 'true' && plan) {
+                                const modules = new Set(newActiveModules);
+                                if (plan === 'esencial') {
+                                    modules.add('invitation_pro');
+                                } else if (plan === 'premium') {
+                                    modules.add('invitation_pro');
+                                    modules.add('vip_access');
+                                }
+                                newActiveModules = Array.from(modules);
+                                
+                                // Update Supabase with new modules immediately
+                                await supabase.from('events').update({
+                                    planner_data: { ...cloudData, active_modules: newActiveModules }
+                                }).eq('id', event.id);
+                                
+                                // Record Payment
+                                const { data: settings } = await supabase.from('app_settings').select('plan_esencial_price, plan_premium_price').eq('id', 1).single();
+                                const amount = plan === 'esencial' ? (settings?.plan_esencial_price || 45000) : (settings?.plan_premium_price || 85000);
+                                await supabase.from('payments').insert({
+                                    event_id: event.id,
+                                    plan_name: plan,
+                                    amount: amount,
+                                    status: 'approved'
+                                });
+                                
+                                // Remove URL params
+                                window.history.replaceState({}, '', window.location.pathname);
+                                
+                                setTimeout(() => {
+                                    alert(`🎉 ¡Pago exitoso!\n\nTu plan ${plan === 'esencial' ? 'Invitación Digital' : 'Ingreso VIP'} ha sido activado correctamente. ¡Disfrútalo!`);
+                                }, 500);
+                            }
+
                             const hydratedData: EventData = {
                                 ...cloudData,
                                 guests: cloudData.guests || [],
                                 tables: cloudData.tables || [],
                                 cloudEventId: event.id,
+                                active_modules: newActiveModules,
                                 services: finalServices
                             };
                             
@@ -158,55 +199,7 @@ export default function EventPlanner() {
         return () => subscription.unsubscribe();
     }, []);
 
-    // Handle MercadoPago Return
-    useEffect(() => {
-        const processPayment = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const paymentSuccess = urlParams.get('payment_success');
-            const plan = urlParams.get('plan');
-
-            if (paymentSuccess === 'true' && plan) {
-                // Remove params from URL immediately
-                window.history.replaceState({}, '', window.location.pathname);
-
-                // Register payment in DB
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    const { data: event } = await supabase.from('events').select('id').eq('owner_id', session.user.id).order('created_at', { ascending: false }).limit(1).single();
-                    if (event) {
-                        const { data: settings } = await supabase.from('app_settings').select('plan_esencial_price, plan_premium_price').eq('id', 1).single();
-                        const amount = plan === 'esencial' ? (settings?.plan_esencial_price || 45000) : (settings?.plan_premium_price || 85000);
-
-                        await supabase.from('payments').insert({
-                            event_id: event.id,
-                            plan_name: plan,
-                            amount: amount,
-                            status: 'approved'
-                        });
-                    }
-                }
-
-                setEventData(prev => {
-                    const modules = new Set(prev.active_modules || []);
-                    if (plan === 'esencial') {
-                        modules.add('invitation_pro');
-                    } else if (plan === 'premium') {
-                        modules.add('invitation_pro');
-                        modules.add('vip_access');
-                    }
-                    return {
-                        ...prev,
-                        active_modules: Array.from(modules)
-                    };
-                });
-                
-                setTimeout(() => {
-                    alert(`🎉 ¡Pago exitoso!\n\nTu plan ${plan === 'esencial' ? 'Invitación Digital' : 'Ingreso VIP'} ha sido activado correctamente. ¡Disfrútalo!`);
-                }, 500);
-            }
-        };
-        processPayment();
-    }, []);
+    // (MercadoPago Return is now handled inside checkAuthAndHydrate to avoid race conditions)
 
     // Auto-save to LocalStorage AND Cloud (Debounced)
     useEffect(() => {
