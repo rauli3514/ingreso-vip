@@ -3,12 +3,11 @@
 /**
  * IMPORTANTE: Para producción, este código debería moverse a un backend 
  * (ej. Supabase Edge Functions) para no exponer el ACCESS_TOKEN en el frontend.
- * Para fase de pruebas con credenciales TEST, es seguro utilizarlo aquí.
- */
-
 // Credenciales de Producción
 export const MP_PUBLIC_KEY = 'APP_USR-3c4e6c7e-3578-47b0-800a-527a5fd01df6';
-const MP_ACCESS_TOKEN = 'APP_USR-6926660168158196-070821-5fdad881e3b09333594d7f7731ae1254-3451172544';
+// EL TOKEN DE ACCESO FUE ELIMINADO POR SEGURIDAD. NO DEBE ESTAR EN EL FRONTEND.
+// SE DEBE UTILIZAR UNA EDGE FUNCTION O BACKEND PARA CREAR LA PREFERENCIA.
+const MP_ACCESS_TOKEN = 'TOKEN_ELIMINADO_POR_SEGURIDAD';
 
 export const createPreference = async (plan: 'esencial' | 'premium', eventId: string = 'demo', price: number) => {
     
