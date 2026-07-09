@@ -375,9 +375,9 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                             value={eventData.name}
                             onChange={handleNameChange}
                         />
-                        {eventData.services?.some(s => s.group === 'eventpix_premium' && s.status === 'ready') ? (
+                        {(eventData.active_modules?.includes('invitation_pro') || eventData.active_modules?.includes('vip_access') || eventData.services?.some(s => s.group === 'eventpix_premium' && s.status === 'ready')) ? (
                             <span className="text-xs font-bold px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-500 border border-amber-500/30 rounded-full flex-shrink-0 flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                                <Crown size={14} className="text-amber-500" /> EventPix Premium
+                                <Crown size={14} className="text-amber-500" /> EventPix Pro
                             </span>
                         ) : (
                             <span className="text-xs font-semibold px-3 py-1 bg-slate-800 text-slate-300 rounded-full flex-shrink-0 border border-slate-700">EventPix Gratis</span>
