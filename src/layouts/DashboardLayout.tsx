@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Calendar, User, Users, Zap, X, Menu, BarChart3, Sparkles, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { hasPaidPlan } from '../lib/plans';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
@@ -65,10 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     .select('planner_data')
                     .eq('owner_id', user.id);
 
-                const hasPremiumEvent = ownedEvents?.some(e => {
-                    const services = e.planner_data?.services || [];
-                    return services.some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready');
-                });
+                const hasPremiumEvent = ownedEvents?.some(e => hasPaidPlan(e.planner_data));
 
                 // Can see Mis Eventos IF they are staff OR they have paid for premium
                 setCanSeeMisEventos(isStaff || hasPremiumEvent);

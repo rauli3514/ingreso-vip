@@ -93,6 +93,30 @@ export default function EventPlanner() {
 
     const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Consulta la base cada 3 s (hasta 1 minuto) hasta ver el plan activado
+    // por el aviso de MercadoPago.
+    const waitForPlanActivation = async (eventId: string, plan: 'esencial' | 'premium') => {
+        const requiredModule = plan === 'esencial' ? 'invitation_pro' : 'vip_access';
+        const planLabel = plan === 'esencial' ? 'Invitación Digital' : 'Ingreso VIP';
+
+        for (let attempt = 0; attempt < 20; attempt++) {
+            const { data } = await supabase
+                .from('events')
+                .select('planner_data')
+                .eq('id', eventId)
+                .single();
+            const modules: string[] = data?.planner_data?.active_modules || [];
+            if (modules.includes(requiredModule)) {
+                setEventData(prev => ({ ...prev, active_modules: modules }));
+                alert(`🎉 ¡Pago exitoso!\n\nTu plan ${planLabel} ha sido activado correctamente. ¡Disfrútalo!`);
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
+        alert(`Recibimos tu pago del plan ${planLabel}.\n\nMercadoPago todavía lo está confirmando: el plan se activa solo en unos minutos. Si no lo ves, escribinos.`);
+    };
+
     // Check Supabase Auth State and hydrate from Cloud
     useEffect(() => {
         const checkAuthAndHydrate = async () => {
@@ -125,57 +149,27 @@ export default function EventPlanner() {
                                 return ds;
                             });
                             
-                            // Check for pending MercadoPago success in URL before setting hydrated data
-                            const urlParams = new URLSearchParams(window.location.search);
-                            const paymentSuccess = urlParams.get('payment_success');
-                            const plan = urlParams.get('plan');
-                            
-                            let newActiveModules = cloudData.active_modules || [];
-                            
-                            if (paymentSuccess === 'true' && plan) {
-                                const modules = new Set(newActiveModules);
-                                if (plan === 'esencial') {
-                                    modules.add('invitation_pro');
-                                } else if (plan === 'premium') {
-                                    modules.add('invitation_pro');
-                                    modules.add('vip_access');
-                                }
-                                newActiveModules = Array.from(modules);
-                                
-                                // Update Supabase with new modules immediately
-                                await supabase.from('events').update({
-                                    planner_data: { ...cloudData, active_modules: newActiveModules }
-                                }).eq('id', event.id);
-                                
-                                // Record Payment
-                                const { data: settings } = await supabase.from('app_settings').select('plan_esencial_price, plan_premium_price').eq('id', 1).single();
-                                const amount = plan === 'esencial' ? (settings?.plan_esencial_price || 45000) : (settings?.plan_premium_price || 85000);
-                                await supabase.from('payments').insert({
-                                    event_id: event.id,
-                                    plan_name: plan,
-                                    amount: amount,
-                                    status: 'approved'
-                                });
-                                
-                                // Remove URL params
-                                window.history.replaceState({}, '', window.location.pathname);
-                                
-                                setTimeout(() => {
-                                    alert(`🎉 ¡Pago exitoso!\n\nTu plan ${plan === 'esencial' ? 'Invitación Digital' : 'Ingreso VIP'} ha sido activado correctamente. ¡Disfrútalo!`);
-                                }, 500);
-                            }
-
                             const hydratedData: EventData = {
                                 ...cloudData,
                                 guests: cloudData.guests || [],
                                 tables: cloudData.tables || [],
                                 cloudEventId: event.id,
-                                active_modules: newActiveModules,
+                                active_modules: cloudData.active_modules || [],
                                 services: finalServices
                             };
-                            
+
                             setEventData(hydratedData);
                             localStorage.setItem('eventpix_data', JSON.stringify(hydratedData));
+
+                            // Vuelta de MercadoPago: el plan no se activa acá. Lo activa el
+                            // servidor cuando MercadoPago confirma el pago; acá solo se espera
+                            // a que aparezca en la base y se avisa.
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const plan = urlParams.get('plan');
+                            if (urlParams.get('payment_success') === 'true' && (plan === 'esencial' || plan === 'premium')) {
+                                window.history.replaceState({}, '', window.location.pathname);
+                                waitForPlanActivation(event.id, plan);
+                            }
                         }
                     } catch (err) {
                         console.error('Error fetching cloud event data', err);

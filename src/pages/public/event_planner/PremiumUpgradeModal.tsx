@@ -75,11 +75,8 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess, onSave
         trackEvent('premium_checkout_started', { plan: planName });
         
         try {
-            // Obtener el precio correcto basado en el plan
-            const priceToCharge = planName === 'esencial' ? prices.esencial : prices.premium;
-
-            // Crear preferencia real en MercadoPago
-            const initPoint = await createPreference(planName as 'esencial' | 'premium', currentEventId, priceToCharge);
+            // Crear preferencia real en MercadoPago (el precio lo pone el servidor)
+            const initPoint = await createPreference(planName as 'esencial' | 'premium', currentEventId);
             
             // Redirigir a la pantalla de Checkout de MP
             window.location.href = initPoint;

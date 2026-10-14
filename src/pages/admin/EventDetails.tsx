@@ -22,6 +22,7 @@ import DownloadsTab from './components/event_details/DownloadsTab';
 import SettingsTab from './components/event_details/SettingsTab';
 import PlaylistTab from './components/event_details/PlaylistTab';
 import PhotoKioskTab from './components/event_details/PhotoKioskTab';
+import { hasPaidPlan } from '../../lib/plans';
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>();
@@ -175,7 +176,7 @@ export default function EventDetails() {
         return `${window.location.origin}${baseUrl}/evento/${event?.id}`;
     };
 
-    const hasPremium = event ? ((event as any).planner_data?.services || []).some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready') : false;
+    const hasPremium = event ? hasPaidPlan((event as any).planner_data) : false;
 
     const renderPremiumLock = (featureName: string) => (
         <div className="flex flex-col items-center justify-center py-24 px-4 text-center glass-panel rounded-2xl border border-border mt-4">

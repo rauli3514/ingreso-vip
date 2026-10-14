@@ -9,10 +9,11 @@ import { supabase } from './supabase';
 // Credenciales de Producción (Real)
 export const MP_PUBLIC_KEY = 'APP_USR-76370c80-b95e-45c0-96a5-b72d57a804b2';
 
-export const createPreference = async (plan: 'esencial' | 'premium', eventId: string = 'demo', price: number) => {
+export const createPreference = async (plan: 'esencial' | 'premium', eventId: string) => {
     try {
         const { data, error } = await supabase.functions.invoke('mercadopago', {
-            body: { plan, eventId, price }
+            // El precio lo pone el servidor (app_settings), no el navegador.
+            body: { plan, eventId }
         });
 
         if (error) {

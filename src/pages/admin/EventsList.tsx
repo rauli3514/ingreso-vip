@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale';
 import CreateEventModal from '../../components/CreateEventModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserProfile } from '../../types';
+import { hasPaidPlan } from '../../lib/plans';
 
 export default function EventsList() {
     const navigate = useNavigate();
@@ -59,10 +60,7 @@ export default function EventsList() {
 
                 // Check if they should be here
                 const isStaff = assignedIds.length > 0;
-                const hasPremium = finalEvents.some(e => {
-                    const services = (e as any).planner_data?.services || [];
-                    return services.some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready');
-                });
+                const hasPremium = finalEvents.some(e => hasPaidPlan((e as any).planner_data));
 
                 if (!isStaff && !hasPremium) {
                     navigate('/planificador');
