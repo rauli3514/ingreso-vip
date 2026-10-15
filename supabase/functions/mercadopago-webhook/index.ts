@@ -1,5 +1,27 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.96.0'
-import { PLANS, isPlanName } from '../_shared/plans.ts'
+// Planes que se cobran con MercadoPago y qué módulos activa cada uno.
+// La misma lista está en mercadopago y mercadopago-webhook (cada función va en
+// un solo archivo para poder pegarla desde el panel): si cambia, cambiar las dos.
+
+type PlanName = 'esencial' | 'premium';
+
+const PLANS: Record<PlanName, { title: string; priceColumn: string; fallbackPrice: number; modules: string[] }> = {
+  esencial: {
+    title: 'Plan Invitación Digital EventPix',
+    priceColumn: 'plan_esencial_price',
+    fallbackPrice: 45000,
+    modules: ['invitation_pro'],
+  },
+  premium: {
+    title: 'Plan Ingreso VIP EventPix',
+    priceColumn: 'plan_premium_price',
+    fallbackPrice: 85000,
+    modules: ['invitation_pro', 'vip_access'],
+  },
+};
+
+const isPlanName = (value: unknown): value is PlanName =>
+  value === 'esencial' || value === 'premium';
 
 // MercadoPago llama a esta función cada vez que cambia un pago.
 // El aviso trae solo el número de pago: con ese número se le pregunta a

@@ -28,13 +28,19 @@ confirmación y avisa. Si tarda más, el plan se activa igual cuando llegue el a
 
 1. **Base de datos:** ejecutar `migrations/2026_10_cobro_seguro_planes.sql` en el
    SQL Editor de Supabase. Se puede ejecutar más de una vez.
-2. **Funciones:**
+2. **Funciones:** se pueden publicar desde el panel, sin instalar nada:
+   - **Edge Functions → mercadopago → Code**: reemplazar todo por
+     `supabase/functions/mercadopago/index.ts` y **Deploy**.
+   - **Edge Functions → Deploy a new function → Via Editor**, nombre
+     `mercadopago-webhook`, pegar `supabase/functions/mercadopago-webhook/index.ts`
+     y **Deploy**. Después, en su **Settings**, desactivar **Verify JWT**
+     (MercadoPago no manda uno).
+
+   O desde la terminal, con la consola de Supabase instalada:
    ```bash
    supabase functions deploy mercadopago
    supabase functions deploy mercadopago-webhook --no-verify-jwt
    ```
-   El webhook va sin verificación de JWT porque MercadoPago no manda uno
-   (también queda indicado en `supabase/config.toml`).
 3. **Secreto:** `MP_ACCESS_TOKEN` ya debería estar en Supabase Secrets (lo usaba la
    función anterior). `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` los pone Supabase solo.
 4. **Sitio:** publicar el frontend nuevo.
