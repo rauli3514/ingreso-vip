@@ -155,6 +155,8 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
                                             <div>
                                                 <p className="text-slate-900 font-semibold">{guest.last_name}, {guest.first_name}</p>
                                                 <div className="flex gap-1 mt-1 flex-wrap">
+                                                    {guest.rsvp_response === 'yes' && (guest.passes || 1) > 1 && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Van {guest.attending_count ?? guest.passes} de {guest.passes}</span>}
+                                                    {guest.dietary && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-200">🍽 {guest.dietary}</span>}
                                                     {guest.is_after_party && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200">Trasnoche</span>}
                                                     {guest.has_puff && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">Puff</span>}
                                                 </div>
@@ -181,9 +183,10 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
                                         <td className="px-6 py-4 text-center">
                                             <span className={`badge ${guest.status === 'confirmed' ? 'badge-success' :
                                                 guest.status === 'arrived' ? 'badge-info bg-blue-50 text-blue-600 border-blue-100' :
-                                                    'badge-neutral'
+                                                    guest.status === 'declined' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                                                        'badge-neutral'
                                                 } inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold`}>
-                                                {guest.status === 'pending' ? 'Pendiente' : guest.status === 'confirmed' ? 'Confirmado' : guest.status}
+                                                {guest.status === 'pending' ? 'Pendiente' : guest.status === 'confirmed' ? 'Confirmado' : guest.status === 'declined' ? 'No va' : guest.status === 'arrived' ? 'Llegó' : guest.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right relative">
@@ -208,7 +211,7 @@ export default function GuestsTab({ event, guests, onUpdateStatus, onDelete, onE
                                                         <div className="p-1 flex flex-col gap-1">
                                                             {event.status !== 'closed' && (
                                                                 <>
-                                                                    {guest.status === 'pending' && (
+                                                                    {(guest.status === 'pending' || guest.status === 'declined') && (
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();

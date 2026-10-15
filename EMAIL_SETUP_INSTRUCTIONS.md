@@ -4,8 +4,8 @@ Este documento explica cómo configurar las notificaciones automáticas por emai
 
 ## 🔑 Datos que necesitas:
 
-- **Resend API Key**: `re_PNeK19Gy_6gSACDsLgfUFAoPnQ566bdtG`
-- **Email destino**: `bodalauyraul2026@gmail.com`
+- **Resend API Key**: la sacás de https://resend.com/api-keys (nunca la escribas en el código ni en este repo: es público)
+- **Email destino**: ya no se configura; el aviso le llega al dueño de cada evento (ver `migrations/2026_10_link_personal_invitados.sql`)
 - **Supabase Project**: Tu proyecto en https://supabase.com/dashboard
 
 ---
@@ -17,7 +17,7 @@ Este documento explica cómo configurar las notificaciones automáticas por emai
 3. Busca la sección **"Secrets"** o **"Environment Variables"**
 4. Agrega un nuevo secret:
    - **Key**: `RESEND_API_KEY`
-   - **Value**: `re_PNeK19Gy_6gSACDsLgfUFAoPnQ566bdtG`
+   - **Value**: tu API key de Resend
 5. Click en **Save**
 
 ---
@@ -60,7 +60,7 @@ https://supabase.com/dashboard/account/tokens (Create new token)
 1. Ve a tu invitación pública
 2. Haz click en "Sugerir Canción" o "Confirmar Asistencia"
 3. Llena el formulario y envía
-4. Revisa tu email: `bodalauyraul2026@gmail.com`
+4. Revisa el email de la cuenta dueña del evento
 5. Deberías recibir un email con todos los detalles
 
 ---

@@ -387,3 +387,8 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # pago consultándolo a MercadoPago con nuestro token.
 [functions.mercadopago-webhook]
 verify_jwt = false
+
+# La llama el trigger de la base sin JWT; la función busca la respuesta por id
+# y solo le escribe al dueño del evento.
+[functions.send-notification-email]
+verify_jwt = false
