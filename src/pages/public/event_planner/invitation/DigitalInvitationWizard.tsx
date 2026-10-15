@@ -41,7 +41,7 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
             gifts: false,
             gallery: false,
             music: false,
-            playlist: true
+            playlist: false
         }
     });
 

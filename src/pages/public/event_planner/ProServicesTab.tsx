@@ -103,6 +103,7 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
             <InvitationEditorPanel
                 eventId={eventData.cloudEventId}
                 onBack={() => setView('hub')}
+                variant="client"
             />
         );
     }
@@ -230,7 +231,6 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                             <div className="space-y-3">
                                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col gap-2">
                                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tu Enlace Público</span>
-                                    <span className="text-[11px] text-slate-500">Para mandar a cada invitado su link personal (con sus pases), usá <strong>Editor Avanzado → Invitados y Links</strong>.</span>
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="text"

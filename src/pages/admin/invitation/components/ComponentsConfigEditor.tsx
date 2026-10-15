@@ -168,7 +168,7 @@ export default function ComponentsConfigEditor({ invitation, onChange }: Props) 
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
-                            checked={config.playlist?.show !== false}
+                            checked={config.playlist?.show === true}
                             onChange={(e) => updateConfig('playlist', 'show', e.target.checked)}
                             className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
                         />

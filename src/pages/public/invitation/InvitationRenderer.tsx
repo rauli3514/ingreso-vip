@@ -725,7 +725,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         )}
 
                         {/* 7.4 PLAYLIST */}
-                        {!demo && invitation.components_config?.playlist?.show !== false && (
+                        {!demo && invitation.components_config?.playlist?.show === true && (
                             <PlaylistRenderer
                                 eventId={id!}
                                 themeColor={themeColors.primary}

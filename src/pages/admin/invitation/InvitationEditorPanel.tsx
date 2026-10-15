@@ -9,7 +9,6 @@ import EventSectionEditor from './sections/EventSectionEditor';
 import GallerySectionEditor from './sections/GallerySectionEditor';
 import GiftsSectionEditor from './sections/GiftsSectionEditor';
 import ExtraInfoSectionEditor from './sections/ExtraInfoSectionEditor';
-import SocialSectionEditor from './sections/SocialSectionEditor';
 import FooterSectionEditor from './sections/FooterSectionEditor';
 import ResponsesList from './components/ResponsesList';
 import GuestsManager from './components/GuestsManager';
@@ -31,9 +30,15 @@ const TAB_LABELS: Record<string, string> = {
 interface InvitationEditorPanelProps {
     eventId: string;
     onBack: () => void;
+    // 'client': el planificador del cliente. Ahí la lista de invitados se arma
+    // en la pestaña Invitados del organizador, así que no se muestra la de acá.
+    variant?: 'admin' | 'client';
 }
 
-export default function InvitationEditorPanel({ eventId: id, onBack }: InvitationEditorPanelProps) {
+export default function InvitationEditorPanel({ eventId: id, onBack, variant = 'admin' }: InvitationEditorPanelProps) {
+    // "Redes" se sacó del editor: se rompía con invitaciones guardadas sin botones.
+    const sectionTabs = ['General', 'Cuenta Regresiva', 'Ceremonia', 'Fiesta', 'Galería', 'Regalos', 'Detalles', 'Final',
+        ...(variant === 'admin' ? ['Invitados'] : [])];
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -197,7 +202,7 @@ export default function InvitationEditorPanel({ eventId: id, onBack }: Invitatio
                             className="w-full p-2 rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                             <optgroup label="Secciones">
-                                {['General', 'Cuenta Regresiva', 'Ceremonia', 'Fiesta', 'Galería', 'Regalos', 'Detalles', 'Redes', 'Final', 'Invitados'].map((tab) => (
+                                {sectionTabs.map((tab) => (
                                     <option key={tab} value={tab.toLowerCase()}>{TAB_LABELS[tab] || tab}</option>
                                 ))}
                             </optgroup>
@@ -214,7 +219,7 @@ export default function InvitationEditorPanel({ eventId: id, onBack }: Invitatio
                     {/* Desktop Sidebar */}
                     <div className="hidden md:flex w-64 bg-slate-50 border-r border-slate-200 p-4 flex-col gap-1 overflow-y-auto">
                         <p className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Secciones</p>
-                        {['General', 'Cuenta Regresiva', 'Ceremonia', 'Fiesta', 'Galería', 'Regalos', 'Detalles', 'Redes', 'Final', 'Invitados'].map((tab) => (
+                        {sectionTabs.map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab.toLowerCase())}
@@ -317,9 +322,6 @@ export default function InvitationEditorPanel({ eventId: id, onBack }: Invitatio
                             {activeTab === 'detalles' && (
                                 <ExtraInfoSectionEditor invitation={invitation} onChange={updateInvitation} />
                             )}
-                            {activeTab === 'redes' && (
-                                <SocialSectionEditor invitation={invitation} onChange={updateInvitation} />
-                            )}
                             {activeTab === 'final' && (
                                 <FooterSectionEditor invitation={invitation} onChange={updateInvitation} />
                             )}
@@ -330,7 +332,7 @@ export default function InvitationEditorPanel({ eventId: id, onBack }: Invitatio
                             )}
 
                             {/* PESTAÑA DE INVITADOS */}
-                            {activeTab === 'invitados' && id && (
+                            {activeTab === 'invitados' && id && variant === 'admin' && (
                                 <GuestsManager eventId={id} />
                             )}
 
@@ -361,7 +363,7 @@ export default function InvitationEditorPanel({ eventId: id, onBack }: Invitatio
                             )}
 
                             {/* Default */}
-                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'redes', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config', 'mobile-design'].includes(activeTab) && (
+                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config', 'mobile-design'].includes(activeTab) && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
                                     <p>Selecciona una sección para comenzar.</p>
                                 </div>
