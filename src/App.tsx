@@ -14,6 +14,7 @@ import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 
 import GuestApp from './pages/guest/GuestApp';
 import InvitationRenderer from './pages/public/invitation/InvitationRenderer';
+import DemoInvitation from './pages/public/invitation/DemoInvitation';
 import PhotoKioskPage from './pages/public/PhotoKioskPage';
 import EventPlanner from './pages/public/EventPlanner';
 
@@ -65,6 +66,7 @@ function App() {
 
                             {/* Guest Routes */}
                             <Route path="/evento/:id" element={<GuestApp />} />
+                            <Route path="/invitacion/muestra" element={<DemoInvitation />} />
                             <Route path="/invitacion/:id" element={<InvitationRenderer />} />
                             <Route path="/invitation/:id" element={<InvitationRenderer />} />
                             <Route path="/kiosco/:id" element={<PhotoKioskPage />} />

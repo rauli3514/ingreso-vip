@@ -11,7 +11,7 @@ import GalleryRenderer from './components/GalleryRenderer';
 import GiftsRenderer from './components/GiftsRenderer';
 import SocialRenderer from './components/SocialRenderer';
 import ExtraInfoRenderer from './components/ExtraInfoRenderer';
-import FooterRenderer, { type PersonalGuest } from './components/FooterRenderer';
+import FooterRenderer, { type PersonalGuest, SUGGEST_SONG_EVENT } from './components/FooterRenderer';
 import TriviaRenderer from './components/TriviaRenderer';
 import PlaylistRenderer from './components/PlaylistRenderer';
 import AttendeeCounter from './components/AttendeeCounter';
@@ -23,7 +23,11 @@ interface Props {
     onElementClick?: (id: string) => void;
     onElementUpdate?: (id: string, updates: any) => void;
     forceViewContent?: boolean;
+    // Invitación de muestra (/invitacion/muestra): datos de ejemplo, nada se guarda.
+    demo?: boolean;
 }
+
+const DEMO_GUEST: PersonalGuest = { id: 'muestra', name: 'Familia Pérez', passes: 3 };
 
 // Wrapper para elementos editables
 const EditableWrapper = ({ children, isSelected, onClick, className = '' }: { children: React.ReactNode, isSelected: boolean, onClick: () => void, id?: string, className?: string }) => (
@@ -41,6 +45,11 @@ const EditableWrapper = ({ children, isSelected, onClick, className = '' }: { ch
 // Mapeo CENTRAL de colores por tema
 const THEME_COLORS: Record<string, { primary: string; secondary: string; accent: string; bg: string }> = {
     rustic: { primary: '#5D7052', secondary: '#8A9A5B', accent: '#000000', bg: '#F4F5F0' },
+    // Estilos del Creador Mágico que no tenían colores propios
+    classic: { primary: '#8B7355', secondary: '#D4C3A3', accent: '#5C4A36', bg: '#F7F3EE' },
+    modern: { primary: '#1A1A24', secondary: '#D4AF37', accent: '#000000', bg: '#F8F9FA' },
+    boho: { primary: '#A0522D', secondary: '#CD853F', accent: '#6B3A1E', bg: '#FAF0E6' },
+    elegant: { primary: '#B8962E', secondary: '#D4AF37', accent: '#1A1A1A', bg: '#FAF7EF' },
     romantic: { primary: '#D48BA3', secondary: '#F3D1DC', accent: '#A64D79', bg: '#FFF5F8' },
     ocean: { primary: '#0891B2', secondary: '#22D3EE', accent: '#164E63', bg: '#ECFEFF' },
     coral: { primary: '#F87171', secondary: '#FCA5A5', accent: '#B91C1C', bg: '#FEF2F2' },
@@ -62,6 +71,10 @@ const THEME_COLORS: Record<string, { primary: string; secondary: string; accent:
 // Mapeo de colores de fondo por tema (para SectionDivider)
 const THEME_BACKGROUNDS: Record<string, string> = {
     rustic: '#F4F5F0',
+    classic: '#F7F3EE',
+    modern: '#F8F9FA',
+    boho: '#FAF0E6',
+    elegant: '#FAF7EF',
     romantic: '#FFF5F8',
     ocean: '#ECFEFF',
     coral: '#FEF2F2',
@@ -98,7 +111,7 @@ function getYouTubeID(url: string) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-export default function InvitationRenderer({ previewData, isEditable = false, onElementClick, onElementUpdate, forceViewContent = false }: Props) {
+export default function InvitationRenderer({ previewData, isEditable = false, onElementClick, onElementUpdate, forceViewContent = false, demo = false }: Props) {
     const { id } = useParams<{ id: string }>();
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
@@ -118,12 +131,10 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     // Link personal: ?i=<id del invitado>. Links viejos: ?guest=<nombre completo>.
     const guestIdParam = searchParams.get('i');
     const guestNameParam = searchParams.get('guest');
-    const [guestData, setGuestData] = useState<{ name: string; passes: number; companions: string[] }>({
-        name: guestNameParam || '',
-        passes: 1,
-        companions: []
-    });
-    const [personalGuest, setPersonalGuest] = useState<PersonalGuest | null>(null);
+    const [guestData, setGuestData] = useState<{ name: string; passes: number; companions: string[] }>(demo
+        ? { name: DEMO_GUEST.name, passes: DEMO_GUEST.passes, companions: ['Laura', 'Tomás'] }
+        : { name: guestNameParam || '', passes: 1, companions: [] });
+    const [personalGuest, setPersonalGuest] = useState<PersonalGuest | null>(demo ? DEMO_GUEST : null);
 
     const [eventData, setEventData] = useState<any>(null); // Store full event data
 
@@ -697,10 +708,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 subtitle={invitation.extra_info_section.subtitle}
                                 blocks={invitation.extra_info_section.blocks}
                                 componentsConfig={invitation.components_config}
-                                onSuggestSong={() => {
-                                    const footerBtn = document.querySelector('footer button:nth-child(3)') as HTMLButtonElement;
-                                    if (footerBtn) footerBtn.click();
-                                }}
+                                onSuggestSong={() => window.dispatchEvent(new Event(SUGGEST_SONG_EVENT))}
                                 themeColor={themeColors.primary}
                             />
                         )}
@@ -717,7 +725,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         )}
 
                         {/* 7.4 PLAYLIST */}
-                        {invitation.components_config?.playlist?.show !== false && (
+                        {!demo && invitation.components_config?.playlist?.show !== false && (
                             <PlaylistRenderer
                                 eventId={id!}
                                 themeColor={themeColors.primary}
@@ -729,10 +737,10 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                         )}
 
                         {/* 7.5 TRIVIA */}
-                        <TriviaRenderer eventId={id!} themeColor={themeColors.primary} />
+                        {!demo && <TriviaRenderer eventId={id!} themeColor={themeColors.primary} />}
 
                         {/* CONTADOR ASISTENTES */}
-                        <AttendeeCounter eventId={id!} themeColor={themeColors.primary} />
+                        {!demo && <AttendeeCounter eventId={id!} themeColor={themeColors.primary} />}
 
                         {/* 8. FOOTER */}
                         {invitation.footer_section?.show !== false && (
@@ -744,6 +752,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 eventData={eventData}
                                 guest={personalGuest}
                                 onGuestRsvp={(update) => setPersonalGuest(prev => prev ? { ...prev, ...update } : prev)}
+                                demo={demo}
                             />
                         )}
                     </div>
@@ -786,6 +795,15 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
 
                 {GlobalMusicPlayer}
                 {FloatingPlayButton}
+
+                {demo && (
+                    <div className="fixed top-0 inset-x-0 z-[60] flex items-center justify-center gap-3 px-4 py-2 bg-slate-900/90 backdrop-blur text-white text-xs md:text-sm shadow-lg">
+                        <span>✨ Esta es una invitación de muestra</span>
+                        <a href="/planificador" className="px-3 py-1 rounded-full bg-white text-slate-900 font-bold whitespace-nowrap hover:bg-slate-100">
+                            Quiero la mía
+                        </a>
+                    </div>
+                )}
             </div>
         </>
     );

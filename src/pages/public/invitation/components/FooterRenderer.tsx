@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { Loader2, X } from 'lucide-react';
 
@@ -22,12 +22,22 @@ interface Props {
     eventData?: any;
     guest?: PersonalGuest | null;
     onGuestRsvp?: (update: Partial<PersonalGuest>) => void;
+    demo?: boolean;
 }
 
 export const DIETARY_OPTIONS = ['Vegetariano', 'Vegano', 'Celíaco (sin TACC)', 'Otro'];
 
-export default function FooterRenderer({ sectionData, eventId, invitationRowId, names, guest, onGuestRsvp }: Props) {
+// Otras secciones (la tarjeta "Música") abren el formulario de canción con este evento.
+export const SUGGEST_SONG_EVENT = 'invitation:suggest-song';
+
+export default function FooterRenderer({ sectionData, eventId, invitationRowId, names, guest, onGuestRsvp, demo = false }: Props) {
     const [modalType, setModalType] = useState<'ceremony' | 'party' | 'song' | null>(null);
+
+    useEffect(() => {
+        const openSong = () => setModalType('song');
+        window.addEventListener(SUGGEST_SONG_EVENT, openSong);
+        return () => window.removeEventListener(SUGGEST_SONG_EVENT, openSong);
+    }, []);
 
     // Si la sección está marcada como oculta, no renderizamos nada
     if (sectionData.show === false) return null;
@@ -69,7 +79,7 @@ export default function FooterRenderer({ sectionData, eventId, invitationRowId, 
                             <button
                                 onClick={() => {
                                     const waNumber = sectionData.whatsapp_number;
-                                    if (waNumber && !guest) {
+                                    if (waNumber && !guest && !demo) {
                                         window.open(`https://wa.me/${waNumber.replace(/[^0-9]/g, '')}?text=Hola!%20Te%20escribo%20para%20confirmar%20mi%20asistencia.`, '_blank');
                                     } else {
                                         handleConfirm('party'); // Usamos 'party' como confirmación genérica
@@ -143,6 +153,7 @@ export default function FooterRenderer({ sectionData, eventId, invitationRowId, 
                     invitationRowId={invitationRowId}
                     guest={modalType === 'song' ? null : guest}
                     onGuestRsvp={onGuestRsvp}
+                    demo={demo}
                     onClose={() => setModalType(null)}
                 />
             )}
@@ -150,12 +161,13 @@ export default function FooterRenderer({ sectionData, eventId, invitationRowId, 
     );
 }
 
-function ConfirmationModal({ type, eventId, invitationRowId, guest, onGuestRsvp, onClose }: {
+function ConfirmationModal({ type, eventId, invitationRowId, guest, onGuestRsvp, demo = false, onClose }: {
     type: 'ceremony' | 'party' | 'song';
     eventId: string;
     invitationRowId: string;
     guest?: PersonalGuest | null;
     onGuestRsvp?: (update: Partial<PersonalGuest>) => void;
+    demo?: boolean;
     onClose: () => void;
 }) {
     const initialDietary = guest?.dietary || '';
@@ -183,7 +195,17 @@ function ConfirmationModal({ type, eventId, invitationRowId, guest, onGuestRsvp,
         setSubmitting(true);
 
         try {
-            if (guest) {
+            if (demo) {
+                // Invitación de muestra: se muestra igual que la real, sin guardar nada.
+                await new Promise(resolve => setTimeout(resolve, 500));
+                if (guest && type !== 'song') {
+                    onGuestRsvp?.({
+                        rsvp_response: status,
+                        attending_count: status === 'yes' ? attendingCount : 0,
+                        dietary: status === 'yes' ? (dietaryValue || null) : null,
+                    });
+                }
+            } else if (guest) {
                 // Link personal: la respuesta queda en su fila de la lista de invitados
                 // (y también en invitation_responses, lo hace la función de la base).
                 const { error } = await supabase.rpc('submit_guest_rsvp', {
@@ -245,6 +267,11 @@ function ConfirmationModal({ type, eventId, invitationRowId, guest, onGuestRsvp,
                     <p className="text-slate-500 mb-6">
                         {guest && status === 'yes' ? '¡Gracias por confirmar! Te esperamos.' : 'Gracias por tu respuesta.'}
                     </p>
+                    {demo && (
+                        <p className="text-xs text-slate-400 -mt-3 mb-6">
+                            En tu invitación, esta respuesta te llega al panel con cuántos van y su menú especial.
+                        </p>
+                    )}
                     <button onClick={onClose} className="bg-slate-900 text-white px-6 py-2 rounded-full text-sm">Cerrar</button>
                 </div>
             </div>

@@ -20,12 +20,28 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
         event_time: '21:00',
         location_name: '',
         location_address: '',
+        // Ceremonia (iglesia / civil), aparte de la fiesta
+        has_ceremony: false,
+        ceremony_time: '',
+        ceremony_location_name: '',
+        ceremony_address: '',
+        // Datos de cada módulo
+        dress_code: 'Elegante',
+        dress_code_note: '',
+        gifts_alias: '',
+        gifts_cbu: '',
+        gifts_owner: '',
+        gifts_bank: '',
+        gifts_mercadopago_link: '',
+        music_url: '',
+        playlist_spotify_url: '',
         modules: {
             rsvp: true,
             dress_code: false,
             gifts: false,
             gallery: false,
-            music: false
+            music: false,
+            playlist: true
         }
     });
 
@@ -48,7 +64,11 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
     const handleFinish = async () => {
         setSaving(true);
         try {
-            // Generar estructura compatible con InvitationData
+            // Estructura que lee la invitación pública (InvitationRenderer)
+            const partyStart = `${settings.event_date}T${settings.event_time}:00`;
+            const ceremonyStart = settings.has_ceremony && settings.ceremony_time
+                ? `${settings.event_date}T${settings.ceremony_time}:00`
+                : partyStart;
             const invitationData = {
                 event_id: eventData.cloudEventId || 'preview',
                 theme_id: settings.theme_id,
@@ -56,24 +76,57 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
                     show: true,
                     title: settings.event_name,
                     subtitle: '¡Estás Invitado!',
-                    show_date: true
+                    show_date: true,
+                    ...(settings.modules.music && settings.music_url.trim()
+                        ? { music: { url: settings.music_url.trim(), start: 0 } }
+                        : {})
                 },
                 ceremony_section: {
+                    show: settings.has_ceremony,
+                    title: 'Ceremonia',
+                    start_time: ceremonyStart,
+                    location_name: settings.ceremony_location_name,
+                    address: settings.ceremony_address
+                },
+                party_section: {
                     show: true,
-                    title: 'Ceremonia / Fiesta',
-                    start_time: `${settings.event_date}T${settings.event_time}:00`,
+                    title: 'Fiesta',
+                    start_time: partyStart,
                     location_name: settings.location_name,
                     address: settings.location_address
                 },
                 countdown_section: {
                     show: true,
                     title: 'Faltan',
-                    target_date: `${settings.event_date}T${settings.event_time}:00`
+                    target_date: settings.has_ceremony ? ceremonyStart : partyStart
                 },
-                party_section: { show: false },
                 gallery_section: { show: settings.modules.gallery, title: 'Galería', images: [] },
-                gifts_section: { show: settings.modules.gifts, title: 'Regalos', subtitle: 'Si deseas hacernos un regalo...', content: 'Podés dejarlo en nuestro buzón o transferir a esta cuenta.' },
-                extra_info_section: { show: settings.modules.dress_code, title: 'Dress Code', blocks: [] }
+                gifts_section: {
+                    show: settings.modules.gifts,
+                    title: 'Regalos',
+                    subtitle: 'Tu presencia es nuestro mejor regalo. Si además querés hacernos un presente:',
+                    alias: settings.gifts_alias.trim(),
+                    cbu: settings.gifts_cbu.trim(),
+                    owner: settings.gifts_owner.trim(),
+                    bank: settings.gifts_bank.trim(),
+                    mercadopago_link: settings.gifts_mercadopago_link.trim()
+                },
+                extra_info_section: {
+                    show: settings.modules.dress_code,
+                    title: 'Información Importante',
+                    subtitle: settings.dress_code_note.trim(),
+                    blocks: {
+                        dress_code: { show: true, title: 'Dress Code', content: settings.dress_code },
+                        music: { show: settings.modules.playlist, title: 'Música' },
+                        tips: { show: false, title: 'Tips y Notas', content: '' }
+                    }
+                },
+                components_config: {
+                    playlist: {
+                        show: settings.modules.playlist,
+                        spotify_url: settings.playlist_spotify_url.trim()
+                    }
+                }
             };
 
             // Solo guardar si hay ID de evento real
@@ -205,7 +258,7 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
                             <div className="w-16 h-16 bg-purple-500/10 text-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-500/20">
                                 <Calendar size={32} />
                             </div>
-                            <h3 className="text-3xl font-bold text-white mb-2">Datos de la Fiesta</h3>
+                            <h3 className="text-3xl font-bold text-white mb-2">Datos del Evento</h3>
                             <p className="text-slate-400 text-sm">¿Cuándo y dónde será el gran día?</p>
                         </div>
 
@@ -264,6 +317,38 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
                                     />
                                 </div>
                             </div>
+
+                            {/* Ceremonia (opcional) */}
+                            <div className={`rounded-2xl border p-5 transition-all ${settings.has_ceremony ? 'border-purple-500/40 bg-purple-500/5' : 'border-slate-800/80 bg-slate-950/40'}`}>
+                                <label className="flex items-center justify-between gap-4 cursor-pointer">
+                                    <div>
+                                        <p className="font-bold text-slate-200">¿Hay ceremonia (iglesia o civil) antes de la fiesta?</p>
+                                        <p className="text-sm text-slate-500">Se muestra como un evento aparte, con su hora y su mapa.</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.has_ceremony}
+                                        onChange={(e) => updateSetting('has_ceremony', e.target.checked)}
+                                        className="w-6 h-6 accent-purple-500 shrink-0"
+                                    />
+                                </label>
+                                {settings.has_ceremony && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5 animate-in fade-in slide-in-from-top-2">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">Hora</label>
+                                            <input type="time" value={settings.ceremony_time} onChange={(e) => updateSetting('ceremony_time', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner [color-scheme:dark]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">Lugar</label>
+                                            <input type="text" value={settings.ceremony_location_name} onChange={(e) => updateSetting('ceremony_location_name', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Ej: Parroquia San José" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">Dirección</label>
+                                            <input type="text" value={settings.ceremony_address} onChange={(e) => updateSetting('ceremony_address', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Ej: Belgrano 450" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -280,56 +365,53 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
                         </div>
 
                         <div className="space-y-4 max-w-2xl mx-auto">
-                            <div 
-                                onClick={() => toggleModule('dress_code')}
-                                className={`p-5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all duration-300 ${
-                                    settings.modules.dress_code 
-                                    ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]' 
-                                    : 'border-slate-800/80 bg-slate-950/50 hover:bg-slate-900 hover:border-slate-700'
-                                }`}
+                            <ModuleCard
+                                title="Dress Code"
+                                description="Indicá el código de vestimenta"
+                                active={settings.modules.dress_code}
+                                onToggle={() => toggleModule('dress_code')}
                             >
-                                <div>
-                                    <h4 className={`font-bold text-lg mb-1 ${settings.modules.dress_code ? 'text-amber-400' : 'text-slate-200'}`}>Dress Code</h4>
-                                    <p className="text-sm text-slate-500">Indicá el código de vestimenta (Elegante, Sport, etc.)</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <select value={settings.dress_code} onChange={(e) => updateSetting('dress_code', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner">
+                                        {['Elegante', 'Elegante Sport', 'Formal / Etiqueta', 'Casual', 'Temático'].map(o => <option key={o} value={o}>{o}</option>)}
+                                    </select>
+                                    <input type="text" value={settings.dress_code_note} onChange={(e) => updateSetting('dress_code_note', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Nota (opcional). Ej: evitar el blanco" />
                                 </div>
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border transition-colors ${settings.modules.dress_code ? 'border-amber-500 bg-amber-500 text-slate-900' : 'border-slate-700 text-transparent'}`}>
-                                    <CheckCircle2 size={16} />
-                                </div>
-                            </div>
+                            </ModuleCard>
 
-                            <div 
-                                onClick={() => toggleModule('gifts')}
-                                className={`p-5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all duration-300 ${
-                                    settings.modules.gifts 
-                                    ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]' 
-                                    : 'border-slate-800/80 bg-slate-950/50 hover:bg-slate-900 hover:border-slate-700'
-                                }`}
+                            <ModuleCard
+                                title="Regalos"
+                                description="Tus datos para recibir regalos en dinero"
+                                active={settings.modules.gifts}
+                                onToggle={() => toggleModule('gifts')}
                             >
-                                <div>
-                                    <h4 className={`font-bold text-lg mb-1 ${settings.modules.gifts ? 'text-amber-400' : 'text-slate-200'}`}>Regalos / CBU</h4>
-                                    <p className="text-sm text-slate-500">Agregá tu cuenta bancaria para recibir regalos monetarios</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input type="text" value={settings.gifts_alias} onChange={(e) => updateSetting('gifts_alias', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Alias (ej: boda.ana.juan)" />
+                                    <input type="text" value={settings.gifts_cbu} onChange={(e) => updateSetting('gifts_cbu', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="CBU / CVU (opcional)" />
+                                    <input type="text" value={settings.gifts_owner} onChange={(e) => updateSetting('gifts_owner', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Titular de la cuenta" />
+                                    <input type="text" value={settings.gifts_bank} onChange={(e) => updateSetting('gifts_bank', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Banco (opcional)" />
+                                    <input type="url" value={settings.gifts_mercadopago_link} onChange={(e) => updateSetting('gifts_mercadopago_link', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner md:col-span-2" placeholder="Link de pago de MercadoPago (opcional)" />
                                 </div>
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border transition-colors ${settings.modules.gifts ? 'border-amber-500 bg-amber-500 text-slate-900' : 'border-slate-700 text-transparent'}`}>
-                                    <CheckCircle2 size={16} />
-                                </div>
-                            </div>
+                            </ModuleCard>
 
-                            <div 
-                                onClick={() => toggleModule('music')}
-                                className={`p-5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all duration-300 ${
-                                    settings.modules.music 
-                                    ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]' 
-                                    : 'border-slate-800/80 bg-slate-950/50 hover:bg-slate-900 hover:border-slate-700'
-                                }`}
+                            <ModuleCard
+                                title="Música de Fondo"
+                                description="Suena tu canción cuando abren la invitación"
+                                active={settings.modules.music}
+                                onToggle={() => toggleModule('music')}
                             >
-                                <div>
-                                    <h4 className={`font-bold text-lg mb-1 ${settings.modules.music ? 'text-amber-400' : 'text-slate-200'}`}>Música de Fondo</h4>
-                                    <p className="text-sm text-slate-500">Reproductor flotante con tu canción favorita</p>
-                                </div>
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border transition-colors ${settings.modules.music ? 'border-amber-500 bg-amber-500 text-slate-900' : 'border-slate-700 text-transparent'}`}>
-                                    <CheckCircle2 size={16} />
-                                </div>
-                            </div>
+                                <input type="url" value={settings.music_url} onChange={(e) => updateSetting('music_url', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Link de YouTube de la canción" />
+                            </ModuleCard>
+
+                            <ModuleCard
+                                title="Playlist Colaborativa"
+                                description="Los invitados sugieren canciones para la fiesta"
+                                active={settings.modules.playlist}
+                                onToggle={() => toggleModule('playlist')}
+                            >
+                                <input type="url" value={settings.playlist_spotify_url} onChange={(e) => updateSetting('playlist_spotify_url', e.target.value)} className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner" placeholder="Link de tu playlist de Spotify (opcional)" />
+                                <p className="text-xs text-slate-500 mt-2">Las canciones sugeridas las ves en el Editor Avanzado.</p>
+                            </ModuleCard>
                         </div>
 
                     </div>
@@ -363,6 +445,32 @@ export default function DigitalInvitationWizard({ eventData, onComplete, onCance
                     </button>
                 )}
             </div>
+        </div>
+    );
+}
+
+function ModuleCard({ title, description, active, onToggle, children }: {
+    title: string;
+    description: string;
+    active: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className={`rounded-2xl border transition-all duration-300 ${active
+            ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]'
+            : 'border-slate-800/80 bg-slate-950/50 hover:bg-slate-900 hover:border-slate-700'
+            }`}>
+            <div onClick={onToggle} className="p-5 flex items-center justify-between cursor-pointer">
+                <div>
+                    <h4 className={`font-bold text-lg mb-1 ${active ? 'text-amber-400' : 'text-slate-200'}`}>{title}</h4>
+                    <p className="text-sm text-slate-500">{description}</p>
+                </div>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center border transition-colors shrink-0 ${active ? 'border-amber-500 bg-amber-500 text-slate-900' : 'border-slate-700 text-transparent'}`}>
+                    <CheckCircle2 size={16} />
+                </div>
+            </div>
+            {active && <div className="px-5 pb-5 animate-in fade-in slide-in-from-top-2">{children}</div>}
         </div>
     );
 }

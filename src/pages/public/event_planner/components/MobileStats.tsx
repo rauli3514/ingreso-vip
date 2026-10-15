@@ -1,4 +1,3 @@
-import React from 'react';
 import { Users, CheckCircle2, Clock, LayoutGrid } from 'lucide-react';
 import { EventData } from '../types';
 
@@ -12,48 +11,24 @@ export default function MobileStats({ eventData }: MobileStatsProps) {
     const pendingGuests = totalGuests - confirmedGuests;
     const totalTables = eventData.tables.length;
 
+    const items = [
+        { label: 'Invitados', value: totalGuests, icon: <Users size={14} className="text-blue-400" /> },
+        { label: 'Confirmados', value: confirmedGuests, icon: <CheckCircle2 size={14} className="text-emerald-400" /> },
+        { label: 'Pendientes', value: pendingGuests, icon: <Clock size={14} className="text-slate-400" /> },
+        { label: 'Mesas', value: totalTables, icon: <LayoutGrid size={14} className="text-slate-400" /> },
+    ];
+
+    // Compacto (una fila) para que la lista de invitados quede cerca del principio.
     return (
-        <div className="md:hidden px-4 py-6 bg-slate-950">
-            <div className="grid grid-cols-2 gap-3">
-                {/* Total Guests */}
-                <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800/60 rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-16 h-16 bg-blue-500/5 rounded-full blur-xl"></div>
-                    <div className="flex items-center gap-2 mb-1.5 z-10">
-                        <Users size={14} className="text-blue-400" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Invitados</span>
+        <div className="md:hidden px-4 pt-4 bg-slate-950">
+            <div className="grid grid-cols-4 gap-2">
+                {items.map(item => (
+                    <div key={item.label} className="bg-slate-900 border border-slate-800 rounded-xl px-2 py-2.5 text-center">
+                        <div className="flex justify-center mb-1">{item.icon}</div>
+                        <div className="text-xl font-bold text-white leading-none">{item.value}</div>
+                        <div className="text-[10px] text-slate-500 mt-1 truncate">{item.label}</div>
                     </div>
-                    <div className="text-3xl font-bold text-white z-10">{totalGuests}</div>
-                </div>
-
-                {/* Confirmed Guests */}
-                <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800/60 rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl"></div>
-                    <div className="flex items-center gap-2 mb-1.5 z-10">
-                        <CheckCircle2 size={14} className="text-emerald-400" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Confirmados</span>
-                    </div>
-                    <div className="text-3xl font-bold text-white z-10">{confirmedGuests}</div>
-                </div>
-
-                {/* Pending Guests */}
-                <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800/60 rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-16 h-16 bg-amber-500/5 rounded-full blur-xl"></div>
-                    <div className="flex items-center gap-2 mb-1.5 z-10">
-                        <Clock size={14} className="text-amber-400" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pendientes</span>
-                    </div>
-                    <div className="text-3xl font-bold text-white z-10">{pendingGuests}</div>
-                </div>
-
-                {/* Tables */}
-                <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800/60 rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-16 h-16 bg-purple-500/5 rounded-full blur-xl"></div>
-                    <div className="flex items-center gap-2 mb-1.5 z-10">
-                        <LayoutGrid size={14} className="text-purple-400" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Mesas</span>
-                    </div>
-                    <div className="text-3xl font-bold text-white z-10">{totalTables}</div>
-                </div>
+                ))}
             </div>
         </div>
     );

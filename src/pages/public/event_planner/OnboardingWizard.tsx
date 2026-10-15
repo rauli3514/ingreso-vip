@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, Upload, Edit3, Heart, MapPin, Building, Music, Loader2, Download } from 'lucide-react';
-import Papa from 'papaparse';
+import { importGuestFile, downloadGuestTemplate, GUEST_FILE_ACCEPT } from '../../../lib/guestSpreadsheet';
 import { EventData, PlannerGuest } from './types';
 import { trackEvent } from '../../../lib/analytics';
 
@@ -25,77 +25,27 @@ export default function OnboardingWizard({ eventData, onChange, onComplete, onOp
         { id: 'otro', label: 'Otro', icon: MapPin },
     ];
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        e.target.value = '';
         if (!file) return;
 
         setUploading(true);
-
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                let newTables = [...eventData.tables];
-                const parsedGuests: PlannerGuest[] = results.data.map((row: any) => {
-                    const first = row.first_name || row.Nombre || row.nombre || '';
-                    const last = row.last_name || row.Apellido || row.apellido || '';
-                    const confirmadoStr = (row.Confirmado || row.confirmado || '').toLowerCase();
-                    const statusVal = (confirmadoStr === 'sí' || confirmadoStr === 'si' || confirmadoStr === 'yes') ? 'confirmed' : 'pending';
-                    const mesaVal = row.Mesa || row.mesa || '';
-                    
-                    return {
-                        id: Math.random().toString(36).substr(2, 9),
-                        first_name: first,
-                        last_name: last,
-                        display_name: `${first} ${last}`.trim() || 'Invitado',
-                        status: statusVal as 'pending' | 'confirmed',
-                        group: row.group || row.Grupo || row.grupo || '',
-                        table_info: mesaVal,
-                        note: row.Nota || row.nota || ''
-                    };
-                }).filter(g => g.first_name || g.last_name);
-
-                // Auto-create tables for CSV guests
-                const finalGuests = parsedGuests.map(g => {
-                    if (g.table_info && g.table_info.trim() !== '') {
-                        let label = g.table_info.trim();
-                        if (/^\d+$/.test(label)) label = `Mesa ${label}`;
-                        
-                        let table = newTables.find(t => t.label.toLowerCase() === label.toLowerCase());
-                        if (!table) {
-                            table = {
-                                id: Math.random().toString(36).substr(2, 9),
-                                type: 'round', x: 0, y: 0, rotation: 0,
-                                label: label,
-                                capacity: 10 // default 10 for wizard
-                            };
-                            newTables.push(table);
-                        }
-                        return { ...g, table_id: table.id };
-                    }
-                    return g;
-                });
-
-                trackEvent('excel_uploaded', { guest_count: finalGuests.length });
-                onChange({ ...eventData, guests: [...eventData.guests, ...finalGuests], tables: newTables });
-                setUploading(false);
-                onComplete(); // Move to dashboard once uploaded
-            }
-        });
+        try {
+            const { guests, tables } = await importGuestFile(file, eventData.tables, 10);
+            trackEvent('excel_uploaded', { guest_count: guests.length });
+            onChange({ ...eventData, guests: [...eventData.guests, ...guests], tables });
+            onComplete(); // Move to dashboard once uploaded
+        } catch (error: any) {
+            alert(error.message || 'No pudimos leer el archivo. Probá con la plantilla.');
+        } finally {
+            setUploading(false);
+        }
     };
 
     const downloadTemplate = () => {
         trackEvent('excel_downloaded');
-        // Usar punto y coma para Excel en español y BOM para UTF-8
-        const csvContent = "\uFEFFNombre;Apellido;Mesa;Grupo;Confirmado;Nota\nJuan;Pérez;1;Familia Novio;Sí;Vegetariano\nAna;Gómez;VIP;Amigos;Pendiente;\nLuis;García;;Trabajo;Sí;";
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "plantilla_invitados.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadGuestTemplate();
     };
 
     return (
@@ -257,7 +207,7 @@ export default function OnboardingWizard({ eventData, onChange, onComplete, onOp
                                 <div className="relative h-full bg-slate-950 border border-slate-800 rounded-2xl p-8 flex flex-col items-center text-center hover:bg-slate-900 transition-colors">
                                     <input 
                                         type="file" 
-                                        accept=".csv"
+                                        accept={GUEST_FILE_ACCEPT}
                                         onChange={handleFileUpload}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                         disabled={uploading}
