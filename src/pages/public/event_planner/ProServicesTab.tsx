@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Crown, Link, Shield, ArrowRight, CheckCircle2, Users, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Crown, Link, Shield, ArrowRight, CheckCircle2, Users, Loader2, Eye } from 'lucide-react';
 import { EventData } from './types';
 import DigitalInvitationWizard from './invitation/DigitalInvitationWizard';
-import AdvancedInvitationEditor from './invitation/AdvancedInvitationEditor';
+import InvitationEditorPanel from '../../admin/invitation/InvitationEditorPanel';
 import VipAccessHub from './vip/VipAccessHub';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
 import { supabase } from '../../../lib/supabase';
@@ -22,11 +22,30 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
     const isInvitationUnlocked = eventData.active_modules?.includes('invitation_pro') || false;
     const isVipAccessUnlocked = eventData.active_modules?.includes('vip_access') || false;
 
-    // Helper to mock unlocking a feature for local dev
-    const handleUnlock = (module: string) => {
-        const currentModules = eventData.active_modules || [];
-        if (!currentModules.includes(module)) {
-            onUpdateEvent({ active_modules: [...currentModules, module] });
+    // La invitación está armada si existe en la base (aunque se haya creado
+    // desde el panel de admin y no desde el Creador Mágico).
+    const [hasSavedInvitation, setHasSavedInvitation] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const isInvitationConfigured = !!eventData.invitation_settings || hasSavedInvitation;
+    const publicUrl = eventData.cloudEventId ? `${window.location.origin}/invitacion/${eventData.cloudEventId}` : '';
+
+    useEffect(() => {
+        if (!eventData.cloudEventId) return;
+        supabase
+            .from('event_invitations')
+            .select('id')
+            .eq('event_id', eventData.cloudEventId)
+            .maybeSingle()
+            .then(({ data }) => setHasSavedInvitation(!!data));
+    }, [eventData.cloudEventId, view]);
+
+    const handleCopyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(publicUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            alert('No se pudo copiar el enlace');
         }
     };
 
@@ -71,10 +90,18 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
     }
 
     if (view === 'advanced_editor') {
+        if (!eventData.cloudEventId) {
+            return (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-300 gap-4">
+                    <p>Guardá tu evento en la nube para editar la invitación.</p>
+                    <button onClick={() => setView('hub')} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl">Volver</button>
+                </div>
+            );
+        }
         return (
-            <AdvancedInvitationEditor 
-                eventData={eventData}
-                onClose={() => setView('hub')}
+            <InvitationEditorPanel
+                eventId={eventData.cloudEventId}
+                onBack={() => setView('hub')}
             />
         );
     }
@@ -198,23 +225,25 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                     </div>
 
                     {isInvitationUnlocked ? (
-                        eventData.invitation_settings ? (
+                        isInvitationConfigured ? (
                             <div className="space-y-3">
                                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col gap-2">
                                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tu Enlace Público</span>
+                                    <span className="text-[11px] text-slate-500">Para mandar a cada invitado su link personal (con sus pases), usá <strong>Editor Avanzado → Invitados y Links</strong>.</span>
                                     <div className="flex items-center gap-2">
-                                        <input 
-                                            type="text" 
-                                            readOnly 
-                                            value={`https://event-pix.com.ar/invitacion/${eventData.cloudEventId || 'preview'}`}
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={publicUrl || 'Guardá tu evento para obtener el enlace'}
                                             className="w-full bg-slate-900 text-slate-300 text-xs py-2 px-3 rounded-lg border border-slate-700 outline-none"
                                         />
-                                        <button 
-                                            onClick={() => navigator.clipboard.writeText(`https://event-pix.com.ar/invitacion/${eventData.cloudEventId || 'preview'}`)}
-                                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+                                        <button
+                                            onClick={handleCopyLink}
+                                            disabled={!publicUrl}
+                                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-xs font-bold whitespace-nowrap disabled:opacity-50"
                                             title="Copiar Enlace"
                                         >
-                                            📋
+                                            {copied ? '✓ Copiado' : '📋 Copiar'}
                                         </button>
                                     </div>
                                     <button 
@@ -227,7 +256,7 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                                 </div>
                                 <div className="flex gap-4">
                                     <button 
-                                        onClick={() => window.open(`/invitacion/${eventData.cloudEventId || 'preview'}`, '_blank')}
+                                        onClick={() => publicUrl && window.open(publicUrl, '_blank')}
                                         className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-all text-center"
                                     >
                                         Ver Previsualización
@@ -255,6 +284,17 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                         >
                             Mejorar Plan
                         </button>
+                    )}
+
+                    {!isInvitationUnlocked && (
+                        <a
+                            href="/invitacion/muestra"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 w-full py-3 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all"
+                        >
+                            <Eye size={16} /> Ver una invitación de muestra
+                        </a>
                     )}
                 </div>
 

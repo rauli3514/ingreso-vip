@@ -129,6 +129,14 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess, onSave
                             Elegí tu plan EventPix
                         </h2>
                         <p className="text-slate-400">Simplificá la organización de tu evento y disfrutá más el proceso.</p>
+                        <a
+                            href="/invitacion/muestra"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-blue-400 hover:text-blue-300"
+                        >
+                            👀 Ver una invitación de muestra antes de comprar
+                        </a>
                     </div>
                     <button onClick={onClose} className="p-2 text-slate-500 hover:text-white bg-white/5 rounded-full transition-colors relative z-10">
                         <X size={20} />
