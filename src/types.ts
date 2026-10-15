@@ -84,7 +84,11 @@ export interface Guest {
     display_name?: string;
     table_info?: string; // e.g. "Mesa 1", "Living", etc.
     assigned_video_url?: string;
-    status: 'pending' | 'confirmed' | 'arrived';
+    status: 'pending' | 'confirmed' | 'declined' | 'arrived';
+    rsvp_response?: 'yes' | 'no' | null; // Respuesta desde su link personal
+    attending_count?: number | null; // Cuántos van (de sus pases)
+    dietary?: string | null; // Menú especial
+    rsvp_message?: string | null;
     is_after_party?: boolean; // Es invitado de trasnoche
     has_puff?: boolean; // Tiene puff asignado
     passes?: number;

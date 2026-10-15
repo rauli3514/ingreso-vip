@@ -9,7 +9,24 @@ interface Guest {
     passes: number;
     companions: string[]; // Array de strings (nombres)
     invitation_sent?: boolean;
+    rsvp_response?: 'yes' | 'no' | null;
+    attending_count?: number | null;
+    dietary?: string | null;
+    rsvp_message?: string | null;
 }
+
+const mapGuest = (g: any): Guest => ({
+    id: g.id,
+    first_name: g.first_name,
+    last_name: g.last_name,
+    passes: g.passes || 1,
+    companions: Array.isArray(g.companions) ? g.companions : [],
+    invitation_sent: g.invitation_sent || false,
+    rsvp_response: g.rsvp_response,
+    attending_count: g.attending_count,
+    dietary: g.dietary,
+    rsvp_message: g.rsvp_message
+});
 
 interface Props {
     eventId: string;
@@ -47,17 +64,7 @@ export default function GuestsManager({ eventId }: Props) {
 
             if (error) throw error;
 
-            // Mapeamos los datos de la BD a nuestra interfaz local
-            const mappedGuests = (data || []).map(g => ({
-                id: g.id,
-                first_name: g.first_name,
-                last_name: g.last_name,
-                passes: g.passes || 1,
-                companions: Array.isArray(g.companions) ? g.companions : [],
-                invitation_sent: g.invitation_sent || false
-            }));
-
-            setGuests(mappedGuests);
+            setGuests((data || []).map(mapGuest));
         } catch (error) {
             console.error('Error fetching guests:', error);
         } finally {
@@ -65,11 +72,9 @@ export default function GuestsManager({ eventId }: Props) {
         }
     };
 
-    const generateGuestUrl = (guest: Guest) => {
-        // Usamos el nombre completo como parámetro 'guest'
-        const fullName = `${guest.first_name} ${guest.last_name}`.trim();
-        return `${baseUrl}?guest=${encodeURIComponent(fullName)}`;
-    };
+    // Link personal: el id del invitado es un código al azar, así cada uno
+    // responde por sí mismo y su respuesta queda en su fila.
+    const generateGuestUrl = (guest: Guest) => `${baseUrl}?i=${guest.id}`;
 
     const handleAddCompanion = () => {
         if (!currentCompanion.trim()) return;
@@ -99,14 +104,14 @@ export default function GuestsManager({ eventId }: Props) {
                 first_name: firstName.trim(),
                 last_name: lastName.trim(),
                 passes: passes,
-                companions: companions,
-                status: 'pending' // Default status
+                companions: companions
             };
 
             let savedGuest: Guest;
 
             if (editingGuestId) {
                 // ACTUALIZAR
+                // Sin tocar el estado: editar no borra lo que el invitado respondió.
                 const { data, error } = await supabase
                     .from('guests')
                     .update(guestData)
@@ -116,13 +121,7 @@ export default function GuestsManager({ eventId }: Props) {
 
                 if (error) throw error;
 
-                savedGuest = {
-                    id: data.id,
-                    first_name: data.first_name,
-                    last_name: data.last_name,
-                    passes: data.passes || 1,
-                    companions: Array.isArray(data.companions) ? data.companions : []
-                };
+                savedGuest = mapGuest(data);
 
                 // Actualizar lista local
                 setGuests(guests.map(g => g.id === editingGuestId ? savedGuest : g));
@@ -131,19 +130,13 @@ export default function GuestsManager({ eventId }: Props) {
                 // CREAR
                 const { data, error } = await supabase
                     .from('guests')
-                    .insert([guestData])
+                    .insert([{ ...guestData, status: 'pending' }])
                     .select()
                     .single();
 
                 if (error) throw error;
 
-                savedGuest = {
-                    id: data.id,
-                    first_name: data.first_name,
-                    last_name: data.last_name,
-                    passes: data.passes || 1,
-                    companions: Array.isArray(data.companions) ? data.companions : []
-                };
+                savedGuest = mapGuest(data);
 
                 // Agregar al inicio lista local
                 setGuests([savedGuest, ...guests]);
@@ -197,14 +190,14 @@ export default function GuestsManager({ eventId }: Props) {
     const handleWhatsAppShare = (guest: Guest) => {
         const url = generateGuestUrl(guest);
         const fullName = `${guest.first_name} ${guest.last_name}`.trim();
-        const message = `Hola ${fullName}, te invitamos a nuestra boda. Aquí tienes tus ${guest.passes} pases para ingresar: ${url}`;
+        const message = `Hola ${fullName}! Te invitamos a nuestro evento 🎉 Tenés ${guest.passes} pase${guest.passes !== 1 ? 's' : ''}. Mirá la invitación y confirmá tu asistencia desde este link: ${url}`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };
 
     // Filter state
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'sent' | 'pending'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'sent' | 'pending' | 'yes' | 'no' | 'no_answer'>('all');
 
     const handleToggleInvitationSent = async (guestId: string, currentStatus: boolean) => {
         // Optimistic update
@@ -242,6 +235,9 @@ export default function GuestsManager({ eventId }: Props) {
         if (filterStatus === 'all') return matchesSearch;
         if (filterStatus === 'sent') return matchesSearch && g.invitation_sent;
         if (filterStatus === 'pending') return matchesSearch && !g.invitation_sent;
+        if (filterStatus === 'yes') return matchesSearch && g.rsvp_response === 'yes';
+        if (filterStatus === 'no') return matchesSearch && g.rsvp_response === 'no';
+        if (filterStatus === 'no_answer') return matchesSearch && !g.rsvp_response;
 
         return matchesSearch;
     });
@@ -370,6 +366,45 @@ export default function GuestsManager({ eventId }: Props) {
                 </div>
             )}
 
+            {/* RESUMEN DE RESPUESTAS */}
+            {guests.length > 0 && (() => {
+                const confirmed = guests.filter(g => g.rsvp_response === 'yes');
+                const people = confirmed.reduce((acc, g) => acc + (g.attending_count ?? g.passes), 0);
+                const totalPasses = guests.reduce((acc, g) => acc + g.passes, 0);
+                const declined = guests.filter(g => g.rsvp_response === 'no').length;
+                const noAnswer = guests.filter(g => !g.rsvp_response).length;
+                const dietaryCounts = confirmed.reduce<Record<string, number>>((acc, g) => {
+                    if (g.dietary) acc[g.dietary] = (acc[g.dietary] || 0) + 1;
+                    return acc;
+                }, {});
+                return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200">
+                            <p className="text-xs font-bold text-slate-500 uppercase">Personas que van</p>
+                            <p className="text-2xl font-bold text-emerald-600">{people} <span className="text-sm font-medium text-slate-400">de {totalPasses} lugares</span></p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200">
+                            <p className="text-xs font-bold text-slate-500 uppercase">Confirmaron</p>
+                            <p className="text-2xl font-bold text-slate-800">{confirmed.length} <span className="text-sm font-medium text-slate-400">invitaciones</span></p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200">
+                            <p className="text-xs font-bold text-slate-500 uppercase">No van / Sin responder</p>
+                            <p className="text-2xl font-bold text-slate-800">{declined} <span className="text-slate-300">/</span> <span className="text-amber-600">{noAnswer}</span></p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200">
+                            <p className="text-xs font-bold text-slate-500 uppercase">Menús especiales</p>
+                            {Object.keys(dietaryCounts).length === 0 ? (
+                                <p className="text-sm text-slate-400 mt-1">Ninguno por ahora</p>
+                            ) : (
+                                <ul className="text-sm text-slate-700 mt-1 space-y-0.5">
+                                    {Object.entries(dietaryCounts).map(([k, v]) => <li key={k}><span className="font-bold">{v}</span> {k}</li>)}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* LISTA DE INVITADOS */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -395,6 +430,26 @@ export default function GuestsManager({ eventId }: Props) {
                                 className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'pending' ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-50'}`}
                             >
                                 No Enviados
+                            </button>
+                        </div>
+                        <div className="flex bg-white rounded-lg border border-slate-200 p-1">
+                            <button
+                                onClick={() => setFilterStatus('yes')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'yes' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                Van
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('no')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'no' ? 'bg-rose-100 text-rose-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                No van
+                            </button>
+                            <button
+                                onClick={() => setFilterStatus('no_answer')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filterStatus === 'no_answer' ? 'bg-amber-100 text-amber-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                Sin responder
                             </button>
                         </div>
 
@@ -448,6 +503,23 @@ export default function GuestsManager({ eventId }: Props) {
                                                 <p className="text-xs text-slate-500 mt-1">
                                                     + {guest.companions.join(', ')}
                                                 </p>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                {guest.rsvp_response === 'yes' ? (
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                        ✓ Va{guest.passes > 1 ? ` · ${guest.attending_count ?? guest.passes} de ${guest.passes}` : ''}
+                                                    </span>
+                                                ) : guest.rsvp_response === 'no' ? (
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200">✗ No va</span>
+                                                ) : (
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200">Sin responder</span>
+                                                )}
+                                                {guest.dietary && (
+                                                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-sky-50 text-sky-700 border border-sky-200">🍽 {guest.dietary}</span>
+                                                )}
+                                            </div>
+                                            {guest.rsvp_message && (
+                                                <p className="text-xs text-slate-500 italic mt-1">“{guest.rsvp_message}”</p>
                                             )}
                                             <div className="flex items-center gap-1 mt-2 text-xs text-slate-400 font-mono break-all md:hidden">
                                                 <ExternalLink size={10} /> {generateGuestUrl(guest)}

@@ -11,7 +11,7 @@ import GalleryRenderer from './components/GalleryRenderer';
 import GiftsRenderer from './components/GiftsRenderer';
 import SocialRenderer from './components/SocialRenderer';
 import ExtraInfoRenderer from './components/ExtraInfoRenderer';
-import FooterRenderer from './components/FooterRenderer';
+import FooterRenderer, { type PersonalGuest } from './components/FooterRenderer';
 import TriviaRenderer from './components/TriviaRenderer';
 import PlaylistRenderer from './components/PlaylistRenderer';
 import AttendeeCounter from './components/AttendeeCounter';
@@ -115,12 +115,15 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     const yRange = useTransform(scrollY, [0, 800], [0, 300]); // Movimiento parallax original restaurado
 
 
+    // Link personal: ?i=<id del invitado>. Links viejos: ?guest=<nombre completo>.
+    const guestIdParam = searchParams.get('i');
     const guestNameParam = searchParams.get('guest');
     const [guestData, setGuestData] = useState<{ name: string; passes: number; companions: string[] }>({
         name: guestNameParam || '',
         passes: 1,
         companions: []
     });
+    const [personalGuest, setPersonalGuest] = useState<PersonalGuest | null>(null);
 
     const [eventData, setEventData] = useState<any>(null); // Store full event data
 
@@ -188,8 +191,38 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
     }, [loading, invitation, viewState, isEditable, forceViewContent]);
 
     useEffect(() => {
+        const fetchPersonalGuest = async () => {
+            if (!guestIdParam || !id || isEditable) return;
+            try {
+                const { data, error } = await supabase.rpc('get_guest_invitation', { p_guest_id: guestIdParam });
+                if (error) throw error;
+                const g = Array.isArray(data) ? data[0] : data;
+                if (!g || g.event_id !== id) return;
+                const fullName = `${g.first_name} ${g.last_name || ''}`.trim();
+                setGuestData({
+                    name: fullName,
+                    passes: g.passes || 1,
+                    companions: Array.isArray(g.companions) ? g.companions : []
+                });
+                setPersonalGuest({
+                    id: guestIdParam,
+                    name: fullName,
+                    passes: g.passes || 1,
+                    rsvp_response: g.rsvp_response,
+                    attending_count: g.attending_count,
+                    dietary: g.dietary,
+                    rsvp_message: g.rsvp_message
+                });
+            } catch (err) {
+                console.error('Error fetching personal guest:', err);
+            }
+        };
+        fetchPersonalGuest();
+    }, [guestIdParam, id, isEditable]);
+
+    useEffect(() => {
         const fetchGuestData = async () => {
-            if (!guestNameParam || !id || isEditable) return;
+            if (guestIdParam || !guestNameParam || !id || isEditable) return;
             try {
                 const searchTerm = guestNameParam.split(' ')[0];
                 const { data } = await supabase
@@ -215,7 +248,7 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
             }
         };
         fetchGuestData();
-    }, [guestNameParam, id, isEditable]);
+    }, [guestIdParam, guestNameParam, id, isEditable]);
 
     useEffect(() => {
         const musicUrl = invitation?.hero_section?.music?.url;
@@ -709,6 +742,8 @@ export default function InvitationRenderer({ previewData, isEditable = false, on
                                 invitationRowId={invitation.id}
                                 names={invitation.hero_section?.title || ''}
                                 eventData={eventData}
+                                guest={personalGuest}
+                                onGuestRsvp={(update) => setPersonalGuest(prev => prev ? { ...prev, ...update } : prev)}
                             />
                         )}
                     </div>

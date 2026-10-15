@@ -25,8 +25,8 @@ export default function AdminLayout() {
     };
 
     const navItems = [
-        { path: '/admin-ep/analytics', label: 'Métricas EventPix', icon: LayoutDashboard, isExternal: false },
-        { path: '/admin-ep/premium', label: 'Módulo Premium', icon: Crown, isExternal: false },
+        { path: '/admin-ep/analytics', label: 'Resumen', icon: LayoutDashboard, isExternal: false },
+        { path: '/admin-ep/premium', label: 'Ventas y Pagos', icon: Crown, isExternal: false },
         { path: '/admin-ep/leads', label: 'Leads', icon: Users, isExternal: false },
         { path: '/admin-ep/providers', label: 'Proveedores', icon: Store, isExternal: false },
     ];
@@ -34,7 +34,7 @@ export default function AdminLayout() {
     const oldNavItems = [
         { path: '/admin-ep/events', label: 'Mis Eventos', icon: LayoutDashboard },
         { path: '/admin-ep/clients', label: 'Clientes (Novios)', icon: Users },
-        { path: '/admin-ep/metrics', label: 'Métricas de Uso', icon: LayoutDashboard },
+        { path: '/admin-ep/metrics', label: 'Embudo de clientes', icon: LayoutDashboard },
     ];
 
     return (

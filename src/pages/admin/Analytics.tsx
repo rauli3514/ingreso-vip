@@ -11,6 +11,7 @@ export default function Analytics() {
         pendingLeads: 0
     });
     
+    // Eventos creados por mes, este año (cantidades reales).
     const [chartData, setChartData] = useState<number[]>(new Array(12).fill(0));
     const [topProviders, setTopProviders] = useState<any[]>([]);
 
@@ -62,10 +63,7 @@ export default function Analytics() {
                     }
                 });
                 
-                // Find max for percentage calculation (to simulate 0-100 heights)
-                const maxVal = Math.max(...newChartData, 1);
-                const normalizedChartData = newChartData.map(val => (val / maxVal) * 100);
-                setChartData(normalizedChartData);
+                setChartData(newChartData);
 
                 // --- Calculate Top Providers ---
                 const providerCounts: Record<string, { name: string, category: string, count: number }> = {};
@@ -119,8 +117,8 @@ export default function Analytics() {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-3xl font-bold text-white mb-2">Resumen General</h1>
-                <p className="text-slate-400">Las métricas principales de EventPix en tiempo real.</p>
+                <h1 className="text-3xl font-bold text-white mb-2">Resumen</h1>
+                <p className="text-slate-400">Los números principales del organizador. Las ventas están en <strong>Ventas y Pagos</strong> y el paso a paso de los clientes en <strong>Embudo de clientes</strong>.</p>
             </div>
 
             {/* KPI Cards */}
@@ -131,8 +129,9 @@ export default function Analytics() {
                             <Users className="text-blue-500" size={24} />
                         </div>
                     </div>
-                    <p className="text-slate-400 text-sm font-medium mb-1">Usuarios Logueados</p>
+                    <p className="text-slate-400 text-sm font-medium mb-1">Clientes con evento</p>
                     <h3 className="text-3xl font-bold text-white">{metrics.usersCount}</h3>
+                    <p className="text-xs text-slate-500 mt-2">Cuentas que crearon al menos un evento</p>
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -143,6 +142,7 @@ export default function Analytics() {
                     </div>
                     <p className="text-slate-400 text-sm font-medium mb-1">Eventos Creados</p>
                     <h3 className="text-3xl font-bold text-white">{metrics.eventsCount}</h3>
+                    <p className="text-xs text-slate-500 mt-2">Desde el principio</p>
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -156,8 +156,9 @@ export default function Analytics() {
                             </span>
                         )}
                     </div>
-                    <p className="text-slate-400 text-sm font-medium mb-1">Volumen de Invitados</p>
-                    <h3 className="text-3xl font-bold text-white">{metrics.guestsCount.toLocaleString()}</h3>
+                    <p className="text-slate-400 text-sm font-medium mb-1">Invitados cargados</p>
+                    <h3 className="text-3xl font-bold text-white">{metrics.guestsCount.toLocaleString('es-AR')}</h3>
+                    <p className="text-xs text-slate-500 mt-2">En todos los eventos</p>
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -171,28 +172,31 @@ export default function Analytics() {
                             </span>
                         )}
                     </div>
-                    <p className="text-slate-400 text-sm font-medium mb-1">Solicitudes Pendientes</p>
+                    <p className="text-slate-400 text-sm font-medium mb-1">Pedidos a proveedores sin atender</p>
                     <h3 className="text-3xl font-bold text-white">{metrics.pendingLeads}</h3>
+                    <p className="text-xs text-slate-500 mt-2">Leads en estado "nuevo"</p>
                 </div>
             </div>
 
             {/* Charts Area */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
-                    <h3 className="text-lg font-bold text-white mb-6">Crecimiento de Eventos ({new Date().getFullYear()})</h3>
-                    
-                    {metrics.eventsCount === 0 ? (
+                    <h3 className="text-lg font-bold text-white mb-1">Eventos creados por mes ({new Date().getFullYear()})</h3>
+                    <p className="text-xs text-slate-500 mb-6">Total del año: {chartData.reduce((a, b) => a + b, 0)}</p>
+
+                    {chartData.every(v => v === 0) ? (
                         <div className="flex-1 flex items-center justify-center text-slate-500">
                             Aún no hay eventos registrados este año.
                         </div>
                     ) : (
                         <div className="h-64 flex items-end justify-between gap-2 mt-auto">
-                            {chartData.map((height, i) => (
-                                <div key={i} className="w-full flex flex-col items-center gap-2 group">
-                                    <div className="w-full bg-slate-800 rounded-t-sm relative group-hover:bg-blue-500/20 transition-colors h-full flex items-end">
-                                        <div 
-                                            className="w-full bg-blue-500 rounded-t-sm transition-all duration-1000 ease-out" 
-                                            style={{ height: `${Math.max(height, 2)}%` }} // Minimum height so it's visible if 0
+                            {chartData.map((count, i) => (
+                                <div key={i} className="w-full h-full flex flex-col items-center gap-2 group" title={`${count} evento${count !== 1 ? 's' : ''}`}>
+                                    <span className="text-[11px] font-bold text-slate-300 h-4">{count > 0 ? count : ''}</span>
+                                    <div className="w-full flex-1 bg-slate-800 rounded-t-sm relative group-hover:bg-blue-500/20 transition-colors flex items-end">
+                                        <div
+                                            className="w-full bg-blue-500 rounded-t-sm transition-all duration-1000 ease-out"
+                                            style={{ height: `${count > 0 ? Math.max((count / Math.max(...chartData, 1)) * 100, 4) : 0}%` }}
                                         ></div>
                                     </div>
                                     <span className="text-[10px] text-slate-500 font-medium">{['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][i]}</span>
@@ -203,7 +207,8 @@ export default function Analytics() {
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <h3 className="text-lg font-bold text-white mb-6">Top Proveedores Solicitados</h3>
+                    <h3 className="text-lg font-bold text-white mb-1">Proveedores más pedidos</h3>
+                    <p className="text-xs text-slate-500 mb-6">Pedidos de presupuesto desde el planificador</p>
                     <div className="space-y-6">
                         {topProviders.length === 0 ? (
                             <p className="text-slate-500 text-sm text-center py-8">Aún no hay leads generados.</p>

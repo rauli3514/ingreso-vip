@@ -6,7 +6,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import {
     ArrowLeft, Calendar, Users, MapPin,
     Upload, Plus, Clock, CheckCircle2,
-    Palette, Video, Download, Settings, QrCode, Music, Camera, Lock
+    Palette, Video, Download, Settings, QrCode, Music, Camera, Lock, UserX
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,6 +22,7 @@ import DownloadsTab from './components/event_details/DownloadsTab';
 import SettingsTab from './components/event_details/SettingsTab';
 import PlaylistTab from './components/event_details/PlaylistTab';
 import PhotoKioskTab from './components/event_details/PhotoKioskTab';
+import { hasPaidPlan } from '../../lib/plans';
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>();
@@ -175,7 +176,7 @@ export default function EventDetails() {
         return `${window.location.origin}${baseUrl}/evento/${event?.id}`;
     };
 
-    const hasPremium = event ? ((event as any).planner_data?.services || []).some((s: any) => s.group === 'eventpix_premium' && s.status === 'ready') : false;
+    const hasPremium = event ? hasPaidPlan((event as any).planner_data) : false;
 
     const renderPremiumLock = (featureName: string) => (
         <div className="flex flex-col items-center justify-center py-24 px-4 text-center glass-panel rounded-2xl border border-border mt-4">
@@ -287,10 +288,11 @@ export default function EventDetails() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                 <StatCard label="Total Invitados" value={guests.length} icon={Users} color="blue" />
                 <StatCard label="Confirmados" value={guests.filter(g => g.status === 'confirmed').length} icon={CheckCircle2} color="emerald" />
-                <StatCard label="En Espera" value={guests.filter(g => g.status === 'pending').length} icon={Clock} color="amber" />
+                <StatCard label="Sin Responder" value={guests.filter(g => g.status === 'pending').length} icon={Clock} color="amber" />
+                <StatCard label="No Van" value={guests.filter(g => g.status === 'declined').length} icon={UserX} color="rose" />
                 <StatCard label="Mesas Asignadas" value={guests.filter(g => !!g.table_info).length} icon={MapPin} color="purple" />
             </div>
 
@@ -434,6 +436,7 @@ function StatCard({ label, value, icon: Icon, color }: any) {
         emerald: 'text-emerald-500 bg-emerald-500/10',
         amber: 'text-amber-500 bg-amber-500/10',
         purple: 'text-purple-500 bg-purple-500/10',
+        rose: 'text-rose-500 bg-rose-500/10',
     };
 
     return (
