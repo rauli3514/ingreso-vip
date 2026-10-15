@@ -6,6 +6,7 @@ import InvitationEditorPanel from '../../admin/invitation/InvitationEditorPanel'
 import VipAccessHub from './vip/VipAccessHub';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
 import { supabase } from '../../../lib/supabase';
+import { GOLD_BUTTON } from './eventpixServices';
 
 interface ProServicesTabProps {
     eventData: EventData;
@@ -280,7 +281,7 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                     ) : (
                         <button 
                             onClick={() => setIsUpgradeModalOpen(true)}
-                            className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                            className={`w-full py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all ${GOLD_BUTTON}`}
                         >
                             Mejorar Plan
                         </button>
@@ -333,7 +334,7 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                     ) : (
                         <button 
                             onClick={() => setIsUpgradeModalOpen(true)}
-                            className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                            className={`w-full py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all ${GOLD_BUTTON}`}
                         >
                             Mejorar Plan
                         </button>

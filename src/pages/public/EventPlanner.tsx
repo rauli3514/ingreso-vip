@@ -19,6 +19,8 @@ const defaultServices: PlannerService[] = [
     { id: '6', category: 'Decoración', name: 'Decoración', status: 'pending', cost: 0, note: '', group: 'muy_importante' },
     { id: '7', category: 'Vajilla', name: 'Vajilla', status: 'pending', cost: 0, note: '', group: 'muy_importante' },
     { id: '10', category: 'Fotografía', name: 'Fotografía / Video', status: 'pending', cost: 0, note: '', group: 'muy_importante' },
+    { id: '18', category: 'Invitaciones', name: 'Invitaciones', status: 'pending', cost: 0, note: '', group: 'muy_importante' },
+    { id: '19', category: 'Recepción', name: 'Recepción / Ingreso', status: 'pending', cost: 0, note: '', group: 'muy_importante' },
     // Opcional
     { id: '11', category: 'Extras', name: 'Barra de Tragos', status: 'pending', cost: 0, note: '', group: 'opcional' },
     { id: '12', category: 'Extras', name: 'Living / ambientación premium', status: 'pending', cost: 0, note: '', group: 'opcional' },

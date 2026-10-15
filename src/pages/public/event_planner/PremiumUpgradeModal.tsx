@@ -3,6 +3,7 @@ import { X, Check, Loader2, Crown } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { trackEvent } from '../../../lib/analytics';
 import { createPreference } from '../../../lib/mercadopago';
+import { GOLD_BUTTON } from './eventpixServices';
 
 interface PremiumUpgradeModalProps {
     isOpen: boolean;
@@ -207,7 +208,7 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess, onSave
                             <button 
                                 onClick={() => handleSubscribe('esencial')}
                                 disabled={loadingPlan !== null}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                                className={`w-full py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${GOLD_BUTTON}`}
                             >
                                 {loadingPlan === 'esencial' ? <Loader2 className="animate-spin" /> : 'Pagar con MercadoPago'}
                             </button>
@@ -249,7 +250,7 @@ export default function PremiumUpgradeModal({ isOpen, onClose, onSuccess, onSave
                             <button 
                                 onClick={() => handleSubscribe('premium')}
                                 disabled={loadingPlan !== null}
-                                className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2 transform hover:scale-[1.02]"
+                                className={`w-full py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 transform hover:scale-[1.02] ${GOLD_BUTTON}`}
                             >
                                 {loadingPlan === 'premium' ? <Loader2 className="animate-spin" /> : 'Pagar con MercadoPago'}
                             </button>

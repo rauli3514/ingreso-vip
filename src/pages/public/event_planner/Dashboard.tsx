@@ -2,7 +2,7 @@
 import { Users, LayoutGrid, Plus, MoreVertical, GripVertical, CheckCircle2, Clock, Upload, Download, Save, Info, Settings, Trash2, Edit, Crown, FileText } from 'lucide-react';
 import { EventData, PlannerGuest, PlannerTable } from './types';
 import { trackEvent } from '../../../lib/analytics';
-import Papa from 'papaparse';
+import { importGuestFile, exportGuestsXlsx, downloadGuestTemplate, GUEST_FILE_ACCEPT } from '../../../lib/guestSpreadsheet';
 import PlannerGuestModal from './PlannerGuestModal';
 import MyEventTab from './MyEventTab';
 import TablesCanvas from './TablesCanvas';
@@ -13,8 +13,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import MobileHero from './components/MobileHero';
 import MobileStats from './components/MobileStats';
-import EmotionalMessage from './components/EmotionalMessage';
-import EventProgress from './components/EventProgress';
+import UpsellBanner from './components/UpsellBanner';
+import PremiumUpgradeModal from './PremiumUpgradeModal';
 import NextStepCard from './components/NextStepCard';
 import GuestMobileCard from './components/GuestMobileCard';
 import { Star, Calendar, Cloud, UserCheck, AlertCircle, Play, X, LogOut, ArrowRight, Table2, CheckSquare, ListTodo, HelpCircle, DollarSign, Wallet, Percent, AlertTriangle } from 'lucide-react';
@@ -30,7 +30,7 @@ interface DashboardProps {
     syncStatus?: SyncStatus;
 }
 
-type TabType = 'list' | 'kanban' | 'my_event';
+type TabType = 'list' | 'kanban' | 'my_event' | 'pro';
 
 export default function Dashboard({ eventData, onChange, initialOpenManualGuest = false, onSaveRequest, syncStatus = 'idle' }: DashboardProps) {
     const [activeTab, setActiveTab] = useState<TabType>('list');
@@ -41,6 +41,10 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
     const [defaultTableCapacity, setDefaultTableCapacity] = useState(10);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [tableMode, setTableMode] = useState<'list' | 'canvas'>('list');
+    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+    const [justExported, setJustExported] = useState(false);
+    const hasInvitationPlan = eventData.active_modules?.includes('invitation_pro');
+    const hasReceptionPlan = eventData.active_modules?.includes('vip_access');
     
     // Auto-save UI states
     const [isSaving, setIsSaving] = useState(false);
@@ -156,67 +160,32 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
         });
 
         doc.save(`Invitados_${eventData.name.replace(/ /g, '_')}.pdf`);
+        setJustExported(true);
     };
 
     // --- GUEST MANAGEMENT ---
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        e.target.value = ''; // Reset input
         if (!file) return;
 
         setUploading(true);
+        try {
+            const { guests, tables } = await importGuestFile(file, eventData.tables, defaultTableCapacity);
+            trackEvent('excel_uploaded', { guest_count: guests.length });
+            onChange({ ...eventData, guests: [...eventData.guests, ...guests], tables });
+        } catch (error: any) {
+            alert(error.message || 'No pudimos leer el archivo. Probá con la plantilla.');
+        } finally {
+            setUploading(false);
+        }
+    };
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                let newTables = [...eventData.tables];
-                const parsedGuests: PlannerGuest[] = results.data.map((row: any) => {
-                    const first = row.first_name || row.Nombre || row.nombre || '';
-                    const last = row.last_name || row.Apellido || row.apellido || '';
-                    const confirmadoStr = (row.Confirmado || row.confirmado || '').toLowerCase();
-                    const statusVal = (confirmadoStr === 'sí' || confirmadoStr === 'si' || confirmadoStr === 'yes') ? 'confirmed' : 'pending';
-                    const mesaVal = row.Mesa || row.mesa || '';
-                    
-                    return {
-                        id: Math.random().toString(36).substr(2, 9),
-                        first_name: first,
-                        last_name: last,
-                        display_name: `${first} ${last}`.trim() || 'Invitado',
-                        status: statusVal as 'pending' | 'confirmed',
-                        group: row.group || row.Grupo || row.grupo || '',
-                        table_info: mesaVal,
-                        note: row.Nota || row.nota || ''
-                    };
-                }).filter(g => g.first_name || g.last_name);
-
-                // Auto-create tables for CSV guests
-                const finalGuests = parsedGuests.map(g => {
-                    if (g.table_info && g.table_info.trim() !== '') {
-                        let label = g.table_info.trim();
-                        if (/^\d+$/.test(label)) label = `Mesa ${label}`;
-                        
-                        let table = newTables.find(t => t.label.toLowerCase() === label.toLowerCase());
-                        if (!table) {
-                            table = {
-                                id: Math.random().toString(36).substr(2, 9),
-                                type: 'round', x: 0, y: 0, rotation: 0,
-                                label: label,
-                                capacity: defaultTableCapacity
-                            };
-                            newTables.push(table);
-                        }
-                        return { ...g, table_id: table.id };
-                    }
-                    return g;
-                });
-
-                trackEvent('excel_uploaded', { guest_count: finalGuests.length });
-                onChange({ ...eventData, guests: [...eventData.guests, ...finalGuests], tables: newTables });
-                setUploading(false);
-            }
-        });
-        e.target.value = ''; // Reset input
+    const handleExportExcel = () => {
+        trackEvent('excel_exported', { guest_count: eventData.guests.length });
+        exportGuestsXlsx(eventData.name, eventData.guests, eventData.tables);
+        setJustExported(true);
     };
 
     const assignTableIfProvided = (guest: PlannerGuest, tables: PlannerTable[]): { updatedGuest: PlannerGuest, updatedTables: PlannerTable[] } => {
@@ -283,15 +252,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
 
     const downloadTemplate = () => {
         trackEvent('excel_downloaded');
-        const csvContent = "\uFEFFNombre;Apellido;Mesa;Grupo;Confirmado;Nota\nJuan;Pérez;1;Familia Novio;Sí;Vegetariano\nAna;Gómez;VIP;Amigos;Pendiente;\nLuis;García;;Trabajo;Sí;";
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "plantilla_invitados.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadGuestTemplate();
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -392,10 +353,6 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                     {/* Dynamic Auto-save Indicator */}
                     <div className="flex items-center gap-2 mr-2 transition-all duration-300 min-w-[140px] justify-end">
-                        <span className="text-[10px] md:text-xs font-medium text-slate-400 truncate max-w-[150px] md:max-w-[200px]">
-                            {eventData.name || 'Mi Evento'}
-                        </span>
-                        
                         {/* Sync Status Badge */}
                         {syncStatus === 'error' ? (
                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 text-red-500 rounded-full border border-red-500/20">
@@ -432,7 +389,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     ) : (
                         <button 
                             onClick={handlePremiumFeature}
-                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-lg mr-2"
+                            className="px-5 py-2.5 border border-blue-500/50 text-blue-300 hover:bg-blue-500/10 rounded-xl font-medium flex items-center justify-center gap-2 transition-all mr-2"
                         >
                             <Save size={18} /> Guardar Progreso
                         </button>
@@ -457,7 +414,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                         </button>
                         <input 
                             type="file" 
-                            accept=".csv"
+                            accept={GUEST_FILE_ACCEPT}
                             onChange={handleFileUpload}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             disabled={uploading}
@@ -473,38 +430,6 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     >
                         <Plus size={18} /> Nuevo Invitado
                     </button>
-                </div>
-            </div>
-
-            {/* HUMAN ASSISTANT MICRO-COPY */}
-            <div className="hidden md:block bg-slate-900 border-b border-slate-800 p-4">
-                <div className="max-w-4xl mx-auto flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/30">
-                        <Info size={16} />
-                    </div>
-                    <div>
-                        {eventData.guests.length === 0 ? (
-                            <>
-                                <p className="text-white font-medium">Tu fiesta todavía está muy tranquila 😅</p>
-                                <p className="text-slate-400 text-sm mt-0.5">Empecemos agregando invitados para darle forma real al evento. Usa el botón azul o sube tu Excel.</p>
-                            </>
-                        ) : eventData.guests.length <= 20 ? (
-                            <>
-                                <p className="text-white font-medium">¡Ya empezaste! 🎉</p>
-                                <p className="text-slate-400 text-sm mt-0.5">Todavía faltan algunos, pero ya avanzaste más de lo que parece. Tip EventPix: no hace falta resolver todo hoy, tu progreso se guarda.</p>
-                            </>
-                        ) : eventData.guests.length > 20 && eventData.tables.length === 0 ? (
-                            <>
-                                <p className="text-white font-medium">Esto ya parece una fiesta de verdad 😄</p>
-                                <p className="text-slate-400 text-sm mt-0.5">Pero nadie sabe dónde sentarse todavía 😅. Ve a la pestaña "Organización de Mesas" para evitar caos el día del evento.</p>
-                            </>
-                        ) : (
-                            <>
-                                <p className="text-white font-medium">¡Excelente trabajo! 🎉</p>
-                                <p className="text-slate-400 text-sm mt-0.5">Paso a paso se organiza una gran fiesta. Tip EventPix: separar familia y amigos en grupos distintos suele ayudar mucho.</p>
-                            </>
-                        )}
-                    </div>
                 </div>
             </div>
 
@@ -543,7 +468,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     ) : (
                         <button 
                             onClick={handlePremiumFeature}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all shadow-md"
+                            className="px-3 py-1.5 border border-blue-500/50 text-blue-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all"
                         >
                             <Save size={14} /> Guardar
                         </button>
@@ -551,19 +476,19 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                 </div>
             </div>
 
-            {/* MOBILE HERO & EMOTIONAL COMPONENTS */}
-            <MobileHero 
-                onAddGuest={() => {
-                    setGuestToEdit(null);
-                    setIsGuestModalOpen(true);
-                }} 
-                onImportExcel={() => document.getElementById('mobile-upload-input')?.click()} 
-            />
-            <input type="file" id="mobile-upload-input" accept=".csv" className="hidden" onChange={handleFileUpload} />
+            {/* MOBILE: el hero grande solo cuando todavía no hay invitados */}
+            {eventData.guests.length === 0 && (
+                <MobileHero
+                    onAddGuest={() => {
+                        setGuestToEdit(null);
+                        setIsGuestModalOpen(true);
+                    }}
+                    onImportExcel={() => document.getElementById('mobile-upload-input')?.click()}
+                    onDownloadTemplate={downloadTemplate}
+                />
+            )}
+            <input type="file" id="mobile-upload-input" accept={GUEST_FILE_ACCEPT} className="hidden" onChange={handleFileUpload} />
             <MobileStats eventData={eventData} />
-            <EmotionalMessage guestCount={eventData.guests.length} />
-            <EventProgress eventData={eventData} />
-            <NextStepCard eventData={eventData} onAction={setActiveTab} />
 
             {/* DASHBOARD SUMMARY CARDS */}
             <div className="p-6 hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950">
@@ -593,7 +518,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     </div>
                     <div>
                         <p className="text-2xl font-bold text-white">{eventData.guests.filter(g => g.status === 'pending').length}</p>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">En Espera</p>
+                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Pendientes</p>
                     </div>
                 </div>
 
@@ -603,37 +528,39 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     </div>
                     <div>
                         <p className="text-2xl font-bold text-white">{eventData.tables.length}</p>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Mesas Asignadas</p>
+                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Mesas</p>
                     </div>
                 </div>
             </div>
 
+            <NextStepCard eventData={eventData} onAction={setActiveTab} />
+
             {/* TAB NAVIGATION */}
             <div className="px-4 md:px-6 mt-0 md:mt-2 bg-slate-950">
-                <div className="flex bg-slate-900 p-1.5 rounded-2xl w-full md:w-fit border border-slate-800 overflow-x-auto custom-scrollbar shadow-lg shadow-black/20">
-                    <button 
+                <div className="grid grid-cols-4 md:flex bg-slate-900 p-1.5 rounded-2xl w-full md:w-fit border border-slate-800 gap-1 shadow-lg shadow-black/20">
+                    <button
                         onClick={() => setActiveTab('list')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'list' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+                        className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-1 md:px-5 py-2 md:py-3 rounded-xl text-[11px] md:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'list' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
                     >
-                        <Users size={18} /> Invitados
+                        <Users size={18} /> <span>Invitados</span>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('kanban')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'kanban' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+                        className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-1 md:px-5 py-2 md:py-3 rounded-xl text-[11px] md:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'kanban' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
                     >
-                        <LayoutGrid size={18} /> Mesas
+                        <LayoutGrid size={18} /> <span>Mesas</span>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('my_event')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'my_event' ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-500 shadow-md border border-amber-500/20' : 'text-slate-400 hover:text-amber-500/80 hover:bg-slate-800/50'}`}
+                        className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-1 md:px-5 py-2 md:py-3 rounded-xl text-[11px] md:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'my_event' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
                     >
-                        <Star size={18} className={activeTab === 'my_event' ? 'fill-amber-500/20' : ''} /> Mi Evento
+                        <Star size={18} /> <span>Mi Evento</span>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('pro')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'pro' ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-blue-400 shadow-md border border-blue-500/20' : 'text-slate-400 hover:text-blue-400 hover:bg-slate-800/50'}`}
+                        className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-1 md:px-5 py-2 md:py-3 rounded-xl text-[11px] md:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'pro' ? 'bg-gradient-to-r from-amber-500/15 to-yellow-500/10 text-amber-400 shadow-md border border-amber-500/30' : 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10'}`}
                     >
-                        <Crown size={18} className={activeTab === 'pro' ? 'fill-blue-500/20 text-blue-400' : 'text-purple-400'} /> Servicios Pro
+                        <Crown size={18} className={activeTab === 'pro' ? 'fill-amber-400/30' : ''} /> <span><span className="md:hidden">Pro</span><span className="hidden md:inline">Servicios Pro</span></span>
                     </button>
                 </div>
             </div>
@@ -652,27 +579,43 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     />
                 )}
 
-                {/* TAB MICRO-MESSAGES */}
-                {activeTab === 'list' && (
-                    <div className="mb-4 bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl flex items-start sm:items-center gap-3">
-                        <Users size={20} className="text-blue-400 mt-0.5 sm:mt-0 shrink-0" />
-                        <p className="text-sm text-blue-200 font-medium">Armar la lista es el primer gran paso. No te preocupes por tener todo perfecto ahora, podés editarlo después.</p>
-                    </div>
+                {/* OFERTAS EN EL MOMENTO JUSTO (dorado = pago) */}
+                {activeTab === 'list' && justExported && !hasReceptionPlan && (
+                    <UpsellBanner
+                        id="reception_after_export"
+                        title="Para la puerta del evento"
+                        text="¿Vas a imprimir la lista para la entrada? Con la Recepcionista Virtual cada invitado busca su nombre en una pantalla y ve su mesa. Usa esta misma lista."
+                        cta="Ver planes"
+                        onCta={() => setIsPremiumModalOpen(true)}
+                    />
                 )}
-                {activeTab === 'kanban' && (
-                    <div className="mb-4 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-start sm:items-center gap-3">
-                        <LayoutGrid size={20} className="text-emerald-400 mt-0.5 sm:mt-0 shrink-0" />
-                        <p className="text-sm text-emerald-200 font-medium">Llevemos esto a la realidad. Organizá quién se sienta con quién arrastrando a tus invitados a las mesas.</p>
-                    </div>
+                {activeTab === 'list' && !justExported && eventData.guests.length >= 20 && !hasInvitationPlan && (
+                    <UpsellBanner
+                        id="invitation_20_guests"
+                        title="Invitación Digital"
+                        text={`Ya tenés ${eventData.guests.length} invitados. Mandale a cada uno su invitación con link personal: confirman solos, te dicen cuántos van y si necesitan menú especial.`}
+                        cta="Ver planes"
+                        onCta={() => setIsPremiumModalOpen(true)}
+                        secondary={{ label: 'Ver una muestra', href: '/invitacion/muestra' }}
+                    />
+                )}
+                {activeTab === 'kanban' && eventData.guests.length > 0 && eventData.tables.length > 0 && unassignedGuests.length === 0 && !searchQuery && !hasReceptionPlan && (
+                    <UpsellBanner
+                        id="reception_all_seated"
+                        title="¡Todos tienen mesa!"
+                        text="El día del evento, que cada invitado encuentre su mesa solo: la Recepcionista Virtual muestra su mesa y un video de bienvenida en la entrada."
+                        cta="Ver planes"
+                        onCta={() => setIsPremiumModalOpen(true)}
+                    />
                 )}
 
                 {/* SEARCH BAR (Only show if list or kanban) */}
                 {(activeTab === 'list' || activeTab === 'kanban') && (
-                    <div className="mb-6 flex gap-4 items-center justify-between">
-                        <input 
+                    <div className="mb-6 flex flex-wrap gap-3 items-center justify-between">
+                        <input
                             type="text"
                             placeholder="Buscar invitado por nombre o grupo..."
-                            className="flex-1 max-w-md bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                            className="w-full sm:w-auto sm:flex-1 max-w-md bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -686,13 +629,22 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                             </button>
                         )}
                         
-                        {activeTab === 'list' && (
-                            <button 
-                                onClick={exportGuestListToPDF}
-                                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors flex-shrink-0 border border-slate-700"
-                            >
-                                <Download size={16} /> Exportar PDF
-                            </button>
+                        {activeTab === 'list' && eventData.guests.length > 0 && (
+                            <div className="flex gap-2 flex-shrink-0">
+                                <button
+                                    onClick={handleExportExcel}
+                                    className="px-3 md:px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors border border-slate-700"
+                                    title="Excel con Mesa, Nombre, Apellido, Grupo, Confirmado, Trasnoche y Living"
+                                >
+                                    <Download size={16} /> Excel
+                                </button>
+                                <button
+                                    onClick={exportGuestListToPDF}
+                                    className="px-3 md:px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors border border-slate-700"
+                                >
+                                    <Download size={16} /> PDF
+                                </button>
+                            </div>
                         )}
                     </div>
                 )}
@@ -824,7 +776,7 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                                                         <span>Importar desde Excel</span>
                                                         <input 
                                                             type="file" 
-                                                            accept=".csv"
+                                                            accept={GUEST_FILE_ACCEPT}
                                                             className="hidden"
                                                             onChange={handleFileUpload}
                                                         />
@@ -1065,6 +1017,12 @@ export default function Dashboard({ eventData, onChange, initialOpenManualGuest 
                     <Plus size={24} strokeWidth={3} />
                 </button>
             </div>
+            <PremiumUpgradeModal
+                isOpen={isPremiumModalOpen}
+                onClose={() => setIsPremiumModalOpen(false)}
+                onSuccess={() => setIsPremiumModalOpen(false)}
+                onSaveRequest={onSaveRequest}
+            />
         </div>
     );
 }

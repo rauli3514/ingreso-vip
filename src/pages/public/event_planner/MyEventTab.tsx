@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useState } from 'react';
 import { EventData, PlannerService } from './types';
-import { ChevronDown, ChevronUp, CheckCircle2, Clock, Sparkles, Lightbulb, Target, Smartphone, MonitorPlay, Camera } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ChevronDown, ChevronUp, CheckCircle2, Clock, Sparkles, Lightbulb, Target, Star, ExternalLink, MessageCircle } from 'lucide-react';
+import { EVENTPIX_OFFERS, EVENTPIX_INFO_URL, GOLD_BUTTON, GOLD_CARD, GOLD_TEXT, computeProgress, eventPixWhatsAppUrl } from './eventpixServices';
+import { trackEvent } from '../../../lib/analytics';
 import VendorProposalModal from './VendorProposalModal';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
 
@@ -36,14 +37,7 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
     const hasBudget = eventData.estimatedBudget > 0;
     const imprescindibleReady = imprescindible.filter(s => s.status === 'ready').length;
     
-    let progress = 0;
-    if (hasGuests) progress += 20;
-    if (hasTables) progress += 20;
-    if (hasBudget) progress += 10;
-    if (imprescindible.length > 0) {
-        progress += Math.floor((imprescindibleReady / imprescindible.length) * 50);
-    }
-    progress = Math.min(progress, 100);
+    const progress = computeProgress(eventData);
 
     // Contextual Header Message ("IA Percibida")
     const getContextualHeader = () => {
@@ -185,6 +179,60 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
         return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(finalAmount);
     };
 
+    // Tarjeta "Lo hace EventPix" dentro de los servicios que ofrece EventPix.
+    const renderEventPixOffer = (serviceName: string) => {
+        const offer = EVENTPIX_OFFERS[serviceName];
+        const module = serviceName === 'Invitaciones' ? hasInvitation : serviceName === 'Recepción / Ingreso' ? hasVipAccess : false;
+        return (
+            <div className={`${GOLD_CARD} rounded-2xl p-5 mb-5 mt-3`}>
+                <p className={`text-[11px] font-bold uppercase tracking-wider ${GOLD_TEXT} flex items-center gap-1.5 mb-2`}>
+                    <Star size={12} className="fill-amber-400" /> Lo hace EventPix
+                </p>
+                <h5 className="text-white font-bold text-lg mb-1">{offer.title}</h5>
+                <p className="text-sm text-slate-300 mb-3">{offer.description}</p>
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+                    {offer.bullets.map(b => (
+                        <li key={b} className="text-xs text-slate-400 flex items-center gap-1.5"><CheckCircle2 size={12} className="text-amber-400" /> {b}</li>
+                    ))}
+                </ul>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    {offer.kind === 'plan' ? (
+                        module ? (
+                            <button onClick={() => onNavigateToPro && onNavigateToPro()} className="px-4 py-2.5 rounded-xl text-sm bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors">
+                                Ya lo tenés: configurar
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => { trackEvent('eventpix_offer_clicked', { service: serviceName }); setIsPremiumModalOpen(true); }}
+                                className={`px-4 py-2.5 rounded-xl text-sm transition-all ${GOLD_BUTTON}`}
+                            >
+                                Agregar a mi evento
+                            </button>
+                        )
+                    ) : (
+                        <a
+                            href={eventPixWhatsAppUrl(offer, eventData)}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => trackEvent('eventpix_offer_clicked', { service: serviceName })}
+                            className={`px-4 py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${GOLD_BUTTON}`}
+                        >
+                            <MessageCircle size={16} /> Pedir presupuesto
+                        </a>
+                    )}
+                    <a
+                        href={offer.demoUrl || EVENTPIX_INFO_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <ExternalLink size={14} /> {offer.demoUrl ? 'Ver una muestra' : 'Ver cómo funciona'}
+                    </a>
+                </div>
+            </div>
+        );
+    };
+
     const renderServiceBlock = (services: PlannerService[], title: string, subtitle: string, icon: string) => {
         if (services.length === 0) return null;
         
@@ -217,8 +265,13 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
                                              <div className="w-2 h-2 rounded-full bg-slate-500"></div>}
                                         </div>
                                         <div>
-                                            <h4 className="font-semibold text-white flex items-center gap-2">
+                                            <h4 className="font-semibold text-white flex items-center gap-2 flex-wrap">
                                                 {service.name}
+                                                {EVENTPIX_OFFERS[service.name] && (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                                                        <Star size={10} className="fill-amber-400" /> EventPix
+                                                    </span>
+                                                )}
                                             </h4>
                                             {service.status === 'ready' && service.cost > 0 && !isExpanded && (
                                                 <p className="text-xs mt-0.5 flex gap-3">
@@ -238,7 +291,9 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
                                 {/* Body */}
                                 {isExpanded && (
                                     <div className="px-5 pb-5 pt-2 border-t border-slate-800/50 bg-slate-900/50">
-                                        
+
+                                        {EVENTPIX_OFFERS[service.name] && renderEventPixOffer(service.name)}
+
                                         {/* Status Context & Recommendation */}
                                         <div className="mb-5 bg-slate-950/50 p-4 rounded-xl border border-slate-800/50">
                                             {service.status === 'ready' ? (
@@ -353,7 +408,6 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
         );
     };
 
-    const showTools = progress > 25 || eventData.guests.length > 20;
 
     return (
         <div className="flex-1 overflow-y-auto custom-scrollbar pb-12 relative">
@@ -523,130 +577,6 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
                     </div>
                 </div>
 
-                {/* SECCIÓN PREMIUM EVENTPIX */}
-                {false && showTools && (
-                    <div className="mt-20 border-t border-slate-800 pt-16">
-                        <div className="text-center max-w-2xl mx-auto mb-12">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-blue-400 font-medium text-sm mb-6">
-                                <Sparkles size={16} /> Premium EventPix
-                            </div>
-                            <h2 className="text-3xl font-bold text-white mb-4">
-                                Simplificá tu evento con EventPix Premium
-                            </h2>
-                            <p className="text-slate-400 text-lg">
-                                Cuando tu evento empieza a tomar forma, estas herramientas hacen todo mucho más simple.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            
-                            {/* Card 1 */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 hover:border-blue-500/50 transition-all duration-300 group relative overflow-hidden flex flex-col h-full shadow-lg shadow-black/50">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/20 transition-colors"></div>
-                                <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center text-blue-400 mb-6 group-hover:scale-110 transition-transform">
-                                    <Smartphone size={28} />
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-2">Invitación Digital EventPix</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                                    "Tus invitados confirman asistencia sin cadenas eternas de WhatsApp."
-                                </p>
-                                <ul className="space-y-2 mb-8 flex-1">
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-blue-500" /> Confirmación automática</li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-blue-500" /> Ubicación del evento</li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-blue-500" /> Cuenta regresiva</li>
-                                </ul>
-                                <div className="space-y-3 mt-auto">
-                                    {hasInvitation ? (
-                                        <button 
-                                            onClick={() => onNavigateToPro && onNavigateToPro()}
-                                            className="block text-center w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
-                                        >
-                                            Configurar
-                                        </button>
-                                    ) : (
-                                        <button 
-                                            onClick={() => setIsPremiumModalOpen(true)}
-                                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl transition-colors shadow-lg shadow-blue-500/20"
-                                        >
-                                            Agregar a mi evento
-                                        </button>
-                                    )}
-                                    <button 
-                                        onClick={() => window.open('/invitacion/preview', '_blank')}
-                                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors"
-                                    >
-                                        Ver ejemplo
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Card 2 */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 hover:border-emerald-500/50 transition-all duration-300 group relative overflow-hidden flex flex-col h-full shadow-lg shadow-black/50">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/20 transition-colors"></div>
-                                <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
-                                    <MonitorPlay size={28} />
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-2">Recepcionista Virtual</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                                    "El día del evento evitá caos en el ingreso."
-                                </p>
-                                <ul className="space-y-2 mb-8 flex-1">
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-emerald-500" /> Lista automática</li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-emerald-500" /> Confirmados en tiempo real</li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-emerald-500" /> Menos demoras</li>
-                                </ul>
-                                {hasVipAccess ? (
-                                    <button 
-                                        onClick={() => onNavigateToPro && onNavigateToPro()}
-                                        className="block text-center mt-auto w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
-                                    >
-                                        Configurar
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={() => setIsPremiumModalOpen(true)}
-                                        className="mt-auto w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors"
-                                    >
-                                        Adquirir Ingreso VIP
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Card 3 */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 hover:border-purple-500/50 transition-all duration-300 group relative overflow-hidden flex flex-col h-full shadow-lg shadow-black/50">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/20 transition-colors"></div>
-                                <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center text-purple-400 mb-6 group-hover:scale-110 transition-transform">
-                                    <Camera size={28} />
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-2">EventPix / Espejo Mágico</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                                    "Un recuerdo divertido e interactivo para tus invitados."
-                                </p>
-                                <ul className="space-y-2 mb-8 flex-1">
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-purple-500" /> Fotos instantáneas</li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-purple-500" /> Experiencia divertida</li>
-                                    <li className="flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 size={14} className="text-purple-500" /> Contenido compartible</li>
-                                </ul>
-                                {isPremium && eventData.cloudEventId ? (
-                                    <Link 
-                                        to={`/admin/event/${eventData.cloudEventId}`}
-                                        className="block text-center mt-auto w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
-                                    >
-                                        Configurar
-                                    </Link>
-                                ) : (
-                                    <button 
-                                        onClick={() => setIsPremiumModalOpen(true)}
-                                        className="mt-auto w-full bg-slate-800 hover:bg-purple-600 text-white font-medium py-3 rounded-xl transition-colors"
-                                    >
-                                        Ver demo
-                                    </button>
-                                )}
-                            </div>
-
-                        </div>
-                    </div>
-                )}
 
                 {/* SAVE PROGRESS BANNER */}
                 {!isLoggedIn && (
