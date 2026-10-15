@@ -16,7 +16,6 @@ import AdvancedEditor from './components/AdvancedEditor';
 import TriviaEditor from './components/TriviaEditor';
 import TriviaResponses from './components/TriviaResponses';
 import ComponentsConfigEditor from './components/ComponentsConfigEditor';
-import TemplateManager from './components/TemplateManager';
 
 // Nombres más claros para algunas secciones (el valor interno no cambia).
 const TAB_LABELS: Record<string, string> = {
@@ -209,7 +208,6 @@ export default function InvitationEditorPanel({ eventId: id, onBack, variant = '
                             <optgroup label="Gestión">
                                 <option value="respuestas">📋 Respuestas (RSVP)</option>
                                 <option value="config">🎵 Playlist, Dress Code y Extras</option>
-                                <option value="mobile-design">📱 Diseño Overlay</option>
                                 <option value="trivia-preguntas">🎮 Trivia - Preguntas</option>
                                 <option value="trivia-ranking">🏆 Trivia - Ranking</option>
                             </optgroup>
@@ -253,16 +251,6 @@ export default function InvitationEditorPanel({ eventId: id, onBack, variant = '
                                 }`}
                         >
                             🎵 Playlist, Dress Code y Extras
-                        </button>
-
-                        <button
-                            onClick={() => setActiveTab('mobile-design')}
-                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'mobile-design'
-                                ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100'
-                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                        >
-                            📱 Diseño Overlay
                         </button>
 
                         <button
@@ -336,14 +324,6 @@ export default function InvitationEditorPanel({ eventId: id, onBack, variant = '
                                 <GuestsManager eventId={id} />
                             )}
 
-                            {/* DISEÑO MOBILE OVERLAY */}
-                            {activeTab === 'mobile-design' && (
-                                <TemplateManager
-                                    invitation={invitation as InvitationData}
-                                    onChange={updateInvitation}
-                                />
-                            )}
-
                             {/* TRIVIA - PREGUNTAS */}
                             {activeTab === 'trivia-preguntas' && id && (
                                 <TriviaEditor eventId={id} />
@@ -363,7 +343,7 @@ export default function InvitationEditorPanel({ eventId: id, onBack, variant = '
                             )}
 
                             {/* Default */}
-                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config', 'mobile-design'].includes(activeTab) && (
+                            {!['general', 'cuenta regresiva', 'ceremonia', 'fiesta', 'galería', 'regalos', 'detalles', 'final', 'respuestas', 'invitados', 'trivia-preguntas', 'trivia-ranking', 'config'].includes(activeTab) && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
                                     <p>Selecciona una sección para comenzar.</p>
                                 </div>
