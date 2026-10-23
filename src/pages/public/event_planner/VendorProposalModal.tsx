@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Sparkles, MapPin, ExternalLink, Globe, Instagram, Loader2, Star, CheckCircle2 } from 'lucide-react';
 import { EventData, PlannerService } from './types';
 import { supabase } from '../../../lib/supabase';
+import { recordLead } from '../../../lib/leads';
 import { Provider } from '../../../types';
 
 interface VendorProposalModalProps {
@@ -54,25 +55,8 @@ export default function VendorProposalModal({ isOpen, onClose, service, eventDat
     const handleWhatsAppClick = async (provider: Provider) => {
         setJustContacted(provider.id);
         
-        try {
-            // Silently create the lead in the background
-            const guestsCount = eventData.guests ? eventData.guests.length : 0;
-            
-            await supabase.from('leads').insert([{
-                provider_id: provider.id,
-                event_id: eventData.cloudEventId || null,
-                client_name: eventData.name || 'Organizador de Evento',
-                estimated_budget: eventData.estimatedBudget || 0,
-                event_details: {
-                    guests_count: guestsCount,
-                    date: eventData.date,
-                    service_requested: service.name
-                },
-                status: 'nuevo'
-            }]);
-        } catch (err) {
-            console.error("Error creating lead in background:", err);
-        }
+        // Se guarda en segundo plano; no frena la ida a WhatsApp.
+        recordLead({ providerId: provider.id, service: service.name, eventData });
 
         // Redirect to WhatsApp
         const waNumber = provider.whatsapp_number.replace(/[^0-9]/g, '');

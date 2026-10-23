@@ -21,13 +21,16 @@ export default function Login() {
                 email = `${email}@ingreso-vip.app`;
             }
 
-            const { error: authError } = await supabase.auth.signInWithPassword({
+            const { data: signIn, error: authError } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
 
             if (authError) throw authError;
-            navigate('/admin/dashboard');
+            // El superadmin entra directo al Business Admin (mismo criterio que AuthContext).
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', signIn.user.id).maybeSingle();
+            const isSuperadmin = profile?.role === 'superadmin' || signIn.user.email === 'rauli3514@gmail.com';
+            navigate(isSuperadmin ? '/admin-ep' : '/admin/dashboard');
         } catch (err: any) {
             console.error(err);
             setError(err.message === 'Invalid login credentials'

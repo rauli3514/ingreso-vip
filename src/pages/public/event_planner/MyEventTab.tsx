@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { EventData, PlannerService } from './types';
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, Sparkles, Lightbulb, Target, Star, ExternalLink, MessageCircle } from 'lucide-react';
+import { recordLead } from '../../../lib/leads';
 import { EVENTPIX_OFFERS, EVENTPIX_INFO_URL, GOLD_BUTTON, GOLD_CARD, GOLD_TEXT, computeProgress, eventPixWhatsAppUrl } from './eventpixServices';
 import { trackEvent } from '../../../lib/analytics';
 import VendorProposalModal from './VendorProposalModal';
@@ -214,7 +215,7 @@ export default function MyEventTab({ eventData, onChange, onSaveRequest, onNavig
                             href={eventPixWhatsAppUrl(offer, eventData)}
                             target="_blank"
                             rel="noreferrer"
-                            onClick={() => trackEvent('eventpix_offer_clicked', { service: serviceName })}
+                            onClick={() => { trackEvent('eventpix_offer_clicked', { service: serviceName }); recordLead({ providerId: null, service: offer.title, eventData }); }}
                             className={`px-4 py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${GOLD_BUTTON}`}
                         >
                             <MessageCircle size={16} /> Pedir presupuesto

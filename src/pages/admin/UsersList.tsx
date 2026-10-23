@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import DashboardLayout from '../../layouts/DashboardLayout';
 import { User, Plus, Search, Trash2, CheckCircle2, XCircle, Shield, Calendar, Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { UserProfile, Event } from '../../types';
@@ -182,7 +181,7 @@ export default function UsersList() {
         });
 
     return (
-        <DashboardLayout>
+        <>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div>
@@ -485,6 +484,6 @@ export default function UsersList() {
                     </div>
                 </div>
             )}
-        </DashboardLayout>
+        </>
     );
 }
