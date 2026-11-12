@@ -45,6 +45,12 @@ BEGIN
 END;
 $$;
 
+-- Por si el proyecto no tiene el disparador que crea el perfil al registrarse.
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Cuentas que ya existen: se completa lo que falte con lo que pusieron al registrarse.
 UPDATE public.profiles p SET
     full_name = COALESCE(p.full_name, NULLIF(COALESCE(u.raw_user_meta_data ->> 'full_name', u.raw_user_meta_data ->> 'name'), '')),
