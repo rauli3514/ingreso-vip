@@ -3,7 +3,10 @@
 // api/invitacion-imagen.ts (la imagen). Los archivos con "_" no son funciones.
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://ijvbnduaecrpsaivgzay.supabase.co';
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+// Clave pública (anon) de Supabase: es la misma que va en la página y en .env.local.
+// Va de respaldo por si Vercel no tiene cargadas las variables para las funciones.
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdmJuZHVhZWNycHNhaXZnemF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYxNDk5MDcsImV4cCI6MjA4MTcyNTkwN30.8qFhjzkuFunEsxsYHnq5y8IgSl7K2yJIXRWrGonrcDI';
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
