@@ -143,7 +143,7 @@ export async function fetchClients(): Promise<ClientRow[]> {
     const [profilesRes, eventsRes, invitationsRes, leadsRes, signInsRes] = await Promise.all([
         supabase.from('profiles').select('*').neq('role', 'superadmin').order('created_at', { ascending: false }),
         supabase.from('events').select('id, name, date, created_at, owner_id, table_count, planner_data, guests(count)'),
-        supabase.from('invitations').select('event_id'),
+        supabase.from('event_invitations').select('event_id'),
         supabase.from('leads').select('*'),
         // Necesita migrations/2026_10_leads_reales.sql; sin eso, no se muestra el último ingreso.
         supabase.rpc('admin_last_sign_ins'),
