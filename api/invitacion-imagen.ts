@@ -53,7 +53,10 @@ async function loadCover(cover: string, origin: string): Promise<string | null> 
 function initials(title: string): string {
     const parts = title.split(/\s*(?:&|\sy\s)\s*/i).map(p => p.trim()).filter(Boolean);
     if (parts.length >= 2) return `${parts[0][0]}&${parts[1][0]}`.toUpperCase();
-    return (title.trim()[0] || '♥').toUpperCase();
+    // "15 Años Nayra" → "N": la inicial de la última palabra que empieza con letra.
+    const words = title.split(/\s+/).filter(w => /^\p{L}/u.test(w));
+    const last = words[words.length - 1];
+    return (last ? last[0] : '•').toUpperCase();
 }
 
 export default async function handler(req: Request): Promise<Response> {
