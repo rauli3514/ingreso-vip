@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { copyText, openWhatsApp } from '../../../../lib/share';
 import { Copy, Send, Trash2, UserPlus, ExternalLink, Users, Plus, X, Pencil, Ban } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 
@@ -178,12 +179,11 @@ export default function GuestsManager({ eventId }: Props) {
 
     const handleCopyLink = async (guest: Guest) => {
         const url = generateGuestUrl(guest);
-        try {
-            await navigator.clipboard.writeText(url);
+        if (await copyText(url)) {
             setCopiedId(guest.id);
             setTimeout(() => setCopiedId(null), 2000);
-        } catch (err) {
-            alert('Error al copiar el enlace');
+        } else {
+            window.prompt('Copiá el enlace:', url);
         }
     };
 
@@ -191,8 +191,7 @@ export default function GuestsManager({ eventId }: Props) {
         const url = generateGuestUrl(guest);
         const fullName = `${guest.first_name} ${guest.last_name}`.trim();
         const message = `Hola ${fullName}! Te invitamos a nuestro evento 🎉 Tenés ${guest.passes} pase${guest.passes !== 1 ? 's' : ''}. Mirá la invitación y confirmá tu asistencia desde este link: ${url}`;
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
+        openWhatsApp(message);
     };
 
     // Filter state

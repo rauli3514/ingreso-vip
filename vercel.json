@@ -1,5 +1,23 @@
 {
+    "images": {
+        "sizes": [1200],
+        "remotePatterns": [
+            { "protocol": "https", "hostname": "*.supabase.co" }
+        ],
+        "minimumCacheTTL": 86400
+    },
     "rewrites": [
+        {
+            "source": "/invitacion/:id",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(whatsapp|facebookexternalhit|facebot|telegrambot|twitterbot|slackbot|discordbot|linkedinbot|skypeuripreview|pinterest|vkshare|embedly).*"
+                }
+            ],
+            "destination": "/api/invitacion-preview?id=:id"
+        },
         {
             "source": "/(.*)",
             "destination": "/index.html"

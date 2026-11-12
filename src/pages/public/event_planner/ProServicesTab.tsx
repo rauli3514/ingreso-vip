@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Crown, Link, Shield, ArrowRight, CheckCircle2, Users, Loader2, Eye } from 'lucide-react';
+import { Crown, Link, Shield, ArrowRight, CheckCircle2, Users, Loader2, Eye, MessageCircle, Copy, Check, Share2 } from 'lucide-react';
 import { EventData } from './types';
 import DigitalInvitationWizard from './invitation/DigitalInvitationWizard';
 import InvitationEditorPanel from '../../admin/invitation/InvitationEditorPanel';
@@ -7,6 +7,7 @@ import VipAccessHub from './vip/VipAccessHub';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
 import { supabase } from '../../../lib/supabase';
 import { GOLD_BUTTON } from './eventpixServices';
+import { copyText, openWhatsApp, nativeShare } from '../../../lib/share';
 
 interface ProServicesTabProps {
     eventData: EventData;
@@ -40,13 +41,22 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
             .then(({ data }) => setHasSavedInvitation(!!data));
     }, [eventData.cloudEventId, view]);
 
+    const invitationTitle = eventData.invitation_settings?.event_name || eventData.name || 'nuestro evento';
+    const shareMessage = `¡Estás invitado a ${invitationTitle}! 💌 Mirá la invitación y confirmá tu asistencia acá: ${publicUrl}`;
+
     const handleCopyLink = async () => {
-        try {
-            await navigator.clipboard.writeText(publicUrl);
+        if (await copyText(publicUrl)) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch {
-            alert('No se pudo copiar el enlace');
+        } else {
+            window.prompt('Copiá el enlace:', publicUrl);
+        }
+    };
+
+    const handleShare = async () => {
+        // En el celular abre el menú de compartir; en la compu, copia.
+        if (!(await nativeShare({ title: invitationTitle, text: shareMessage.replace(publicUrl, '').trim(), url: publicUrl }))) {
+            handleCopyLink();
         }
     };
 
@@ -231,22 +241,39 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
                             <div className="space-y-3">
                                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col gap-2">
                                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tu Enlace Público</span>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            readOnly
-                                            value={publicUrl || 'Guardá tu evento para obtener el enlace'}
-                                            className="w-full bg-slate-900 text-slate-300 text-xs py-2 px-3 rounded-lg border border-slate-700 outline-none"
-                                        />
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={publicUrl || 'Guardá tu evento para obtener el enlace'}
+                                        onFocus={(e) => e.target.select()}
+                                        className="w-full bg-slate-900 text-slate-300 text-xs py-2 px-3 rounded-lg border border-slate-700 outline-none"
+                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <button
+                                            onClick={() => openWhatsApp(shareMessage)}
+                                            disabled={!publicUrl}
+                                            className="sm:col-span-3 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            <MessageCircle size={18} /> Enviar por WhatsApp
+                                        </button>
                                         <button
                                             onClick={handleCopyLink}
                                             disabled={!publicUrl}
-                                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-xs font-bold whitespace-nowrap disabled:opacity-50"
-                                            title="Copiar Enlace"
+                                            className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
                                         >
-                                            {copied ? '✓ Copiado' : '📋 Copiar'}
+                                            {copied ? <><Check size={14} className="text-emerald-400" /> Copiado</> : <><Copy size={14} /> Copiar enlace</>}
+                                        </button>
+                                        <button
+                                            onClick={handleShare}
+                                            disabled={!publicUrl}
+                                            className="sm:col-span-2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                        >
+                                            <Share2 size={14} /> Compartir (Instagram, Facebook, mail…)
                                         </button>
                                     </div>
+                                    <p className="text-[11px] text-slate-500 leading-snug">
+                                        En WhatsApp el enlace llega con una tarjeta con los nombres, la fecha y la foto de portada. Si cambiás la portada, la tarjeta se actualiza en unos minutos.
+                                    </p>
                                     <button 
                                         onClick={() => setView('rsvps')}
                                         className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-all text-center flex items-center justify-center gap-2"

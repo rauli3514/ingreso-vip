@@ -6,6 +6,9 @@ import {
     Store, 
     Crown, 
     Filter, 
+    Inbox,
+    CalendarDays,
+    UserCog,
     LogOut, 
     Home,
     Menu,
@@ -24,17 +27,20 @@ export default function AdminLayout() {
         navigate('/login');
     };
 
+    // Todo lo del negocio en un solo panel. El panel viejo (/admin) queda para
+    // crear y editar eventos, y es el que usan los clientes que compraron.
     const navItems = [
-        { path: '/admin-ep/analytics', label: 'Resumen', icon: LayoutDashboard, isExternal: false },
-        { path: '/admin-ep/premium', label: 'Ventas y Pagos', icon: Crown, isExternal: false },
-        { path: '/admin-ep/leads', label: 'Leads', icon: Users, isExternal: false },
-        { path: '/admin-ep/providers', label: 'Proveedores', icon: Store, isExternal: false },
+        { path: '/admin-ep/analytics', label: 'Resumen', icon: LayoutDashboard },
+        { path: '/admin-ep/clients', label: 'Clientes', icon: Users },
+        { path: '/admin-ep/leads', label: 'Leads', icon: Inbox },
+        { path: '/admin-ep/premium', label: 'Ventas y Pagos', icon: Crown },
+        { path: '/admin-ep/metrics', label: 'Embudo de clientes', icon: Filter },
     ];
 
     const oldNavItems = [
-        { path: '/admin-ep/events', label: 'Mis Eventos', icon: LayoutDashboard },
-        { path: '/admin-ep/clients', label: 'Clientes (Novios)', icon: Users },
-        { path: '/admin-ep/metrics', label: 'Embudo de clientes', icon: LayoutDashboard },
+        { path: '/admin-ep/events', label: 'Todos los eventos', icon: CalendarDays },
+        { path: '/admin-ep/providers', label: 'Proveedores', icon: Store },
+        { path: '/admin-ep/users', label: 'Usuarios y permisos', icon: UserCog },
     ];
 
     return (
@@ -95,7 +101,7 @@ export default function AdminLayout() {
                     })}
 
                     <div className="pt-4 mt-4 mb-2">
-                        <p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">Gestión Global</p>
+                        <p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">Gestión</p>
                     </div>
 
                     {oldNavItems.map((item) => {
@@ -129,11 +135,11 @@ export default function AdminLayout() {
                     
                     <div className="space-y-1">
                         <Link 
-                            to="/admin" 
+                            to="/admin/dashboard" 
                             className="flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"
                         >
                             <Home size={18} />
-                            Ingreso VIP Admin
+                            Crear o editar un evento
                         </Link>
                         <button 
                             onClick={handleSignOut}

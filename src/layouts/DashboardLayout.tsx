@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Calendar, User, Users, Zap, X, Menu, BarChart3, Sparkles, Crown } from 'lucide-react';
+import { LogOut, Calendar, User, Zap, X, Menu, Sparkles, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { hasPaidPlan } from '../lib/plans';
@@ -131,23 +131,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             active={location.pathname.includes('/admin/dashboard')}
                             onClick={() => { navigate('/admin/dashboard'); setIsMobileMenuOpen(false); }}
                         />
-                    )}
-
-                    {role === 'superadmin' && (
-                        <>
-                            <NavItem
-                                icon={<Users size={18} />}
-                                label="Usuarios"
-                                active={location.pathname.includes('/admin/users')}
-                                onClick={() => { navigate('/admin/users'); setIsMobileMenuOpen(false); }}
-                            />
-                            <NavItem
-                                icon={<BarChart3 size={18} />}
-                                label="Analíticas"
-                                active={location.pathname.includes('/admin/metrics')}
-                                onClick={() => { navigate('/admin/metrics'); setIsMobileMenuOpen(false); }}
-                            />
-                        </>
                     )}
 
                     <div className="pt-4 mt-4 border-t border-white/5">

@@ -10,7 +10,6 @@ import EventsList from './pages/admin/EventsList';
 import EventDetails from './pages/admin/EventDetails';
 import UsersList from './pages/admin/UsersList';
 import InvitationEditor from './pages/admin/invitation/InvitationEditor';
-import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 
 import GuestApp from './pages/guest/GuestApp';
 import InvitationRenderer from './pages/public/invitation/InvitationRenderer';
@@ -43,10 +42,11 @@ function App() {
                             <Route path="/admin" element={<ProtectedRoute />}>
                                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                                 <Route path="dashboard" element={<EventsList />} />
-                                <Route path="users" element={<UsersList />} />
+                                {/* Usuarios y Analíticas se mudaron al Business Admin */}
+                                <Route path="users" element={<Navigate to="/admin-ep/users" replace />} />
                                 <Route path="event/:id" element={<EventDetails />} />
                                 <Route path="event/:id/invitation" element={<InvitationEditor />} />
-                                <Route path="metrics" element={<AnalyticsDashboard />} />
+                                <Route path="metrics" element={<Navigate to="/admin-ep/metrics" replace />} />
                             </Route>
 
                             {/* EventPix Admin Routes */}
@@ -61,6 +61,7 @@ function App() {
                                     <Route path="clients" element={<Clients />} />
                                     <Route path="events" element={<EventsAdmin />} />
                                     <Route path="metrics" element={<UsageMetrics />} />
+                                    <Route path="users" element={<UsersList />} />
                                 </Route>
                             </Route>
 
