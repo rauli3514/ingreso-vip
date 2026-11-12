@@ -28,6 +28,8 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
     // desde el panel de admin y no desde el Creador Mágico).
     const [hasSavedInvitation, setHasSavedInvitation] = useState(false);
     const [copied, setCopied] = useState(false);
+    // Título de la invitación guardada: es el que muestra la tarjeta de WhatsApp.
+    const [savedTitle, setSavedTitle] = useState('');
     const isInvitationConfigured = !!eventData.invitation_settings || hasSavedInvitation;
     const publicUrl = eventData.cloudEventId ? `${window.location.origin}/invitacion/${eventData.cloudEventId}` : '';
 
@@ -35,13 +37,16 @@ export default function ProServicesTab({ eventData, onUpdateEvent, onSaveRequest
         if (!eventData.cloudEventId) return;
         supabase
             .from('event_invitations')
-            .select('id')
+            .select('id, hero_section')
             .eq('event_id', eventData.cloudEventId)
             .maybeSingle()
-            .then(({ data }) => setHasSavedInvitation(!!data));
+            .then(({ data }) => {
+                setHasSavedInvitation(!!data);
+                setSavedTitle(data?.hero_section?.title || '');
+            });
     }, [eventData.cloudEventId, view]);
 
-    const invitationTitle = eventData.invitation_settings?.event_name || eventData.name || 'nuestro evento';
+    const invitationTitle = savedTitle || eventData.invitation_settings?.event_name || eventData.name || 'nuestro evento';
     const shareMessage = `¡Estás invitado a ${invitationTitle}! 💌 Mirá la invitación y confirmá tu asistencia acá: ${publicUrl}`;
 
     const handleCopyLink = async () => {
